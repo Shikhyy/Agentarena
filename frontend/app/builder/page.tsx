@@ -2,249 +2,231 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-const ARCHETYPES = [
-    { id: "aggressive", name: "Aggressive", icon: "🔥", desc: "High risk, high reward. Attacks first, asks later.", color: "var(--danger-red)" },
-    { id: "conservative", name: "Conservative", icon: "🛡️", desc: "Patient and methodical. Waits for the perfect moment.", color: "var(--neon-green)" },
-    { id: "unpredictable", name: "Unpredictable", icon: "🎲", desc: "Random genius. Opponents never know what's coming.", color: "var(--arena-gold)" },
-    { id: "adaptive", name: "Adaptive", icon: "🧠", desc: "Studies opponents and evolves strategy mid-game.", color: "var(--electric-purple-light)" },
-    { id: "chaos", name: "Chaos", icon: "💀", desc: "Pure entropy. Breaks meta and exploits confusion.", color: "#FF6B6B" },
+// ── Step types ─────────────────────────────────────────────────
+const STEPS = ["Identity", "Personality", "Skills", "Strategy", "Review"];
+
+const PERSONALITIES = [
+    { id: "aggressive", emoji: "🔥", label: "Aggressive", desc: "High-risk, high-reward. Attacks relentlessly." },
+    { id: "conservative", emoji: "🛡️", label: "Conservative", desc: "Patient and methodical. Rarely makes mistakes." },
+    { id: "adaptive", emoji: "🧠", label: "Adaptive", desc: "Reads the game state and shifts strategy dynamically." },
+    { id: "unpredictable", emoji: "🎲", label: "Unpredictable", desc: "Random enough to confuse opponents." },
+    { id: "chaos", emoji: "💀", label: "Chaos Agent", desc: "Pure anarchy. Opponents cannot predict a thing." },
 ];
 
-const SKILLS = [
-    { id: "poker-face", name: "Poker Face", icon: "😐", desc: "Reduces bluff detection by opponents", game: "Poker", locked: false },
-    { id: "grandmaster", name: "Grandmaster Openings", icon: "♟️", desc: "Top 20 chess openings pre-loaded", game: "Chess", locked: false },
-    { id: "memory-palace", name: "Memory Palace", icon: "🏛️", desc: "Perfect recall of opponent patterns", game: "All", locked: true },
-    { id: "bluff-detector", name: "Bluff Detector", icon: "🔍", desc: "ML-powered bluff probability analysis", game: "Poker", locked: true },
+const ALL_SKILLS = [
+    { id: "endgame_master", label: "Endgame Master", icon: "♟️", game: "chess" },
+    { id: "opening_book", label: "Opening Book", icon: "📖", game: "chess" },
+    { id: "sacrifice_gambit", label: "Sacrifice Gambit", icon: "⚡", game: "chess" },
+    { id: "bluff_master", label: "Bluff Master", icon: "🎭", game: "poker" },
+    { id: "pot_odds", label: "Pot Odds Expert", icon: "🧮", game: "poker" },
+    { id: "property_hoarder", label: "Property Hoarder", icon: "🏠", game: "monopoly" },
+    { id: "negotiator", label: "Master Negotiator", icon: "🤝", game: "monopoly" },
+    { id: "risk_taker", label: "Risk Taker", icon: "🎯", game: "all" },
+    { id: "adaptability", label: "Quick Adapter", icon: "🔄", game: "all" },
 ];
-
-const STEPS = ["Personality", "Skills", "Strategy", "Review"];
 
 export default function BuilderPage() {
+    const router = useRouter();
     const [step, setStep] = useState(0);
     const [agentName, setAgentName] = useState("");
-    const [selectedArchetype, setSelectedArchetype] = useState<string | null>(null);
+    const [selectedPersonality, setSelectedPersonality] = useState<string | null>(null);
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+    const [traits, setTraits] = useState({ aggression: 0.5, risk: 0.5, creativity: 0.5 });
+    const [gameTypes, setGameTypes] = useState<string[]>(["chess"]);
+    const [creating, setCreating] = useState(false);
 
     const toggleSkill = (id: string) => {
-        setSelectedSkills((prev) =>
-            prev.includes(id) ? prev.filter((s) => s !== id) : prev.length < 2 ? [...prev, id] : prev
+        setSelectedSkills(prev =>
+            prev.includes(id) ? prev.filter(s => s !== id) : prev.length < 3 ? [...prev, id] : prev
         );
     };
 
-    return (
-        <div className="page container" style={{ maxWidth: 900 }}>
-            {/* Header */}
-            <div style={{ marginBottom: "var(--space-xl)" }}>
-                <h1>🛠️ <span className="text-gradient">Agent Builder</span></h1>
-                <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>
-                    Craft your AI warrior. Choose personality, assign skills, set strategy.
-                </p>
-            </div>
+    const handleCreate = async () => {
+        setCreating(true);
+        await new Promise(r => setTimeout(r, 1500)); // simulate API call
+        setCreating(false);
+        router.push("/my-agents");
+    };
 
-            {/* Progress Steps */}
-            <div className="flex justify-center gap-md" style={{ marginBottom: "var(--space-2xl)" }}>
-                {STEPS.map((s, i) => (
-                    <div
-                        key={s}
-                        className="flex items-center gap-sm"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setStep(i)}
-                    >
-                        <div
-                            style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: "var(--radius-full)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: 700,
-                                fontSize: "0.8125rem",
-                                background: i <= step
-                                    ? "linear-gradient(135deg, var(--electric-purple), var(--electric-purple-light))"
-                                    : "var(--midnight-navy)",
-                                color: i <= step ? "white" : "var(--text-muted)",
-                                border: i <= step ? "none" : "1px solid var(--border-subtle)",
-                                transition: "all 0.3s",
-                            }}
-                        >
-                            {i < step ? "✓" : i + 1}
-                        </div>
-                        <span
-                            style={{
-                                fontFamily: "var(--font-heading)",
-                                fontWeight: 600,
-                                fontSize: "0.875rem",
-                                color: i <= step ? "var(--text-primary)" : "var(--text-muted)",
-                            }}
-                        >
-                            {s}
-                        </span>
-                        {i < STEPS.length - 1 && (
+    const canNext = () => {
+        if (step === 0) return agentName.trim().length >= 3;
+        if (step === 1) return selectedPersonality !== null;
+        if (step === 2) return selectedSkills.length >= 1;
+        return true;
+    };
+
+    return (
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: "var(--space-xl) var(--space-lg)" }}>
+            {/* Progress bar */}
+            <div style={{ marginBottom: "var(--space-xl)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
+                    {STEPS.map((s, i) => (
+                        <div key={s} style={{ textAlign: "center", flex: 1 }}>
                             <div style={{
-                                width: 40,
-                                height: 2,
-                                background: i < step ? "var(--electric-purple)" : "var(--midnight-navy)",
-                                borderRadius: 1,
-                            }} />
-                        )}
-                    </div>
-                ))}
+                                width: 32, height: 32, borderRadius: "50%",
+                                background: i <= step ? "var(--electric-purple)" : "var(--surface-elevated)",
+                                margin: "0 auto var(--space-xs)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "0.8rem", fontWeight: 700,
+                                border: i === step ? "2px solid var(--arena-gold)" : "none",
+                                transition: "all 0.3s",
+                            }}>
+                                {i < step ? "✓" : i + 1}
+                            </div>
+                            <div className="text-muted" style={{ fontSize: "0.7rem", display: step >= i ? "block" : "block", color: i === step ? "var(--arena-gold)" : undefined }}>{s}</div>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ height: 3, background: "var(--surface-elevated)", borderRadius: 2 }}>
+                    <motion.div style={{ height: "100%", background: "linear-gradient(90deg, var(--electric-purple), var(--arena-gold))", borderRadius: 2 }}
+                        animate={{ width: `${(step / (STEPS.length - 1)) * 100}%` }} transition={{ type: "spring" }} />
+                </div>
             </div>
 
             {/* Step Content */}
             <AnimatePresence mode="wait">
-                {step === 0 && (
-                    <motion.div key="personality" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
-                        {/* Agent Name */}
-                        <div style={{ marginBottom: "var(--space-xl)" }}>
-                            <label style={{ fontFamily: "var(--font-heading)", fontWeight: 600, display: "block", marginBottom: "var(--space-sm)" }}>
-                                Agent Name
-                            </label>
+                <motion.div key={step}
+                    initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="glass-panel" style={{ padding: "var(--space-xl)", minHeight: 400 }}>
+
+                    {/* Step 0: Identity */}
+                    {step === 0 && (
+                        <div>
+                            <h2 style={{ marginBottom: "var(--space-sm)" }}>👤 Name Your Agent</h2>
+                            <p className="text-muted" style={{ marginBottom: "var(--space-xl)" }}>Give your AI agent an identity it will carry on the blockchain forever.</p>
                             <input
-                                className="input"
-                                placeholder="Enter a legendary name..."
-                                value={agentName}
-                                onChange={(e) => setAgentName(e.target.value)}
-                                style={{ maxWidth: 400 }}
+                                className="input" type="text" placeholder="e.g. NeuralNinja, ChaosMaster..."
+                                value={agentName} onChange={e => setAgentName(e.target.value)}
+                                style={{ fontSize: "1.2rem", padding: "var(--space-md)", width: "100%" }}
+                                maxLength={32}
                             />
+                            <div className="text-muted" style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)", textAlign: "right" }}>{agentName.length}/32</div>
                         </div>
+                    )}
 
-                        {/* Personality Archetypes */}
-                        <label style={{ fontFamily: "var(--font-heading)", fontWeight: 600, display: "block", marginBottom: "var(--space-md)" }}>
-                            Choose Personality Archetype
-                        </label>
-                        <div className="grid-3" style={{ gap: "var(--space-md)" }}>
-                            {ARCHETYPES.map((a) => (
-                                <motion.div
-                                    key={a.id}
-                                    className="glass-card"
-                                    style={{
-                                        padding: "var(--space-lg)",
-                                        cursor: "pointer",
-                                        textAlign: "center",
-                                        borderColor: selectedArchetype === a.id ? a.color : undefined,
-                                        boxShadow: selectedArchetype === a.id ? `0 0 20px ${a.color}40` : undefined,
-                                    }}
-                                    onClick={() => setSelectedArchetype(a.id)}
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <div style={{ fontSize: "2.5rem", marginBottom: "var(--space-sm)" }}>{a.icon}</div>
-                                    <h4 style={{ color: a.color, marginBottom: "var(--space-xs)" }}>{a.name}</h4>
-                                    <p className="text-muted" style={{ fontSize: "0.8125rem" }}>{a.desc}</p>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {step === 1 && (
-                    <motion.div key="skills" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
-                        <label style={{ fontFamily: "var(--font-heading)", fontWeight: 600, display: "block", marginBottom: "var(--space-sm)" }}>
-                            Assign Skill Slots (max 2)
-                        </label>
-                        <p className="text-muted" style={{ marginBottom: "var(--space-lg)", fontSize: "0.875rem" }}>
-                            Unlock more skills by purchasing Skill NFTs in the marketplace.
-                        </p>
-                        <div className="grid-2" style={{ gap: "var(--space-md)" }}>
-                            {SKILLS.map((skill) => (
-                                <motion.div
-                                    key={skill.id}
-                                    className="glass-card"
-                                    style={{
-                                        padding: "var(--space-lg)",
-                                        cursor: skill.locked ? "not-allowed" : "pointer",
-                                        opacity: skill.locked ? 0.5 : 1,
-                                        display: "flex",
-                                        gap: "var(--space-md)",
-                                        alignItems: "center",
-                                        borderColor: selectedSkills.includes(skill.id) ? "var(--neon-green)" : undefined,
-                                    }}
-                                    onClick={() => !skill.locked && toggleSkill(skill.id)}
-                                    whileHover={skill.locked ? {} : { scale: 1.02 }}
-                                >
-                                    <div style={{ fontSize: "2rem", flexShrink: 0 }}>{skill.icon}</div>
-                                    <div>
-                                        <div className="flex items-center gap-sm">
-                                            <h4>{skill.name}</h4>
-                                            {skill.locked && <span className="badge badge-gold">🔒 NFT</span>}
-                                            <span className="badge badge-purple">{skill.game}</span>
+                    {/* Step 1: Personality */}
+                    {step === 1 && (
+                        <div>
+                            <h2 style={{ marginBottom: "var(--space-sm)" }}>🧬 Choose Personality</h2>
+                            <p className="text-muted" style={{ marginBottom: "var(--space-xl)" }}>Personality shapes how your agent thinks under pressure.</p>
+                            <div style={{ display: "grid", gap: "var(--space-md)" }}>
+                                {PERSONALITIES.map(p => (
+                                    <motion.div key={p.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedPersonality(p.id)}
+                                        style={{
+                                            padding: "var(--space-md)", borderRadius: "var(--radius-md)",
+                                            border: `2px solid ${selectedPersonality === p.id ? "var(--electric-purple)" : "var(--border-subtle)"}`,
+                                            background: selectedPersonality === p.id ? "rgba(108,58,237,0.12)" : "var(--surface-elevated)",
+                                            cursor: "pointer", display: "flex", alignItems: "center", gap: "var(--space-md)",
+                                            transition: "all 0.2s",
+                                        }}>
+                                        <span style={{ fontSize: "2rem" }}>{p.emoji}</span>
+                                        <div>
+                                            <div style={{ fontWeight: 700 }}>{p.label}</div>
+                                            <div className="text-muted" style={{ fontSize: "0.85rem" }}>{p.desc}</div>
                                         </div>
-                                        <p className="text-muted" style={{ fontSize: "0.8125rem", marginTop: 4 }}>{skill.desc}</p>
-                                    </div>
-                                    {selectedSkills.includes(skill.id) && (
-                                        <div style={{ marginLeft: "auto", color: "var(--neon-green)", fontWeight: 700, fontSize: "1.25rem" }}>✓</div>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {step === 2 && (
-                    <motion.div key="strategy" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
-                        <label style={{ fontFamily: "var(--font-heading)", fontWeight: 600, display: "block", marginBottom: "var(--space-sm)" }}>
-                            Strategy Prompt
-                        </label>
-                        <p className="text-muted" style={{ marginBottom: "var(--space-md)", fontSize: "0.875rem" }}>
-                            Describe your agent&apos;s strategy in natural language. This will be committed via ZK proof before battle.
-                        </p>
-                        <textarea
-                            className="input"
-                            rows={6}
-                            placeholder="e.g. Play aggressively in the opening. If losing material, switch to defensive and look for counter-attacks..."
-                            style={{ resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.875rem" }}
-                        />
-                        <div style={{ marginTop: "var(--space-lg)" }}>
-                            <h4 style={{ marginBottom: "var(--space-md)" }}>Or use a template:</h4>
-                            <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
-                                {["Aggressive Bluffer", "Patient Strategist", "Chaos Agent", "Counter-Puncher"].map((t) => (
-                                    <button key={t} className="btn btn-secondary btn-sm">{t}</button>
+                                        {selectedPersonality === p.id && <div style={{ marginLeft: "auto", color: "var(--electric-purple)", fontWeight: 700 }}>✓</div>}
+                                    </motion.div>
                                 ))}
                             </div>
                         </div>
-                    </motion.div>
-                )}
+                    )}
 
-                {step === 3 && (
-                    <motion.div key="review" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
-                        <div className="glass-card" style={{ padding: "var(--space-xl)", textAlign: "center", maxWidth: 500, margin: "0 auto" }}>
-                            <div style={{ fontSize: "4rem", marginBottom: "var(--space-md)" }}>🤖</div>
-                            <h2 style={{ marginBottom: "var(--space-sm)" }}>{agentName || "Unnamed Agent"}</h2>
-                            <span className="badge badge-purple" style={{ marginBottom: "var(--space-md)", display: "inline-block" }}>
-                                {ARCHETYPES.find((a) => a.id === selectedArchetype)?.name || "No Personality"}
-                            </span>
-                            <div className="flex justify-center gap-sm" style={{ marginBottom: "var(--space-lg)" }}>
-                                {selectedSkills.map((id) => {
-                                    const skill = SKILLS.find((s) => s.id === id);
-                                    return <span key={id} className="badge badge-win">{skill?.icon} {skill?.name}</span>;
+                    {/* Step 2: Skills */}
+                    {step === 2 && (
+                        <div>
+                            <h2 style={{ marginBottom: "var(--space-sm)" }}>⚡ Equip Skills</h2>
+                            <p className="text-muted" style={{ marginBottom: "var(--space-xl)" }}>Select up to 3 skills ({selectedSkills.length}/3 chosen).</p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-sm)" }}>
+                                {ALL_SKILLS.map(skill => {
+                                    const selected = selectedSkills.includes(skill.id);
+                                    const maxed = !selected && selectedSkills.length >= 3;
+                                    return (
+                                        <motion.div key={skill.id} whileTap={{ scale: 0.95 }} onClick={() => !maxed && toggleSkill(skill.id)}
+                                            style={{
+                                                padding: "var(--space-md)", textAlign: "center", borderRadius: "var(--radius-md)",
+                                                border: `2px solid ${selected ? "var(--neon-green)" : "var(--border-subtle)"}`,
+                                                background: selected ? "rgba(16,185,129,0.1)" : "var(--surface-elevated)",
+                                                cursor: maxed ? "not-allowed" : "pointer", opacity: maxed ? 0.4 : 1,
+                                                transition: "all 0.2s",
+                                            }}>
+                                            <div style={{ fontSize: "1.8rem", marginBottom: 4 }}>{skill.icon}</div>
+                                            <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>{skill.label}</div>
+                                            <div className="badge" style={{ fontSize: "0.6rem", marginTop: 4 }}>{skill.game}</div>
+                                        </motion.div>
+                                    );
                                 })}
                             </div>
-                            <button className="btn btn-gold btn-lg w-full">
-                                ⚡ Deploy to Arena
-                            </button>
-                            <p className="text-mono" style={{ marginTop: "var(--space-md)", fontSize: "0.6875rem", color: "var(--text-muted)" }}>
-                                Strategy will be committed via Noir ZK circuit
-                            </p>
                         </div>
-                    </motion.div>
-                )}
+                    )}
+
+                    {/* Step 3: Strategy */}
+                    {step === 3 && (
+                        <div>
+                            <h2 style={{ marginBottom: "var(--space-sm)" }}>🎯 Fine-tune Strategy</h2>
+                            <p className="text-muted" style={{ marginBottom: "var(--space-xl)" }}>Adjust behavioral sliders. These become the Noir circuit's private strategy commitment.</p>
+                            {Object.entries(traits).map(([trait, value]) => (
+                                <div key={trait} style={{ marginBottom: "var(--space-lg)" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-xs)" }}>
+                                        <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{trait}</span>
+                                        <span style={{ fontFamily: "var(--font-mono)", color: "var(--arena-gold)" }}>{(value * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <input type="range" min={0} max={1} step={0.01} value={value}
+                                        onChange={e => setTraits(t => ({ ...t, [trait]: Number(e.target.value) }))}
+                                        style={{ width: "100%", accentColor: "var(--electric-purple)" }} />
+                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.65rem", color: "var(--text-muted)" }}>
+                                        <span>{trait === "aggression" ? "Passive" : trait === "risk" ? "Safe" : "Predictable"}</span>
+                                        <span>{trait === "aggression" ? "Aggressive" : trait === "risk" ? "Risk-taker" : "Creative"}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Step 4: Review */}
+                    {step === 4 && (
+                        <div>
+                            <h2 style={{ marginBottom: "var(--space-lg)" }}>📋 Review & Mint</h2>
+                            <div style={{ display: "grid", gap: "var(--space-sm)" }}>
+                                {[
+                                    { label: "Name", value: agentName },
+                                    { label: "Personality", value: PERSONALITIES.find(p => p.id === selectedPersonality)?.label },
+                                    { label: "Skills", value: selectedSkills.join(", ") || "None" },
+                                    { label: "Aggression", value: `${(traits.aggression * 100).toFixed(0)}%` },
+                                    { label: "Risk Tolerance", value: `${(traits.risk * 100).toFixed(0)}%` },
+                                    { label: "Creativity", value: `${(traits.creativity * 100).toFixed(0)}%` },
+                                ].map(({ label, value }) => (
+                                    <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-sm)", background: "var(--surface-sunken)", borderRadius: "var(--radius-sm)" }}>
+                                        <span className="text-muted">{label}</span>
+                                        <span style={{ fontWeight: 600 }}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="glass-panel" style={{ marginTop: "var(--space-lg)", padding: "var(--space-md)", borderLeft: "3px solid var(--neon-green)" }}>
+                                <div style={{ fontSize: "0.8rem", color: "var(--neon-green)", fontWeight: 600 }}>🔐 ZK Strategy Commitment</div>
+                                <div className="text-muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>Strategy traits will be committed via Noir circuit before deployment — opponents cannot see your behavioral settings.</div>
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between" style={{ marginTop: "var(--space-2xl)" }}>
-                <button className="btn btn-secondary" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
+            {/* Navigation */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-lg)" }}>
+                <button className="btn btn-secondary" onClick={() => setStep(s => s - 1)} disabled={step === 0} style={{ opacity: step === 0 ? 0.4 : 1 }}>
                     ← Back
                 </button>
-                <button
-                    className="btn btn-primary"
-                    onClick={() => setStep(Math.min(STEPS.length - 1, step + 1))}
-                    disabled={step === STEPS.length - 1}
-                >
-                    Next →
-                </button>
+                {step < STEPS.length - 1 ? (
+                    <button className="btn btn-primary" onClick={() => setStep(s => s + 1)} disabled={!canNext()}>
+                        Next →
+                    </button>
+                ) : (
+                    <button className="btn btn-primary" onClick={handleCreate} disabled={creating} style={{ minWidth: 160 }}>
+                        {creating ? "Minting Agent NFT..." : "🚀 Create Agent"}
+                    </button>
+                )}
             </div>
         </div>
     );

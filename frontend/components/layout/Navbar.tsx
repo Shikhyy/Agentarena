@@ -37,7 +37,7 @@ export function Navbar() {
                     </Link>
                 </li>
                 <li>
-                    <Link href="/agents" className={`nav-link ${pathname === "/agents" ? "active" : ""}`}>
+                    <Link href="/my-agents" className={`nav-link ${pathname?.startsWith("/my-agents") || pathname?.startsWith("/agents") ? "active" : ""}`}>
                         My Agents
                     </Link>
                 </li>

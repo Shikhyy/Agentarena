@@ -12,7 +12,9 @@ from typing import Dict, List, Set
 from auth.service import router as auth_router
 from routers.betting import router as betting_router
 from routers.progression import router as progression_router
+from routers.beta import router as beta_router
 from middleware.rate_limiter import RateLimitMiddleware
+from events.pubsub import register_default_handlers
 
 
 # ─── Connection Manager ───────────────────────────────────────────────
