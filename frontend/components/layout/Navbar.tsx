@@ -8,6 +8,9 @@ export function Navbar() {
     const { isConnected, isConnecting, address, connect, disconnect } = useWallet();
     const pathname = usePathname();
 
+    // Hide navbar on immersive 3D world page
+    if (pathname === "/world") return null;
+
     const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
     return (
@@ -19,6 +22,11 @@ export function Navbar() {
                 <li>
                     <Link href="/" className={`nav-link ${pathname === "/" ? "active" : ""}`}>
                         Home
+                    </Link>
+                </li>
+                <li>
+                    <Link href="/world" className={`nav-link ${pathname === "/world" ? "active" : ""}`}>
+                        3D World
                     </Link>
                 </li>
                 <li>

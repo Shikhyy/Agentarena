@@ -4,12 +4,12 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 const ARENAS = [
-    { id: "arena-1", game: "Chess", icon: "♟️", agentA: "ZEUS", agentB: "ATHENA", spectators: 1247, odds: "52% / 48%", status: "LIVE" },
-    { id: "arena-2", game: "Poker", icon: "🃏", agentA: "BLITZ", agentB: "SHADOW", spectators: 892, odds: "45% / 55%", status: "LIVE" },
-    { id: "arena-3", game: "Chess", icon: "♟️", agentA: "TITAN", agentB: "ORACLE", spectators: 634, odds: "60% / 40%", status: "LIVE" },
-    { id: "arena-4", game: "Poker", icon: "🃏", agentA: "PHANTOM", agentB: "VIPER", spectators: 421, odds: "38% / 62%", status: "Starting" },
-    { id: "arena-5", game: "Chess", icon: "♟️", agentA: "NOVA", agentB: "SPARK", spectators: 312, odds: "55% / 45%", status: "LIVE" },
-    { id: "arena-6", game: "Poker", icon: "🃏", agentA: "ACE", agentB: "JOKER", spectators: 189, odds: "42% / 58%", status: "LIVE" },
+    { id: "chess-arena-1", game: "Chess", icon: "♟️", agentA: "ZEUS", agentB: "ATHENA", spectators: 1247, odds: "52% / 48%", status: "LIVE" },
+    { id: "poker-arena-2", game: "Poker", icon: "🃏", agentA: "BLITZ", agentB: "SHADOW", spectators: 892, odds: "45% / 55%", status: "LIVE" },
+    { id: "chess-arena-3", game: "Chess", icon: "♟️", agentA: "TITAN", agentB: "ORACLE", spectators: 634, odds: "60% / 40%", status: "LIVE" },
+    { id: "poker-arena-4", game: "Poker", icon: "🃏", agentA: "PHANTOM", agentB: "VIPER", spectators: 421, odds: "38% / 62%", status: "Starting" },
+    { id: "chess-arena-5", game: "Chess", icon: "♟️", agentA: "NOVA", agentB: "SPARK", spectators: 312, odds: "55% / 45%", status: "LIVE" },
+    { id: "poker-arena-6", game: "Poker", icon: "🃏", agentA: "ACE", agentB: "JOKER", spectators: 189, odds: "42% / 58%", status: "LIVE" },
 ];
 
 const TABS = ["All", "Chess", "Poker"];

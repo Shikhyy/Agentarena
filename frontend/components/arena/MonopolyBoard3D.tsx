@@ -108,7 +108,7 @@ function BoardCenter() {
                 color="#F59E0B"
                 anchorX="center"
                 anchorY="middle"
-                font="/fonts/SpaceGrotesk-Bold.ttf"
+                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
             >
                 🏟️{"\n"}AGENT ARENA
             </Text>

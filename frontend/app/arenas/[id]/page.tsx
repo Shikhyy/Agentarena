@@ -11,71 +11,107 @@ const ChessBoard3D = dynamic(() => import("@/components/arena/ChessBoard3D"), {
     loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Initializing WebGL Engine...</div>
 });
 
-import { AgentAvatar3D } from "@/components/arena/AgentAvatar3D";
+const PokerTable3D = dynamic(() => import("@/components/arena/PokerTable3D"), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Initializing WebGL Engine...</div>
+});
+
 import { CommentaryRibbon } from "@/components/arena/CommentaryRibbon";
-import { ParticleEffects } from "@/components/arena/ParticleEffects";
 
 export default function ArenaView() {
     const params = useParams();
     const [spectators, setSpectators] = useState("1.2k");
     const [gameState, setGameState] = useState<any>(null);
+    const [gameType, setGameType] = useState<"chess" | "poker">("chess");
 
-    // Mock WebSocket connection
+    // Determine game type from arena id
+    useEffect(() => {
+        const id = params.id as string;
+        if (id?.includes("poker")) setGameType("poker");
+        else setGameType("chess");
+    }, [params.id]);
+
+    // WebSocket connection (safe — degrades gracefully when backend is offline)
     useEffect(() => {
         const arenaId = params.id as string || "test_arena_1";
-        const ws = new WebSocket(`ws://localhost:8000/arenas/${arenaId}/stream`);
+        let ws: WebSocket | null = null;
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === "connected") {
-                setSpectators(data.spectators.toString());
-            }
+        try {
+            ws = new WebSocket(`ws://localhost:8000/arenas/${arenaId}/stream`);
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "connected") {
+                        setSpectators(data.spectators.toString());
+                    }
+                } catch { /* ignore malformed messages */ }
+            };
+
+            ws.onerror = () => {
+                // Backend offline — use mock data silently
+                ws?.close();
+            };
+        } catch {
+            // WebSocket not available
+        }
+
+        return () => {
+            try { ws?.close(); } catch { /* already closed */ }
         };
-
-        return () => ws.close();
     }, [params.id]);
 
     return (
-        <div style={{ position: "relative", width: "100%", height: "calc(100vh - 80px)", overflow: "hidden", background: "var(--deep-space)" }}>
+        <div style={{ position: "relative", width: "100%", height: "calc(100vh - 80px)", background: "var(--deep-space)", overflow: "hidden" }}>
 
-            {/* Top Bar overlay */}
-            <div style={{
-                position: "absolute",
-                top: 0, left: 0, right: 0,
-                padding: "var(--space-md) var(--space-lg)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                zIndex: 10,
-                background: "linear-gradient(to bottom, rgba(15, 10, 26, 0.9), transparent)",
-                pointerEvents: "none"
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
-                    <div className="badge badge-win flex gap-sm">
-                        <span className="blob"></span> LIVE
+            {/* ─── 3D Canvas (fills the entire container) ─── */}
+            <div style={{ position: "absolute", inset: 0, zIndex: 1 }}>
+                <Suspense fallback={
+                    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                        Loading WebGL...
                     </div>
-                    <h1 style={{ fontSize: "1.25rem", margin: 0, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
-                        Arena #{params.id}
-                    </h1>
-                </div>
-
-                <div className="glass-panel" style={{ padding: "var(--space-xs) var(--space-md)", fontSize: "0.875rem", display: "flex", gap: "var(--space-sm)", pointerEvents: "auto" }}>
-                    <span className="text-muted">👁️ {spectators}</span>
-                    <span className="text-muted">|</span>
-                    <span style={{ color: "var(--arena-gold)" }}>🏆 $24.5k Pool</span>
-                </div>
-            </div>
-
-            {/* Main 3D Viewport */}
-            <div style={{ width: "100%", height: "100%" }}>
-                <Suspense fallback={<div className="flex-center h-full">Loading Engine...</div>}>
-                    <ChessBoard3D />
+                }>
+                    {gameType === "chess" ? (
+                        <ChessBoard3D agentWhite="AlphaGo Zero" agentBlack="DeepBlue Next" activeColor="white" />
+                    ) : (
+                        <PokerTable3D />
+                    )}
                 </Suspense>
-                <ParticleEffects active={false} type="capture" position={[0, 0, 0]} />
             </div>
 
-            {/* UI Overlays */}
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+            {/* ─── All UI overlays on top (zIndex 10+) ─── */}
+            <div style={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none" }}>
+
+                {/* Top Bar */}
+                <div style={{
+                    position: "absolute",
+                    top: 0, left: 0, right: 0,
+                    padding: "var(--space-md) var(--space-lg)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "linear-gradient(to bottom, rgba(15, 10, 26, 0.9), transparent)",
+                    pointerEvents: "none"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
+                        <div className="badge badge-win flex gap-sm">
+                            <span className="blob"></span> LIVE
+                        </div>
+                        <h1 style={{ fontSize: "1.25rem", margin: 0, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+                            Arena #{params.id}
+                        </h1>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
+                        <a href="/world" className="btn btn-secondary btn-sm" style={{ pointerEvents: "auto", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                            🌐 Enter 3D World
+                        </a>
+                        <div className="glass-panel" style={{ padding: "var(--space-xs) var(--space-md)", fontSize: "0.875rem", display: "flex", gap: "var(--space-sm)", pointerEvents: "auto" }}>
+                            <span className="text-muted">👁️ {spectators}</span>
+                            <span className="text-muted">|</span>
+                            <span style={{ color: "var(--arena-gold)" }}>🏆 $24.5k Pool</span>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Left Sidebar: Agents */}
                 <div style={{
@@ -96,8 +132,8 @@ export default function ArenaView() {
                         style={{ padding: "var(--space-md)", width: 260, pointerEvents: "auto", borderLeft: "3px solid var(--neon-green)" }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
-                            <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "var(--surface-sunken)" }}>
-                                <AgentAvatar3D modelUrl="/models/agent-a.glb" idleAnimation={true} />
+                            <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--neon-green), var(--electric-purple))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
+                                🤖
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>AlphaGo Zero</h3>
@@ -117,8 +153,8 @@ export default function ArenaView() {
                         style={{ padding: "var(--space-md)", width: 260, pointerEvents: "auto", borderLeft: "3px solid var(--electric-purple)" }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
-                            <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "var(--surface-sunken)" }}>
-                                <AgentAvatar3D modelUrl="/models/agent-b.glb" idleAnimation={true} />
+                            <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--electric-purple), var(--flame-orange))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
+                                🤖
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>DeepBlue Next</h3>

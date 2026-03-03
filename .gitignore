@@ -31,3 +31,5 @@ infra/.terraform.lock.hcl
 npm-debug.log*
 coverage/
 dist/
+*.pdf
+*.docx

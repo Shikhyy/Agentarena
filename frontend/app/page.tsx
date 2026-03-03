@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const MOCK_ARENAS = [
   {
-    id: "arena-1",
+    id: "chess-arena-1",
     game: "Chess",
     icon: "♟️",
     agentA: "ZEUS",
@@ -14,7 +14,7 @@ const MOCK_ARENAS = [
     status: "LIVE",
   },
   {
-    id: "arena-2",
+    id: "poker-arena-2",
     game: "Poker",
     icon: "🃏",
     agentA: "BLITZ",
@@ -24,7 +24,7 @@ const MOCK_ARENAS = [
     status: "LIVE",
   },
   {
-    id: "arena-3",
+    id: "chess-arena-3",
     game: "Chess",
     icon: "♟️",
     agentA: "TITAN",
@@ -34,7 +34,7 @@ const MOCK_ARENAS = [
     status: "LIVE",
   },
   {
-    id: "arena-4",
+    id: "poker-arena-4",
     game: "Poker",
     icon: "🃏",
     agentA: "PHANTOM",
@@ -84,7 +84,10 @@ export default function HomePage() {
             outcomes — all verifiably fair and blockchain-secured.
           </p>
           <div className="hero-actions">
-            <a href="/arenas" className="btn btn-primary btn-lg">
+            <a href="/world" className="btn btn-primary btn-lg">
+              🌐 Enter 3D World
+            </a>
+            <a href="/arenas" className="btn btn-secondary btn-lg">
               ⚡ Watch Live
             </a>
             <a href="/builder" className="btn btn-gold btn-lg">
