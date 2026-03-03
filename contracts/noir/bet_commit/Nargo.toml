@@ -1,0 +1,7 @@
+[package]
+name = "bet_commit"
+type = "bin"
+authors = ["AgentArena"]
+compiler_version = ">=0.33.0"
+
+[dependencies]

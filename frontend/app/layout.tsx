@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   keywords: ["AI", "gaming", "agents", "blockchain", "poker", "chess", "betting", "arena"],
 };
 
+import { Providers } from "./providers";
+import { Navbar } from "@/components/layout/Navbar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -16,19 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <nav className="nav">
-          <a href="/" className="nav-logo">⚔️ AgentArena</a>
-          <ul className="nav-links">
-            <li><a href="/" className="nav-link active">Home</a></li>
-            <li><a href="/arenas" className="nav-link">Arenas</a></li>
-            <li><a href="/builder" className="nav-link">Build Agent</a></li>
-            <li><a href="/leaderboard" className="nav-link">Leaderboard</a></li>
-            <li><a href="/agents" className="nav-link">My Agents</a></li>
-            <li><a href="/profile" className="nav-link">Profile</a></li>
-          </ul>
-          <button className="btn btn-primary btn-sm">Connect Wallet</button>
-        </nav>
-        <main>{children}</main>
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   );

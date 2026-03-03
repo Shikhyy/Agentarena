@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
+import { SiweMessage } from "siwe";
+
 // ── Types ────────────────────────────────────────────────────
 interface WalletState {
     address: string | null;
@@ -10,6 +12,7 @@ interface WalletState {
     isConnecting: boolean;
     balance: string;
     arenaBalance: string;
+    token: string | null;
 }
 
 interface WalletContextType extends WalletState {
@@ -38,6 +41,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         isConnecting: false,
         balance: "0",
         arenaBalance: "0",
+        token: (typeof window !== "undefined" ? localStorage.getItem("agentarena_token") : null),
     });
 
     const connect = useCallback(async () => {
@@ -50,27 +54,69 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
             const ethereum = (window as any).ethereum;
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-            const chainId = await ethereum.request({ method: "eth_chainId" });
+            const address = accounts[0];
+            const chainIdHex = await ethereum.request({ method: "eth_chainId" });
+            const chainId = parseInt(chainIdHex, 16);
+
+            // 1. Get Nonce from Backend
+            const nonceRes = await fetch("http://localhost:8000/auth/nonce");
+            const { nonce } = await nonceRes.json();
+
+            // 2. Create SIWE Message
+            const message = new SiweMessage({
+                domain: window.location.host,
+                address,
+                statement: "Sign in to AgentArena. This will issue a session token for secure API access.",
+                uri: window.location.origin,
+                version: "1",
+                chainId,
+                nonce,
+            });
+            const preparedMessage = message.prepareMessage();
+
+            // 3. Prompt user signature
+            const signature = await ethereum.request({
+                method: "personal_sign",
+                params: [preparedMessage, address],
+            });
+
+            // 4. Verify signature on backend
+            const verifyRes = await fetch("http://localhost:8000/auth/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: message, signature }),
+            });
+
+            if (!verifyRes.ok) {
+                throw new Error("SIWE verification failed");
+            }
+
+            const { token } = await verifyRes.json();
+            localStorage.setItem("agentarena_token", token);
+
             const balanceHex = await ethereum.request({
                 method: "eth_getBalance",
-                params: [accounts[0], "latest"],
+                params: [address, "latest"],
             });
             const balanceEth = (parseInt(balanceHex, 16) / 1e18).toFixed(4);
 
             setState({
-                address: accounts[0],
-                chainId: parseInt(chainId, 16),
+                address,
+                chainId,
                 isConnected: true,
                 isConnecting: false,
                 balance: balanceEth,
                 arenaBalance: "12,450", // Mock $ARENA balance
+                token,
             });
-        } catch {
+        } catch (err) {
+            console.error("Connection failed:", err);
             setState((s) => ({ ...s, isConnecting: false }));
         }
     }, []);
 
     const disconnect = useCallback(() => {
+        localStorage.removeItem("agentarena_token");
         setState({
             address: null,
             chainId: null,
@@ -78,6 +124,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             isConnecting: false,
             balance: "0",
             arenaBalance: "0",
+            token: null,
         });
     }, []);
 

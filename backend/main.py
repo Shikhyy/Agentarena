@@ -9,6 +9,9 @@ import json
 import asyncio
 from typing import Dict, List, Set
 
+from auth.service import router as auth_router
+from routers.betting import router as betting_router
+
 
 # ─── Connection Manager ───────────────────────────────────────────────
 class ConnectionManager:
@@ -74,6 +77,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(betting_router)
 
 # ─── REST Endpoints ─────────────────────────────────────────────────
 @app.get("/")
@@ -84,6 +89,8 @@ async def root():
         "status": "running",
     }
 
+
+from betting.odds_engine import odds_engine
 
 @app.get("/arenas/live")
 async def list_live_arenas():
@@ -98,6 +105,7 @@ async def list_live_arenas():
             "status": game.get("status", "waiting"),
             "spectators": manager.get_spectator_count(game_id),
             "move_count": game.get("move_count", 0),
+            "live_odds": odds_engine.get_current_state(game_id)
         })
     return {"arenas": arena_list}
 
@@ -140,18 +148,6 @@ async def get_leaderboard(game: str = "all", period: str = "all_time"):
     }
 
 
-@app.post("/arenas/{arena_id}/bet")
-async def place_bet(arena_id: str, bet: dict):
-    """Place a bet on a game outcome (simulated for MVP)."""
-    return {
-        "arena_id": arena_id,
-        "amount": bet.get("amount", 0),
-        "position": bet.get("position", "agent_a"),
-        "status": "confirmed",
-        "commitment_hash": "0x" + "a" * 64,  # Mock ZK commitment
-    }
-
-
 # ─── WebSocket Endpoints ────────────────────────────────────────────
 @app.websocket("/arenas/{arena_id}/stream")
 async def arena_stream(websocket: WebSocket, arena_id: str):
@@ -163,6 +159,7 @@ async def arena_stream(websocket: WebSocket, arena_id: str):
             "type": "connected",
             "arena_id": arena_id,
             "spectators": manager.get_spectator_count(arena_id),
+            "live_odds": odds_engine.get_current_state(arena_id)
         })
 
         # Listen for client messages
@@ -172,10 +169,26 @@ async def arena_stream(websocket: WebSocket, arena_id: str):
 
             if message.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})
+            
             elif message.get("type") == "bet":
                 await websocket.send_json({
                     "type": "bet_confirmed",
                     "amount": message.get("amount"),
+                })
+                
+            elif message.get("type") == "engine_eval":
+                # Simulated game engine evaluation shifting the Bayesian prob
+                position = message.get("position", 0)
+                advantage = message.get("advantage_score", 1.0)
+                
+                new_probs = odds_engine.bayesian_update(arena_id, {
+                    "position": position, 
+                    "advantage_score": advantage
+                })
+                
+                await manager.broadcast(arena_id, {
+                    "type": "odds_update",
+                    "live_odds": odds_engine.get_current_state(arena_id)
                 })
 
     except WebSocketDisconnect:

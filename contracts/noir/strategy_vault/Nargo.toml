@@ -1,0 +1,7 @@
+[package]
+name = "strategy_vault"
+type = "bin"
+authors = ["AgentArena"]
+compiler_version = ">=0.33.0"
+
+[dependencies]

@@ -32,9 +32,18 @@ const PNL_DATA = [
     { day: "Sun", value: 6240 },
 ];
 
+import { useWallet } from "@/lib/wallet";
+
 export default function ProfilePage() {
+    const { isConnected, address, balance, arenaBalance } = useWallet();
     const [activeTab, setActiveTab] = useState<"bets" | "agents" | "nfts">("bets");
     const maxPnl = Math.max(...PNL_DATA.map((d) => d.value));
+
+    // Calculate dynamic stats
+    const totalWinnings = isConnected ? "8,240" : "0";
+    const totalBets = isConnected ? 147 : 0;
+    const winRate = isConnected ? "64%" : "0%";
+    const pnl = isConnected ? "+3,812" : "0";
 
     return (
         <div style={{ padding: "var(--space-xl) var(--space-2xl)", maxWidth: 1200, margin: "0 auto" }}>
@@ -68,21 +77,21 @@ export default function ProfilePage() {
                             Connected Wallet
                         </div>
                         <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.125rem", color: "var(--text-primary)", marginBottom: "var(--space-md)" }}>
-                            {MOCK_WALLET.address}
+                            {isConnected ? address : "Not Connected"}
                         </div>
                         <div className="flex gap-md" style={{ flexWrap: "wrap" }}>
-                            <span className="badge badge-purple">Polygon</span>
-                            <span className="badge badge-win">Active</span>
+                            {isConnected && <span className="badge badge-purple">Polygon</span>}
+                            <span className={`badge ${isConnected ? "badge-win" : ""}`}>{isConnected ? "Active" : "Offline"}</span>
                         </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-lg)", textAlign: "right" }}>
                         <div>
                             <div className="stat-label">MATIC Balance</div>
-                            <div className="stat-value" style={{ fontSize: "1.5rem" }}>{MOCK_WALLET.balance}</div>
+                            <div className="stat-value" style={{ fontSize: "1.5rem" }}>{isConnected ? balance : "0.000"}</div>
                         </div>
                         <div>
                             <div className="stat-label">$ARENA Balance</div>
-                            <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--arena-gold)" }}>{MOCK_WALLET.arenaBalance}</div>
+                            <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--arena-gold)" }}>{isConnected ? arenaBalance : "0"}</div>
                         </div>
                     </div>
                 </div>
@@ -91,10 +100,10 @@ export default function ProfilePage() {
             {/* Stats Row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-md)", marginBottom: "var(--space-xl)" }}>
                 {[
-                    { label: "Total Winnings", value: MOCK_WALLET.totalWinnings, suffix: " $ARENA", color: "var(--arena-gold)" },
-                    { label: "Total Bets", value: MOCK_WALLET.totalBets.toString(), color: "var(--text-primary)" },
-                    { label: "Win Rate", value: MOCK_WALLET.winRate, color: "var(--neon-green)" },
-                    { label: "Net P&L", value: MOCK_WALLET.pnl, suffix: " $ARENA", color: "var(--neon-green)" },
+                    { label: "Total Winnings", value: totalWinnings, suffix: " $ARENA", color: "var(--arena-gold)" },
+                    { label: "Total Bets", value: totalBets.toString(), color: "var(--text-primary)" },
+                    { label: "Win Rate", value: winRate, color: "var(--neon-green)" },
+                    { label: "Net P&L", value: pnl, suffix: " $ARENA", color: "var(--neon-green)" },
                 ].map((stat, i) => (
                     <motion.div
                         key={stat.label}
