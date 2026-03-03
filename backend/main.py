@@ -11,6 +11,8 @@ from typing import Dict, List, Set
 
 from auth.service import router as auth_router
 from routers.betting import router as betting_router
+from routers.progression import router as progression_router
+from middleware.rate_limiter import RateLimitMiddleware
 
 
 # ─── Connection Manager ───────────────────────────────────────────────
@@ -77,8 +79,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from routers.beta import router as beta_router
+
+app.add_middleware(RateLimitMiddleware)
 app.include_router(auth_router)
 app.include_router(betting_router)
+app.include_router(progression_router)
+app.include_router(beta_router)
 
 # ─── REST Endpoints ─────────────────────────────────────────────────
 @app.get("/")
