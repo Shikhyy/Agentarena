@@ -1,0 +1,26 @@
+# AgentArena Backend Dependencies
+
+# Core
+fastapi==0.115.0
+uvicorn[standard]==0.34.0
+websockets==14.1
+python-multipart==0.0.20
+
+# Game Engines
+python-chess==1.999
+
+# Google AI
+google-genai==1.5.0
+google-adk==0.3.0
+
+# Data
+pydantic==2.10.0
+
+# Utilities
+python-dotenv==1.0.1
+httpx==0.28.0
+
+# Phase 2 dependencies (uncomment when needed)
+# firebase-admin==6.4.0
+# redis==5.2.0
+# web3==7.5.0
