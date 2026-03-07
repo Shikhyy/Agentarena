@@ -1,8 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+
+const ChessBoard3D = dynamic(() => import("@/components/arena/ChessBoard3D"), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Initializing WebGL Engine...</div>
+});
+
+const PokerTable3D = dynamic(() => import("@/components/arena/PokerTable3D"), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Initializing WebGL Engine...</div>
+});
+
+const MonopolyZone = dynamic(() => import("@/components/world/MonopolyZone").then((m) => ({ default: m.MonopolyZone })), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Initializing WebGL Engine...</div>
+});
+
+const TriviaZone = dynamic(() => import("@/components/world/TriviaZone"), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Initializing WebGL Engine...</div>
+});
 
 const BACKEND_WS = process.env.NEXT_PUBLIC_BACKEND_WS || "ws://localhost:8000";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -358,38 +379,51 @@ export default function ArenaHallPage() {
                         </div>
                     </div>
 
-                    {/* Game Board Placeholder */}
+                    {/* Game Board 3D Canvas rendering space */}
                     <div
                         className="glass-card"
                         style={{
                             flex: 1,
-                            display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
-                            gap: "var(--space-lg)",
                             minHeight: 400,
-                            background: "radial-gradient(circle at center, rgba(139, 92, 246, 0.05), rgba(0,0,0,0.4))",
+                            position: "relative",
+                            overflow: "hidden",
+                            borderRadius: "var(--radius-lg)",
                             border: "1px solid rgba(255,255,255,0.02)",
-                            position: "relative", overflow: "hidden"
                         }}
                     >
-                        {/* Decorative background grid */}
-                        <div style={{ position: "absolute", inset: 0, backgroundSize: "40px 40px", backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px)", zIndex: 0, pointerEvents: "none" }} />
-
-                        <div style={{ fontSize: "6rem", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.1))", zIndex: 1 }}>{gameIconMap[gameType]}</div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: "2rem", color: "var(--text-primary)", fontWeight: 800, letterSpacing: "0.1em", zIndex: 1 }}>
-                            {gameType.toUpperCase()} ENGINE
+                        <Suspense fallback={
+                            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
+                                Loading WebGL...
+                            </div>
+                        }>
+                            {gameType === "chess" && (
+                                <ChessBoard3D agentWhite={agentA.name} agentBlack={agentB.name} activeColor={agentATurn ? "white" : "black"} />
+                            )}
+                            {gameType === "poker" && (
+                                <PokerTable3D />
+                            )}
+                            {gameType === "trivia" && (
+                                <TriviaZone />
+                            )}
+                            {gameType === "monopoly" && (
+                                <MonopolyZone />
+                            )}
+                        </Suspense>
+                        {/* Overlay elements like 'thinking' badge */}
+                        <div style={{ position: "absolute", bottom: "var(--space-md)", left: "var(--space-md)", zIndex: 10 }}>
+                            <div className="badge" style={{ background: "rgba(0,0,0,0.6)", color: "var(--text-muted)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                                3D Canvas rendering space
+                            </div>
+                            {thinkingAgent && (
+                                <motion.div
+                                    animate={{ opacity: [0.4, 1, 0.4], y: [0, -5, 0] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                    style={{ color: "var(--neon-green)", fontSize: "1.1rem", fontWeight: 700, margin: "var(--space-md) 0 0", textShadow: "0 0 10px rgba(16,185,129,0.5)" }}
+                                >
+                                    ⚡ Neural processors actively evaluating...
+                                </motion.div>
+                            )}
                         </div>
-                        <div className="badge" style={{ background: "rgba(0,0,0,0.6)", color: "var(--text-muted)", border: "1px solid rgba(255,255,255,0.1)", zIndex: 1 }}>
-                            3D Canvas rendering space
-                        </div>
-                        {thinkingAgent && (
-                            <motion.div
-                                animate={{ opacity: [0.4, 1, 0.4], y: [0, -5, 0] }}
-                                transition={{ repeat: Infinity, duration: 2 }}
-                                style={{ color: "var(--neon-green)", fontSize: "1.1rem", fontWeight: 700, marginTop: "var(--space-md)", textShadow: "0 0 10px rgba(16,185,129,0.5)", zIndex: 1 }}
-                            >
-                                ⚡ Neural processors actively evaluating...
-                            </motion.div>
-                        )}
                     </div>
                 </div>
 

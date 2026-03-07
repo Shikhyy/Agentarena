@@ -8,7 +8,7 @@ import { SpectatorOrbs } from "./SpectatorOrbs";
 import { AgentCharacter3D } from "./AgentCharacter3D";
 import * as THREE from "three";
 
-export function MonopolyZone() {
+export function MonopolyZone({ gameState }: { gameState?: any }) {
     const agents = useWorldStore((s) => s.agents);
     const liveMatches = useWorldStore((s) => s.liveMatches);
     const selectAgent = useWorldStore((s) => s.selectAgent);
@@ -27,7 +27,7 @@ export function MonopolyZone() {
                             <boxGeometry args={[4, 0.2, 4]} />
                             <meshStandardMaterial color="#A5F3FC" metalness={0.1} roughness={0.9} />
                         </mesh>
-                        
+
                         {/* Fake properties bordering */}
                         {Array.from({ length: 40 }).map((_, i) => {
                             // Simple layout calculation
@@ -38,9 +38,12 @@ export function MonopolyZone() {
                             else if (side === 1) { x = 1.8; z = posOnSide * 0.4; }
                             else if (side === 2) { x = -posOnSide * 0.4; z = 1.8; }
                             else { x = -1.8; z = -posOnSide * 0.4; }
-                            
+
                             const isCorner = i % 10 === 0;
-                            const color = isCorner ? "#000" : ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"][i%4];
+                            // Optionally map gameState.properties[i].owner to a specific color
+                            const owner = gameState?.properties?.find((p: any) => p.position === i)?.owner;
+                            const dynamicColor = owner ? (owner === "agent_monopoly_a" ? "#00E5FF" : "#FF2D9B") : ["#EF4444", "#3B82F6", "#10B981", "#F59E0B"][i % 4];
+                            const color = isCorner ? "#000" : dynamicColor;
 
                             return (
                                 <mesh key={i} position={[x, 0.52, z]}>

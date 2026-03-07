@@ -23,15 +23,15 @@ function HolographicDisplay() {
             <group ref={ref}>
                 <mesh rotation={[Math.PI / 2, 0, 0]}>
                     <torusGeometry args={[2, 0.05, 8, 48]} />
-                    <meshStandardMaterial color="#6C3AED" emissive="#6C3AED" emissiveIntensity={0.8} transparent opacity={0.5} />
+                    <meshStandardMaterial color="#8B3FE8" emissive="#8B3FE8" emissiveIntensity={0.8} transparent opacity={0.5} />
                 </mesh>
                 <mesh rotation={[Math.PI / 3, 0, 0]}>
                     <torusGeometry args={[2.3, 0.03, 8, 48]} />
-                    <meshStandardMaterial color="#10B981" emissive="#10B981" emissiveIntensity={0.6} transparent opacity={0.4} />
+                    <meshStandardMaterial color="#00FFB0" emissive="#00FFB0" emissiveIntensity={0.6} transparent opacity={0.4} />
                 </mesh>
                 <mesh rotation={[Math.PI / 2, 0, Math.PI / 4]}>
                     <torusGeometry args={[1.8, 0.04, 8, 48]} />
-                    <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.5} transparent opacity={0.3} />
+                    <meshStandardMaterial color="#FFBE00" emissive="#FFBE00" emissiveIntensity={0.5} transparent opacity={0.3} />
                 </mesh>
             </group>
 
@@ -39,8 +39,8 @@ function HolographicDisplay() {
             <mesh>
                 <sphereGeometry args={[0.5, 16, 16]} />
                 <meshStandardMaterial
-                    color="#0a0a1a"
-                    emissive="#6C3AED"
+                    color="#02020C"
+                    emissive="#8B3FE8"
                     emissiveIntensity={0.5}
                     metalness={0.9}
                     roughness={0.1}
@@ -78,8 +78,8 @@ function HolographicDisplay() {
             <mesh position={[0, -3, 0]}>
                 <cylinderGeometry args={[0.1, 0.3, 6, 8, 1, true]} />
                 <meshStandardMaterial
-                    color="#6C3AED"
-                    emissive="#6C3AED"
+                    color="#00E8FF"
+                    emissive="#00E8FF"
                     emissiveIntensity={0.4}
                     transparent
                     opacity={0.2}
@@ -157,8 +157,8 @@ function NexusPlaza() {
                 <mesh key={i} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[r - 0.05, r + 0.05, 64]} />
                     <meshStandardMaterial
-                        color="#6C3AED"
-                        emissive="#6C3AED"
+                        color="#00E8FF"
+                        emissive="#00E8FF"
                         emissiveIntensity={0.3}
                         transparent
                         opacity={0.2 - i * 0.05}
@@ -250,9 +250,9 @@ export function CentralNexus() {
             {/* Lighting */}
             <ambientLight intensity={0.2} />
             <directionalLight position={[10, 15, 10]} intensity={0.8} castShadow shadow-mapSize={1024} />
-            <pointLight position={[0, 8, 0]} intensity={1} color="#6C3AED" distance={30} />
-            <pointLight position={[10, 5, 10]} intensity={0.4} color="#10B981" distance={20} />
-            <pointLight position={[-10, 5, -10]} intensity={0.4} color="#F59E0B" distance={20} />
+            <pointLight position={[0, 8, 0]} intensity={1} color="#00E8FF" distance={30} />
+            <pointLight position={[10, 5, 10]} intensity={0.4} color="#00FFB0" distance={20} />
+            <pointLight position={[-10, 5, -10]} intensity={0.4} color="#FF1F8F" distance={20} />
 
             {/* Ground */}
             <NexusPlaza />
@@ -278,7 +278,7 @@ export function CentralNexus() {
             ))}
 
             {/* Ambient particles */}
-            <EnvironmentParticles count={200} area={50} color="#6C3AED" speed={0.03} />
+            <EnvironmentParticles count={200} area={50} color="#00E8FF" speed={0.03} />
         </group>
     );
 }

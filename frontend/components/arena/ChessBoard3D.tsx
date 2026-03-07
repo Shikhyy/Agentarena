@@ -105,37 +105,44 @@ function Board() {
     );
 }
 
-/* ── Starting Position ───────────────────────────────────── */
-const INITIAL_PIECES: { pos: [number, number, number]; color: "white" | "black"; type: string }[] = [
-    // White pieces
-    { pos: [-1.75, 0.05, 1.75], color: "white", type: "rook" },
-    { pos: [-1.25, 0.05, 1.75], color: "white", type: "knight" },
-    { pos: [-0.75, 0.05, 1.75], color: "white", type: "bishop" },
-    { pos: [-0.25, 0.05, 1.75], color: "white", type: "queen" },
-    { pos: [0.25, 0.05, 1.75], color: "white", type: "king" },
-    { pos: [0.75, 0.05, 1.75], color: "white", type: "bishop" },
-    { pos: [1.25, 0.05, 1.75], color: "white", type: "knight" },
-    { pos: [1.75, 0.05, 1.75], color: "white", type: "rook" },
-    ...Array.from({ length: 8 }, (_, i) => ({
-        pos: [(i - 3.5) * 0.5, 0.05, 1.25] as [number, number, number],
-        color: "white" as const,
-        type: "pawn",
-    })),
-    // Black pieces
-    { pos: [-1.75, 0.05, -1.75], color: "black", type: "rook" },
-    { pos: [-1.25, 0.05, -1.75], color: "black", type: "knight" },
-    { pos: [-0.75, 0.05, -1.75], color: "black", type: "bishop" },
-    { pos: [-0.25, 0.05, -1.75], color: "black", type: "queen" },
-    { pos: [0.25, 0.05, -1.75], color: "black", type: "king" },
-    { pos: [0.75, 0.05, -1.75], color: "black", type: "bishop" },
-    { pos: [1.25, 0.05, -1.75], color: "black", type: "knight" },
-    { pos: [1.75, 0.05, -1.75], color: "black", type: "rook" },
-    ...Array.from({ length: 8 }, (_, i) => ({
-        pos: [(i - 3.5) * 0.5, 0.05, -1.25] as [number, number, number],
-        color: "black" as const,
-        type: "pawn",
-    })),
-];
+/* ── FEN Parser ────────────────────────────────────────────── */
+function parseFEN(fen: string): { pos: [number, number, number]; color: "white" | "black"; type: string; id: string }[] {
+    const pieces: { pos: [number, number, number]; color: "white" | "black"; type: string; id: string }[] = [];
+    if (!fen) return pieces;
+
+    const [board] = fen.split(" ");
+    const rows = board.split("/");
+
+    // FEN maps from 8th rank to 1st rank.
+    // In our 3D board, Z = -1.75 is Black's back rank (8), Z = 1.75 is White's back rank (1).
+    // FEN row 0 -> rank 8 (black side, z=-1.75)
+    // FEN row 7 -> rank 1 (white side, z=1.75)
+
+    const typeMap: Record<string, string> = {
+        'r': 'rook', 'n': 'knight', 'b': 'bishop', 'q': 'queen', 'k': 'king', 'p': 'pawn'
+    };
+
+    for (let r = 0; r < 8; r++) {
+        let c = 0;
+        const rowString = rows[r];
+        for (let i = 0; i < rowString.length; i++) {
+            const char = rowString[i];
+            if (!isNaN(parseInt(char))) {
+                c += parseInt(char);
+            } else {
+                const color = char === char.toLowerCase() ? "black" : "white";
+                const type = typeMap[char.toLowerCase()];
+                // Mapping board coordinates (0-7) to 3D world space
+                const x = (c - 3.5) * 0.5;
+                const z = ((7 - r) - 3.5) * -0.5; // (7-r) so rank 8 maps to z=-1.75
+
+                pieces.push({ pos: [x, 0.05, z], color, type, id: `${type}_${color}_${r}_${c}` });
+                c += 1;
+            }
+        }
+    }
+    return pieces;
+}
 
 /* ── Particle Ring ───────────────────────────────────────── */
 function ParticleRing() {
@@ -200,11 +207,15 @@ function ChessScene({
     agentWhite = "ZEUS",
     agentBlack = "ATHENA",
     activeColor = "white",
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 }: {
     agentWhite?: string;
     agentBlack?: string;
     activeColor?: "white" | "black";
+    fen?: string;
 }) {
+    const currentPieces = useMemo(() => parseFEN(fen), [fen]);
+
     return (
         <>
             {/* Lights */}
@@ -217,9 +228,9 @@ function ChessScene({
             <Board />
 
             {/* Pieces */}
-            {INITIAL_PIECES.map((piece, i) => (
+            {currentPieces.map((piece) => (
                 <ChessPiece
-                    key={i}
+                    key={piece.id}
                     position={piece.pos}
                     color={piece.color}
                     type={piece.type}
@@ -253,6 +264,12 @@ export default function ChessBoard3D({
     agentWhite = "ZEUS",
     agentBlack = "ATHENA",
     activeColor = "white" as "white" | "black",
+    fen,
+}: {
+    agentWhite?: string;
+    agentBlack?: string;
+    activeColor?: "white" | "black";
+    fen?: string;
 }) {
     return (
         <WebGLSafeCanvas
@@ -263,7 +280,7 @@ export default function ChessBoard3D({
         >
             <color attach="background" args={["#0F0A1A"]} />
             <fog attach="fog" args={["#0F0A1A", 8, 15]} />
-            <ChessScene agentWhite={agentWhite} agentBlack={agentBlack} activeColor={activeColor} />
+            <ChessScene agentWhite={agentWhite} agentBlack={agentBlack} activeColor={activeColor} fen={fen} />
         </WebGLSafeCanvas>
     );
 }

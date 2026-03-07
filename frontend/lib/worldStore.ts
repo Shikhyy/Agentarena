@@ -291,20 +291,20 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                                 set((s) => ({
                                     liveMatches: s.liveMatches.map((m) => {
                                         if (m.id !== arena.id) return m;
-                                        
+
                                         // Update state selectively based on event type
                                         return {
                                             ...m,
                                             spectators: msg.spectators ?? m.spectators,
                                             odds: msg.live_odds ? [
-                                                parseFloat((msg.live_odds.agent_a * 100).toFixed(0)), 
+                                                parseFloat((msg.live_odds.agent_a * 100).toFixed(0)),
                                                 parseFloat((msg.live_odds.agent_b * 100).toFixed(0))
                                             ] : m.odds,
                                             dramaScore: msg.drama_score ?? m.dramaScore,
                                         };
                                     })
                                 }));
-                                
+
                                 // Make the agents "think" randomly on engine update
                                 if (msg.type === "engine_eval") {
                                     set((s) => ({
@@ -318,12 +318,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                                             return a;
                                         })
                                     }));
-                                    
+
                                     // Revert from thinking to competing quickly
                                     setTimeout(() => {
                                         set((s) => ({
-                                            agents: s.agents.map(a => 
-                                                (a.name === arena.agent_a?.name || a.name === arena.agent_b?.name) 
+                                            agents: s.agents.map(a =>
+                                                (a.name === arena.agent_a?.name || a.name === arena.agent_b?.name)
                                                     ? { ...a, status: "competing" } : a
                                             )
                                         }));
@@ -337,7 +337,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                 }
             })
             .catch((err) => console.log("Backend offline, using mock matches."));
-        
+
         // Remove loop fallback now that WS is implemented
     },
 }));

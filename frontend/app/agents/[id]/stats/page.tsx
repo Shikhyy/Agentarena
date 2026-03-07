@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 interface GameEvent {
     type: string;
     round: number;
@@ -40,45 +42,44 @@ interface AgentStats {
     elo_history: { date: string; elo: number }[];
 }
 
-const MOCK_STATS: AgentStats = {
-    agent_id: "1",
-    name: "AlphaGo Zero",
-    level: 7, elo: 2341, peak_elo: 2400,
-    xp: 3800, xp_to_next: 400,
-    win_streak: 5, wins: 87, losses: 23, draws: 2, games_played: 112,
-    personality: "aggressive", skills: ["Endgame Master", "Opening Book", "Sacrifice Gambit"],
-    generation: 0,
-    battle_history: [
-        { game_id: "g1", opponent: "NeuralNinja", outcome: "win", elo_change: +24, xp_gained: 80, game_type: "chess", date: "2026-03-02" },
-        { game_id: "g2", opponent: "ChaosMaster", outcome: "win", elo_change: +18, xp_gained: 60, game_type: "poker", date: "2026-03-01" },
-        { game_id: "g3", opponent: "QuantumGhost", outcome: "loss", elo_change: -15, xp_gained: 15, game_type: "chess", date: "2026-02-28" },
-        { game_id: "g4", opponent: "SilentBlade", outcome: "win", elo_change: +20, xp_gained: 50, game_type: "monopoly", date: "2026-02-27" },
-        { game_id: "g5", opponent: "RiskOracle", outcome: "win", elo_change: +22, xp_gained: 90, game_type: "chess", date: "2026-02-26" },
-    ],
-    elo_history: [
-        { date: "2026-02-01", elo: 1500 },
-        { date: "2026-02-07", elo: 1680 },
-        { date: "2026-02-14", elo: 1920 },
-        { date: "2026-02-21", elo: 2100 },
-        { date: "2026-02-28", elo: 2290 },
-        { date: "2026-03-02", elo: 2341 },
-    ],
-};
-
 export default function AgentStatsPage() {
     const params = useParams();
-    const [stats, setStats] = useState<AgentStats>(MOCK_STATS);
+    const [stats, setStats] = useState<AgentStats | null>(null);
+    const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<"overview" | "history" | "elo_curve">("overview");
 
-    const winRate = ((stats.wins / stats.games_played) * 100).toFixed(1);
-    const xpPct = Math.round((stats.xp / (stats.xp + stats.xp_to_next)) * 100);
+    useEffect(() => {
+        fetch(`${BACKEND_URL}/agents/${params.id}`)
+            .then(res => res.json())
+            .then(data => {
+                // Synthesize missing arrays for safety since backend might not populate all defaults if newly synthesized mock agent
+                const safeStats = {
+                    ...data,
+                    battle_history: data.battle_history || [],
+                    elo_history: data.elo_history || [{ date: new Date().toISOString().split("T")[0], elo: data.elo || 1500 }],
+                    skills: data.skills || []
+                };
+                setStats(safeStats);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch agent stats:", err);
+                setLoading(false);
+            });
+    }, [params.id]);
+
+    if (!stats) return <div className="page" style={{ padding: "var(--space-3xl) 0", textAlign: "center", color: "var(--text-muted)" }}>{loading ? "Loading stats..." : "Agent Not Found"}</div>;
+
+    const winRate = stats.games_played > 0 ? ((stats.wins / stats.games_played) * 100).toFixed(1) : "0.0";
+    const xpPct = Math.round((stats.xp / (stats.xp + stats.xp_to_next)) * 100) || 0;
 
     // Mini ELO sparkline using SVG
-    const maxElo = Math.max(...stats.elo_history.map(e => e.elo));
-    const minElo = Math.min(...stats.elo_history.map(e => e.elo));
-    const sparkPoints = stats.elo_history.map((e, i) => {
-        const x = (i / (stats.elo_history.length - 1)) * 500;
-        const y = 80 - ((e.elo - minElo) / (maxElo - minElo + 1)) * 70;
+    const maxElo = Math.max(...stats.elo_history.map((e: any) => e.elo));
+    const minElo = Math.min(...stats.elo_history.map((e: any) => e.elo));
+    const sparkPoints = stats.elo_history.map((e: any, i: number) => {
+        const x = stats.elo_history.length > 1 ? (i / (stats.elo_history.length - 1)) * 500 : 250;
+        const mappedY = maxElo === minElo ? 45 : ((e.elo - minElo) / (maxElo - minElo)) * 70;
+        const y = 80 - mappedY;
         return `${x},${y}`;
     }).join(" ");
 

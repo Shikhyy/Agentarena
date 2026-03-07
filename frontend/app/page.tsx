@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useWorldStore } from "@/lib/worldStore";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 interface LiveArena {
   id: string;
   game_type: string;
+  status: string;
   spectators: number;
+  agent_a: any;
+  agent_b: any;
 }
 
 const containerVariants = {
@@ -28,6 +32,7 @@ const gameIconMap: Record<string, string> = { chess: "♟️", poker: "🃏", mo
 const gameColors: Record<string, string> = { chess: "var(--neon-green)", poker: "var(--danger-red)", monopoly: "var(--arena-gold)", trivia: "var(--electric-purple-light)" };
 
 export default function HomePage() {
+  const { liveMatches, agents } = useWorldStore();
   const [liveArenas, setLiveArenas] = useState<LiveArena[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,30 +91,23 @@ export default function HomePage() {
               ⚡ Watch Live
             </a>
           </div>
-        </motion.div>
-      </section>
-
-      {/* Stats Bar */}
-      <section className="container" style={{ marginBottom: "var(--space-3xl)" }}>
-        <motion.div
-          className="grid-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {STATS.map((stat) => (
-            <motion.div
-              key={stat.label}
-              className="glass-card"
-              style={{ padding: "var(--space-xl) var(--space-lg)", textAlign: "center", background: "rgba(10, 5, 20, 0.4)", backdropFilter: "blur(20px)" }}
-              variants={itemVariants}
-            >
-              <div className="stat-value" style={{ color: stat.color, fontSize: "2.5rem", marginBottom: "8px", textShadow: `0 0 20px ${stat.color}40` }}>
-                {stat.value}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="grid-4" style={{ marginBottom: "var(--space-3xl)" }}>
+            {[
+              { label: "Active Arenas", value: liveMatches?.length || 0, icon: "🏟️", color: "var(--neon-green)" },
+              { label: "Agents Deployed", value: agents?.length || 0, icon: "🤖", color: "var(--electric-purple-light)" },
+              { label: "$ARENA in Play", value: liveMatches?.reduce((acc: number, m: any) => acc + (m.potArena || 0), 0) || 0, icon: "💎", color: "var(--arena-gold)" },
+              { label: "Top Win Streak", value: agents?.reduce((max: number, a: any) => Math.max(max, a.winStreak || 0), 0) || 0, icon: "🔥", color: "var(--danger-red)" },
+            ].map((stat) => (
+              <div key={stat.label} className="glass-card" style={{ padding: "var(--space-lg)", textAlign: "center", position: "relative", overflow: "hidden" }}>
+                <div style={{ fontSize: "2rem", marginBottom: 8, filter: `drop-shadow(0 0 10px ${stat.color}40)` }}>{stat.icon}</div>
+                <div style={{ fontSize: "2.5rem", fontWeight: 800, fontFamily: "var(--font-display)", color: stat.color, textShadow: `0 0 20px ${stat.color}40` }}>
+                  {stat.value}
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4 }}>{stat.label}</div>
               </div>
-              <div className="stat-label" style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>{stat.label}</div>
-            </motion.div>
-          ))}
+            ))}
+          </motion.div>
         </motion.div>
       </section>
 
@@ -147,14 +145,14 @@ export default function HomePage() {
             {liveArenas.slice(0, 4).map((arena) => (
               <motion.a
                 key={arena.id}
-                href={`/world/arena/${arena.id}`}
+                href={`/ world / arena / ${arena.id} `}
                 className="glass-card arena-card"
                 variants={itemVariants}
                 whileHover={{ scale: 1.02, translateY: -4 }}
                 style={{ textDecoration: "none", color: "inherit", border: "1px solid rgba(255,255,255,0.05)" }}
               >
                 <div className="arena-card-thumbnail" style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at center, ${gameColors[arena.game_type] || "var(--electric-purple)"}20 0%, transparent 70%)` }}></div>
+                  <div style={{ position: "absolute", inset: 0, background: `radial - gradient(circle at center, ${gameColors[arena.game_type] || "var(--electric-purple)"}20 0 %, transparent 70 %)` }}></div>
                   <span style={{ zIndex: 1, fontSize: "4rem", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.2))" }}>
                     {gameIconMap[arena.game_type] || "🏟️"}
                   </span>
@@ -182,7 +180,7 @@ export default function HomePage() {
                       <span style={{ fontSize: "1.2rem" }}>👁</span>
                       <span style={{ fontWeight: 600 }}>{arena.spectators.toLocaleString()}</span>
                     </div>
-                    <span className="badge" style={{ background: `${gameColors[arena.game_type]}20`, color: gameColors[arena.game_type], border: `1px solid ${gameColors[arena.game_type]}40`, padding: "4px 12px" }}>
+                    <span className="badge" style={{ background: `${gameColors[arena.game_type]} 20`, color: gameColors[arena.game_type], border: `1px solid ${gameColors[arena.game_type]} 40`, padding: "4px 12px" }}>
                       {arena.game_type.toUpperCase()}
                     </span>
                   </div>
@@ -259,13 +257,14 @@ export default function HomePage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pulse-dot { animation: pulse 2s infinite; }
-        @keyframes pulse {
-          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-          70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  .pulse - dot { animation: pulse 2s infinite; }
+@keyframes pulse {
+  0 % { transform: scale(0.95); box- shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+}
+70 % { transform: scale(1); box- shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+100 % { transform: scale(0.95); box- shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
-      `}} />
+`}} />
     </div>
   );
 }

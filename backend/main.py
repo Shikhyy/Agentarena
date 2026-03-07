@@ -65,180 +65,204 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+from game_engines.chess_engine import ChessEngine
+
+# Initialize Engines
+chess_engine = ChessEngine()
+# You would similarly initialize poker_engine, etc. here
+
+# Create active mock games using the REAL engines
+chess_game_1 = chess_engine.create_game(
+    agent_white={"id": "agent_alphago", "name": "AlphaGo Zero", "elo": 2800},
+    agent_black={"id": "agent_deepblue", "name": "DeepBlue Next", "elo": 2750}
+)
+# Force set the game ID for consistency with the frontend/mock data routing
+chess_game_1.game_id = "test_arena_1"
+chess_engine.games["test_arena_1"] = chess_game_1
+del chess_engine.games[chess_game_1.game_id] # Clean up the old randomly generated uuid key
+chess_game_1.game_id = "test_arena_1"
+chess_engine.games["test_arena_1"] = chess_game_1
+
 # ─── In-Memory Game State Store ─────────────────────────────────────
+# We still maintain the shape of the dict for the REST API but we will derive it from the engines
 games: Dict[str, dict] = {
     "test_arena_1": {
         "game_type": "chess",
         "agent_a": {"id": "agent_alphago", "name": "AlphaGo Zero", "elo": 2800},
         "agent_b": {"id": "agent_deepblue", "name": "DeepBlue Next", "elo": 2750},
         "status": "live",
-        "move_count": 14,
-        "turn_number": 14,
     },
     "test_arena_poker_1": {
         "game_type": "poker",
         "agent_a": {"id": "agent_bluffking", "name": "BluffKing", "elo": 2300},
         "agent_b": {"id": "agent_texasai", "name": "TexasHoldem AI", "elo": 2250},
         "status": "live",
-        "move_count": 5,
-        "turn_number": 5,
     },
     "test_arena_monopoly_1": {
         "game_type": "monopoly",
         "agent_a": {"id": "agent_monopoly_a", "name": "Monopoly Master", "elo": 1800},
         "agent_b": {"id": "agent_monopoly_b", "name": "Property Baron", "elo": 1750},
         "status": "live",
-        "move_count": 22,
-        "turn_number": 22,
     },
     "test_arena_trivia_1": {
         "game_type": "trivia",
         "agent_a": {"id": "agent_trivia_a", "name": "QuizMaster AI", "elo": 1600},
         "agent_b": {"id": "agent_trivia_b", "name": "JeopardyBot", "elo": 1580},
         "status": "live",
-        "move_count": 8,
-        "turn_number": 8,
     },
 }
 
 
-# ─── Game Event Simulator ─────────────────────────────────────────────
-CHESS_EVENTS = [
-    {"type": "move", "desc": "plays e4, controlling the center", "drama": 3},
-    {"type": "capture", "desc": "captures the knight on f6!", "drama": 7},
-    {"type": "check", "desc": "delivers a stunning check!", "drama": 9},
-    {"type": "move", "desc": "pushes the pawn to d5", "drama": 4},
-    {"type": "capture", "desc": "takes the bishop", "drama": 6},
-]
-POKER_EVENTS = [
-    {"type": "raise", "desc": "raises 2x pot", "drama": 6},
-    {"type": "bluff", "desc": "makes a suspiciously large bet", "drama": 8},
-    {"type": "fold", "desc": "folds under pressure", "drama": 5},
-    {"type": "all_in", "desc": "goes ALL IN!", "drama": 10},
-    {"type": "check", "desc": "checks — holding back", "drama": 3},
-]
-MONOPOLY_EVENTS = [
-    {"type": "buy", "desc": "purchases Boardwalk!", "drama": 7},
-    {"type": "trade_offer", "desc": "proposes a trade for the red set", "drama": 6},
-    {"type": "build", "desc": "builds 3 houses on Park Place", "drama": 8},
-    {"type": "move", "desc": "lands on Chance", "drama": 4},
-    {"type": "rent", "desc": "pays rent of $500!", "drama": 5},
-]
-TRIVIA_EVENTS = [
-    {"type": "buzz_in", "desc": "buzzes in first!", "drama": 7},
-    {"type": "correct", "desc": "answers correctly for 300 points!", "drama": 8},
-    {"type": "wrong", "desc": "answers incorrectly and loses points!", "drama": 6},
-    {"type": "timeout", "desc": "neither agent answers in time", "drama": 5},
-    {"type": "question", "desc": "new question revealed", "drama": 3},
-]
-
-EVENTS_BY_GAME = {
-    "chess": CHESS_EVENTS,
-    "poker": POKER_EVENTS,
-    "monopoly": MONOPOLY_EVENTS,
-    "trivia": TRIVIA_EVENTS,
-}
-
-
 async def simulate_game_moves():
-    """Simulate all game agents playing continuously, emitting all PRD events."""
+    """Background task to simulate real game moves using the engines and stream them."""
     while True:
-        await asyncio.sleep(6)
-        for arena_id, game in games.items():
-            if game["status"] != "live":
+        await asyncio.sleep(6) # Tick every 6 seconds
+
+        for game_id, meta in games.items():
+            if meta["status"] != "live":
                 continue
 
-            game["move_count"] += 1
-            game["turn_number"] = game["move_count"]
+            game_type = meta["game_type"]
+            event_desc = "tick"
+            drama_score = 0
+            full_state = {}
+            active_agent = meta["agent_a"]["name"] if meta.get("move_count", 0) % 2 == 1 else meta["agent_b"]["name"]
 
-            game_type = game.get("game_type", "chess")
-            agent_a = game.get("agent_a", {})
-            agent_b = game.get("agent_b", {})
-            active_agent = agent_a if game["move_count"] % 2 == 0 else agent_b
-            events = EVENTS_BY_GAME.get(game_type, CHESS_EVENTS)
-            event = random.choice(events)
+            if game_type == "chess":
+                legal_moves = chess_engine.get_legal_moves(game_id)
+                if legal_moves:
+                    move = random.choice(legal_moves)
+                    res = chess_engine.make_move(game_id, move)
+                    if res.get("success"):
+                        event_desc = res["move"]["san"]
+                        drama_score = res["drama_score"]
+                        full_state = res["game_state"]
+                        meta["move_count"] = meta.get("move_count", 0) + 1
+
+            elif game_type == "poker":
+                state = poker_engine.games[game_id].to_dict()
+                if state["status"] in ("finished", "showdown"):
+                    poker_engine.start_hand(game_id)
+                    event_desc = "Starts a new hand"
+                    drama_score = 4
+                else:
+                    curr_player = state.get("current_player")
+                    if curr_player:
+                        p = next((x for x in state["players"] if x["player_id"] == curr_player), None)
+                        if p:
+                            max_bet = max([x["current_bet"] for x in state["players"]])
+                            if p["current_bet"] < max_bet:
+                                valid_actions = ["call", "fold", "raise"]
+                            else:
+                                valid_actions = ["check", "raise"]
+
+                            action = random.choice(valid_actions)
+                            amt = 0
+                            if action == "raise":
+                                amt = max_bet + 20
+                            res = poker_engine.take_action(game_id, curr_player, action, amt)
+                            if res.get("success"):
+                                event_desc = res.get("commentary_hint", action)
+                                drama_score = res.get("drama_score", 3)
+                                full_state = res["game_state"]
+                                meta["move_count"] = meta.get("move_count", 0) + 1
+
+            elif game_type == "monopoly":
+                res = monopoly_engine.take_turn()
+                if res and "events" in res and res["events"]:
+                    events = res["events"]
+                    event_desc = ", ".join(e["type"] for e in events)
+                    full_state = monopoly_engine.get_state()
+                    drama_score = 5
+                    meta["move_count"] = meta.get("move_count", 0) + 1
+
+            elif game_type == "trivia":
+                state = trivia_engine.get_state(game_id)
+                if state and state.get("current_question") is None:
+                    trivia_engine.start_round(game_id)
+                    event_desc = "New Question!"
+                    drama_score = 2
+                else:
+                    agent_id = random.choice([meta["agent_a"]["id"], meta["agent_b"]["id"]])
+                    ans_res = trivia_engine.submit_answer(game_id, agent_id, "simulated answer")
+                    if ans_res.get("error"):
+                         trivia_engine.buzz_in(game_id, agent_id)
+                         event_desc = f"{agent_id} buzzed in!"
+                    else:
+                         event_desc = ans_res.get("message", "answered")
+                         meta["move_count"] = meta.get("move_count", 0) + 1
+                full_state = trivia_engine.get_state(game_id) or {}
+                drama_score = random.randint(3, 8)
+
+            # Broadcast Update
+            if "move_count" not in meta:
+                 meta["move_count"] = 0
+            if "turn_number" not in meta:
+                 meta["turn_number"] = 0
+                 
+            if meta["move_count"] % 2 == 0:
+                 meta["turn_number"] = meta.get("turn_number", 0) + 1
 
             # Shift odds
             advantage = random.uniform(0.7, 1.3)
-            odds_engine.bayesian_update(arena_id, {"advantage_score": advantage})
-            current_odds = odds_engine.get_current_state(arena_id)
+            odds_engine.bayesian_update(game_id, {"advantage_score": advantage})
+            current_odds = odds_engine.get_current_state(game_id)
             live_probs = current_odds.get("live_probs", {0: 0.5, 1: 0.5})
 
-            # 1. game_state_update ─────────────────────────────────────
-            await manager.broadcast(arena_id, {
+            await manager.broadcast(game_id, {
                 "type": "game_state_update",
-                "matchId": arena_id,
-                "state": game_type,
-                "turnNumber": game["turn_number"],
-                "agentATurn": game["move_count"] % 2 == 0,
-                "spectators": manager.get_spectator_count(arena_id),
-                "moveCount": game["move_count"],
+                "matchId": game_id,
+                "game_type": game_type,
+                "turnNumber": meta["turn_number"],
+                "agentATurn": meta["move_count"] % 2 == 0,
+                "spectators": manager.get_spectator_count(game_id),
+                "moveCount": meta["move_count"],
+                "state": full_state,
+                "event": event_desc,
+                "drama_score": drama_score,
+                "timestamp": datetime.utcnow().isoformat()
             })
 
-            # 2. agent_thinking ─────────────────────────────────────────
-            await manager.broadcast(arena_id, {
-                "type": "agent_thinking",
-                "matchId": arena_id,
-                "agentId": active_agent.get("id", "unknown"),
-                "thinking": True,
-            })
+            # Randomly trigger agent thinking
+            if random.random() > 0.7:
+                 await manager.broadcast(game_id, {
+                     "type": "agent_thinking",
+                     "matchId": game_id,
+                     "agentId": active_agent,
+                     "thinking": True,
+                 })
+                 asyncio.create_task(stop_thinking(game_id, active_agent))
 
-            await asyncio.sleep(1.5)
+            # Commentary Subsystem Trigger
+            if drama_score > 5:
+                await manager.broadcast(game_id, {
+                    "type": "commentary_event",
+                    "matchId": game_id,
+                    "text": f"{active_agent} {event_desc}",
+                    "audioUrl": None,
+                    "dramaScore": drama_score,
+                    "eventType": "tick"
+                })
 
-            # 3. agent done thinking ────────────────────────────────────
-            await manager.broadcast(arena_id, {
-                "type": "agent_thinking",
-                "matchId": arena_id,
-                "agentId": active_agent.get("id", "unknown"),
-                "thinking": False,
-            })
-
-            # 4. commentary_event ───────────────────────────────────────
-            commentary_templates = {
-                "hype": f"UNBELIEVABLE! {active_agent.get('name')} {event['desc']}! The crowd goes wild!",
-                "analytical": f"{active_agent.get('name')} {event['desc']}. A calculated strategic decision.",
-                "sarcastic": f"Oh wow, {active_agent.get('name')} {event['desc']}. Truly groundbreaking.",
-            }
-            commentary_text = commentary_templates.get("hype", f"{active_agent.get('name')} {event['desc']}")
-
-            await manager.broadcast(arena_id, {
-                "type": "commentary_event",
-                "matchId": arena_id,
-                "text": commentary_text,
-                "audioUrl": None,
-                "dramaScore": event["drama"],
-                "eventType": event["type"],
-            })
-
-            # 5. odds_update ────────────────────────────────────────────
-            await manager.broadcast(arena_id, {
+            # Odds Subsystem Trigger
+            await manager.broadcast(game_id, {
                 "type": "odds_update",
-                "matchId": arena_id,
+                "matchId": game_id,
                 "agentAProb": round(live_probs.get(0, 0.5), 4),
                 "agentBProb": round(live_probs.get(1, 0.5), 4),
                 "impliedOdds": current_odds.get("decimal_odds", {}),
             })
 
-            # 6. Monopoly-specific events ───────────────────────────────
-            if game_type == "monopoly" and event["type"] == "trade_offer":
-                await manager.broadcast(arena_id, {
-                    "type": "monopoly_negotiation",
-                    "matchId": arena_id,
-                    "from": active_agent.get("id"),
-                    "to": (agent_b if active_agent == agent_a else agent_a).get("id"),
-                    "tradeType": "property_swap",
-                    "offer": {"properties": ["Park Place"], "cash": 200},
-                    "message": f"I'll give you Park Place and $200 for your red set. Deal?",
-                })
+            await asyncio.sleep(random.uniform(0.5, 2.0))
 
-            # Occasionally emit drama_score == 10 for all_in / check events
-            if event["drama"] >= 9:
-                await manager.broadcast(arena_id, {
-                    "type": "drama_peak",
-                    "matchId": arena_id,
-                    "dramaScore": event["drama"],
-                    "message": f"⚡ CRITICAL MOMENT! {active_agent.get('name')} {event['desc']}",
-                })
+async def stop_thinking(game_id, agent_id):
+    await asyncio.sleep(1.5)
+    await manager.broadcast(game_id, {
+        "type": "agent_thinking",
+        "matchId": game_id,
+        "agentId": agent_id,
+        "thinking": False,
+    })
 
 
 # ─── FastAPI App ─────────────────────────────────────────────────────

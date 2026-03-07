@@ -113,15 +113,7 @@ function Table() {
 }
 
 /* ── Community Cards ─────────────────────────────────────── */
-function CommunityCards() {
-    const cards = [
-        { label: "A", suit: "♠" },
-        { label: "K", suit: "♥" },
-        { label: "10", suit: "♦" },
-        { label: "7", suit: "♣" },
-        { label: "3", suit: "♥" },
-    ];
-
+function CommunityCards({ cards }: { cards: { label: string; suit: string }[] }) {
     return (
         <group position={[0, 0.05, 0]}>
             {cards.map((card, i) => (
@@ -261,9 +253,17 @@ function PokerScene({
         { name: "SHADOW", cards: [{ label: "Q", suit: "♥" }, { label: "J", suit: "♥" }], chips: 780, isActive: false },
     ],
     pot = 540,
+    communityCards = [
+        { label: "A", suit: "♠" },
+        { label: "K", suit: "♥" },
+        { label: "10", suit: "♦" },
+        { label: "7", suit: "♣" },
+        { label: "3", suit: "♥" },
+    ],
 }: {
     players?: { name: string; cards: { label: string; suit: string }[]; chips: number; isActive: boolean }[];
     pot?: number;
+    communityCards?: { label: string; suit: string }[];
 }) {
     return (
         <>
@@ -277,7 +277,7 @@ function PokerScene({
             <Table />
 
             {/* Community cards */}
-            <CommunityCards />
+            <CommunityCards cards={communityCards} />
 
             {/* Pot */}
             <PotDisplay amount={pot} />
@@ -290,7 +290,7 @@ function PokerScene({
                         key={player.name}
                         angle={angle}
                         name={player.name}
-                        holeCards={player.cards}
+                        holeCards={player.cards || []}
                         chips={player.chips}
                         isActive={player.isActive}
                         color={i === 0 ? "#8B5CF6" : "#10B981"}
@@ -319,9 +319,11 @@ function PokerScene({
 export default function PokerTable3D({
     players,
     pot = 540,
+    communityCards,
 }: {
     players?: { name: string; cards: { label: string; suit: string }[]; chips: number; isActive: boolean }[];
     pot?: number;
+    communityCards?: { label: string; suit: string }[];
 }) {
     return (
         <WebGLSafeCanvas
@@ -332,7 +334,7 @@ export default function PokerTable3D({
         >
             <color attach="background" args={["#0F0A1A"]} />
             <fog attach="fog" args={["#0F0A1A", 10, 18]} />
-            <PokerScene players={players} pot={pot} />
+            <PokerScene players={players} pot={pot} communityCards={communityCards} />
         </WebGLSafeCanvas>
     );
 }

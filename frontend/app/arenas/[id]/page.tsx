@@ -16,18 +16,31 @@ const PokerTable3D = dynamic(() => import("@/components/arena/PokerTable3D"), {
     loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Initializing WebGL Engine...</div>
 });
 
+const MonopolyZone = dynamic(() => import("@/components/world/MonopolyZone").then((m) => ({ default: m.MonopolyZone })), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Initializing WebGL Engine...</div>
+});
+
+const TriviaZone = dynamic(() => import("@/components/world/TriviaZone"), {
+    ssr: false,
+    loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Initializing WebGL Engine...</div>
+});
+
 import { CommentaryRibbon } from "@/components/arena/CommentaryRibbon";
 
 export default function ArenaView() {
     const params = useParams();
-    const [spectators, setSpectators] = useState("1.2k");
+    const [spectators, setSpectators] = useState("0");
     const [gameState, setGameState] = useState<any>(null);
-    const [gameType, setGameType] = useState<"chess" | "poker">("chess");
+    const [gameType, setGameType] = useState<"chess" | "poker" | "monopoly" | "trivia">("chess");
+    const [commentaryStream, setCommentaryStream] = useState<string[]>([]);
 
     // Determine game type from arena id
     useEffect(() => {
         const id = params.id as string;
         if (id?.includes("poker")) setGameType("poker");
+        else if (id?.includes("monopoly")) setGameType("monopoly");
+        else if (id?.includes("trivia")) setGameType("trivia");
         else setGameType("chess");
     }, [params.id]);
 
@@ -43,7 +56,24 @@ export default function ArenaView() {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === "connected") {
-                        setSpectators(data.spectators.toString());
+                        setSpectators(data.spectators?.toString() || "0");
+                        if (data.game_info) {
+                            setGameState(data.game_info);
+                        }
+                    } else if (data.type === "game_state_update") {
+                        if (data.spectators) {
+                            setSpectators(data.spectators.toString());
+                        }
+                        if (data.state) {
+                            setGameState((prev: any) => ({ ...prev, ...data.state }));
+                        }
+                    } else if (data.type === "commentary_event" && data.text) {
+                        setCommentaryStream((prev) => {
+                            const newStream = [...prev, data.text];
+                            // Keep max 5 lines of commentary
+                            if (newStream.length > 5) return newStream.slice(newStream.length - 5);
+                            return newStream;
+                        });
                     }
                 } catch { /* ignore malformed messages */ }
             };
@@ -71,10 +101,26 @@ export default function ArenaView() {
                         Loading WebGL...
                     </div>
                 }>
-                    {gameType === "chess" ? (
-                        <ChessBoard3D agentWhite="AlphaGo Zero" agentBlack="DeepBlue Next" activeColor="white" />
-                    ) : (
-                        <PokerTable3D />
+                    {gameType === "chess" && (
+                        <ChessBoard3D
+                            agentWhite={gameState?.agent_a?.name || "White"}
+                            agentBlack={gameState?.agent_b?.name || "Black"}
+                            activeColor={gameState?.turn || "white"}
+                            fen={gameState?.fen}
+                        />
+                    )}
+                    {gameType === "poker" && (
+                        <PokerTable3D
+                            players={gameState?.players}
+                            pot={gameState?.pot}
+                            communityCards={gameState?.community_cards}
+                        />
+                    )}
+                    {gameType === "trivia" && (
+                        <TriviaZone gameState={gameState} />
+                    )}
+                    {gameType === "monopoly" && (
+                        <MonopolyZone gameState={gameState} />
                     )}
                 </Suspense>
             </div>
@@ -136,8 +182,8 @@ export default function ArenaView() {
                                 🤖
                             </div>
                             <div>
-                                <h3 style={{ fontSize: "1rem", margin: 0 }}>AlphaGo Zero</h3>
-                                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>ELO: 2450</div>
+                                <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_a?.name || "Agent A"}</h3>
+                                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>ELO: {gameState?.agent_a?.elo || 1500}</div>
                             </div>
                         </div>
                     </motion.div>
@@ -157,8 +203,8 @@ export default function ArenaView() {
                                 🤖
                             </div>
                             <div>
-                                <h3 style={{ fontSize: "1rem", margin: 0 }}>DeepBlue Next</h3>
-                                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>ELO: 2420</div>
+                                <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_b?.name || "Agent B"}</h3>
+                                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>ELO: {gameState?.agent_b?.elo || 1500}</div>
                             </div>
                         </div>
                     </motion.div>
@@ -174,7 +220,7 @@ export default function ArenaView() {
                     gap: "var(--space-md)",
                     zIndex: 10
                 }}>
-                    <OddsPanel arenaId={params.id as string || "test_arena_1"} agentAName="AlphaGo Zero" agentBName="DeepBlue Next" />
+                    <OddsPanel arenaId={params.id as string || "test_arena_1"} agentAName={gameState?.agent_a?.name || "Agent A"} agentBName={gameState?.agent_b?.name || "Agent B"} />
 
                     <motion.div
                         className="glass-panel"
@@ -192,10 +238,10 @@ export default function ArenaView() {
                             <div className="text-muted" style={{ fontSize: "0.75rem", marginBottom: "var(--space-xs)" }}>Select Winner</div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-sm)" }}>
                                 <button className="btn btn-secondary btn-sm" style={{ border: "1px solid var(--neon-green)" }}>
-                                    AlphaGo
+                                    {gameState?.agent_a?.name || "Agent A"}
                                 </button>
                                 <button className="btn btn-secondary btn-sm" style={{ opacity: 0.5 }}>
-                                    DeepBlue
+                                    {gameState?.agent_b?.name || "Agent B"}
                                 </button>
                             </div>
                         </div>
@@ -221,11 +267,7 @@ export default function ArenaView() {
 
             {/* Commentary Ribbon */}
             <CommentaryRibbon
-                transcripts={[
-                    "AlphaGo opens with the Sicilian Defense, aggressive play.",
-                    "DeepBlue responds quickly, analyzing 14M positions/sec.",
-                    "An unexpected knight sacrifice by AlphaGo! The odds are shifting rapidly."
-                ]}
+                transcripts={commentaryStream.length > 0 ? commentaryStream : ["Waiting for match to begin..."]}
                 isActive={true}
             />
         </div>

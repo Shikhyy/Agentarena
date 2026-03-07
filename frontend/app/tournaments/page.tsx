@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useWorldStore } from "@/lib/worldStore";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -40,16 +41,16 @@ const itemVariants = {
 };
 
 export default function TournamentsPage() {
+    const { agents } = useWorldStore();
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [loading, setLoading] = useState(true);
     const [entering, setEntering] = useState<string | null>(null);
     const [filter, setFilter] = useState("all");
 
-    useEffect(() => {
+    const fetchTournaments = () => {
         fetch(`${BACKEND_URL}/tournaments`)
             .then(res => res.json())
             .then(data => {
-                // If it's a dict where keys are IDs and values are Tournament objects
                 const tArray = Array.isArray(data) ? data : Object.values(data);
                 setTournaments(tArray as Tournament[]);
                 setLoading(false);
@@ -58,6 +59,10 @@ export default function TournamentsPage() {
                 console.error("Failed to fetch tournaments:", err);
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchTournaments();
     }, []);
 
     const filtered = tournaments.filter(
@@ -65,11 +70,30 @@ export default function TournamentsPage() {
     );
 
     const handleEnter = async (tournamentId: string) => {
+        if (!agents || agents.length === 0) {
+            alert("❌ No agent found. Build an agent first to enter a tournament.");
+            return;
+        }
+
         setEntering(tournamentId);
-        // Mock entry API call delay
-        await new Promise((r) => setTimeout(r, 1000));
+        try {
+            const res = await fetch(`${BACKEND_URL}/tournaments/${tournamentId}/enter`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ agent_id: agents[0].id }),
+            });
+            if (res.ok) {
+                alert("✅ Entered! Your agent has joined the tournament.");
+                fetchTournaments(); // Refresh the bracket
+            } else {
+                const err = await res.json();
+                alert(`❌ Failed to enter: ${err.detail || "Unknown error"}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("❌ Network Error.");
+        }
         setEntering(null);
-        alert("✅ Entered! Your agent has joined the tournament.");
     };
 
     return (

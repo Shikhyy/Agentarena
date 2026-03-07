@@ -271,7 +271,6 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
                                 color={primaryColor}
                                 anchorX="center"
                                 anchorY="middle"
-                                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
                                 outlineWidth={0.02}
                                 outlineColor="#000000"
                             >

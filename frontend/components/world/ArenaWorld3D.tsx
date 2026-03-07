@@ -37,7 +37,7 @@ function LoadingFallback() {
 
 /* ── Fog & atmosphere ────────────────────────────────────── */
 function Atmosphere() {
-    return <fogExp2 attach="fog" args={["#050210", 0.008]} />;
+    return <fogExp2 attach="fog" args={["#02020C", 0.008]} />;
 }
 
 
@@ -200,13 +200,13 @@ function WorldScene() {
 
             {/* Skybox & environment */}
             <Stars radius={200} depth={80} count={2000} factor={4} fade speed={0.5} />
-            <color attach="background" args={["#050210"]} />
+            <color attach="background" args={["#02020C"]} />
 
-            {/* MVP 3D WORLD ENGINE TICK: 0.3 ambient + 3 directional (key, fill, rim) */}
-            <ambientLight intensity={0.3} />
-            <directionalLight position={[30, 50, 30]} intensity={1.5} color="#4C1D95" castShadow /> {/* Cool Key */}
-            <directionalLight position={[-40, 20, -10]} intensity={1.0} color="#F59E0B" /> {/* Warm Fill */}
-            <directionalLight position={[0, 40, -60]} intensity={2.0} color="#D8B4FE" /> {/* Rim Light */}
+            {/* MVP 3D WORLD ENGINE TICK: Cyberpunk Colosseum lighting */}
+            <ambientLight intensity={0.2} color="#8B3FE8" />
+            <directionalLight position={[30, 50, 30]} intensity={1.5} color="#00E8FF" castShadow /> {/* Cyan Key */}
+            <directionalLight position={[-40, 20, -10]} intensity={1.0} color="#FF1F8F" /> {/* Pink Fill */}
+            <directionalLight position={[0, 40, -60]} intensity={2.0} color="#8B3FE8" /> {/* Purple Rim Light */}
 
             {/* Post-Processing MVP Tick: Bloom (1.2), Vignette */}
             <EffectComposer>
@@ -258,7 +258,7 @@ function WorldScene() {
                 }}
             >
                 <planeGeometry args={[600, 600]} />
-                <meshStandardMaterial color="#030108" metalness={0} roughness={1} />
+                <meshStandardMaterial color="#07071F" metalness={0.1} roughness={0.9} />
             </mesh>
         </>
     );
