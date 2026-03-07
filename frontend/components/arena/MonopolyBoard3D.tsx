@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Text, RoundedBox } from "@react-three/drei";
+import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
 // Board square color mapping
 const SQUARE_COLORS: Record<string, string> = {
@@ -108,7 +109,6 @@ function BoardCenter() {
                 color="#F59E0B"
                 anchorX="center"
                 anchorY="middle"
-                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
             >
                 🏟️{"\n"}AGENT ARENA
             </Text>
@@ -141,7 +141,7 @@ export function MonopolyBoard3D({ playerPositions = {} }: MonopolyBoard3DProps) 
 
     return (
         <div style={{ width: "100%", height: "100%", background: "#0f0a1a" }}>
-            <Canvas
+            <WebGLSafeCanvas
                 camera={{ position: [0, 25, 25], fov: 45 }}
                 shadows
                 style={{ borderRadius: "var(--radius-lg)" }}
@@ -171,7 +171,7 @@ export function MonopolyBoard3D({ playerPositions = {} }: MonopolyBoard3DProps) 
                 ))}
 
                 <BoardCenter />
-            </Canvas>
+            </WebGLSafeCanvas>
         </div>
     );
 }

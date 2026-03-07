@@ -4,6 +4,7 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Text, Float, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
+import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
 /* ── Card ────────────────────────────────────────────────── */
 function PokerCard({
@@ -323,7 +324,7 @@ export default function PokerTable3D({
     pot?: number;
 }) {
     return (
-        <Canvas
+        <WebGLSafeCanvas
             shadows
             camera={{ position: [0, 5, 6], fov: 40 }}
             style={{ width: "100%", height: "100%" }}
@@ -332,6 +333,6 @@ export default function PokerTable3D({
             <color attach="background" args={["#0F0A1A"]} />
             <fog attach="fog" args={["#0F0A1A", 10, 18]} />
             <PokerScene players={players} pot={pot} />
-        </Canvas>
+        </WebGLSafeCanvas>
     );
 }

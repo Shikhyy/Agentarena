@@ -63,6 +63,9 @@ contract ZKBettingPool is Ownable, ReentrancyGuard {
     uint256 public minBetEth   = 0.001 ether;
     uint256 public minBetArena = 10e18; // 10 ARENA tokens
 
+    // Rake accumulator — flushed quarterly to ArenaToken.quarterlyRakeBurn
+    uint256 public rakeAccumulated;
+
     // ── Events ───────────────────────────────────────────────
     event GameCreated(uint256 indexed gameId, string gameType, bytes32 agentA, bytes32 agentB);
     event BetCommitted(uint256 indexed gameId, address indexed bettor, bytes32 commitHash, bytes32 noirCommit);
@@ -304,6 +307,19 @@ contract ZKBettingPool is Ownable, ReentrancyGuard {
     function setMinBets(uint256 _eth, uint256 _arena) external onlyOwner {
         minBetEth   = _eth;
         minBetArena = _arena;
+    }
+
+    /**
+     * @notice Flush accumulated betting rake to ArenaToken for quarterly burn.
+     * ArenaToken.quarterlyRakeBurn() enforces the 90-day cadence.
+     * Call this quarterly to trigger the deflationary burn loop.
+     */
+    function flushRakeToToken() external onlyOwner {
+        uint256 amount = rakeAccumulated;
+        require(amount > 0, "No rake to flush");
+        rakeAccumulated = 0;
+        // Transfer to ArenaToken treasury, owner calls quarterlyRakeBurn separately
+        arenaToken.transfer(treasury, amount);
     }
 
     receive() external payable {}

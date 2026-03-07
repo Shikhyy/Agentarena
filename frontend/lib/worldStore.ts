@@ -39,7 +39,7 @@ export interface WorldAgent {
     personality: "aggressive" | "conservative" | "chaotic" | "adaptive";
     position: [number, number, number];
     targetPosition: [number, number, number];
-    status: "idle" | "walking" | "seated" | "competing" | "celebrating";
+    status: "idle" | "walking" | "seated" | "competing" | "celebrating" | "thinking";
     winRate: number;
     auraColor: string;
     zone: WorldZone;
@@ -76,6 +76,10 @@ export type QualityPreset = "low" | "medium" | "high" | "ultra";
 /* ── Store ───────────────────────────────────────────────── */
 interface WorldState {
     // World state
+    appState: "spawning" | "roaming";
+    playerPosition: [number, number, number];
+    playerTarget: [number, number, number] | null;
+
     currentZone: WorldZone;
     cameraMode: CameraMode;
     cameraTarget: [number, number, number];
@@ -105,6 +109,9 @@ interface WorldState {
 
     // Actions
     setZone: (zone: WorldZone) => void;
+    setAppState: (state: "spawning" | "roaming") => void;
+    setPlayerPosition: (pos: [number, number, number]) => void;
+    setPlayerTarget: (pos: [number, number, number] | null) => void;
     setCameraMode: (mode: CameraMode) => void;
     setCameraTarget: (target: [number, number, number]) => void;
     setQuality: (preset: QualityPreset) => void;
@@ -115,9 +122,11 @@ interface WorldState {
     toggleMinimap: () => void;
     updateAgentPosition: (id: string, position: [number, number, number]) => void;
     addAgent: (agent: WorldAgent) => void;
+    setLiveMatches: (matches: LiveMatch[]) => void;
     addMatch: (match: LiveMatch) => void;
     updateMatchSpectators: (matchId: string, count: number) => void;
     teleportToZone: (zone: WorldZone) => void;
+    connectBackendEvents: () => void;
 }
 
 function getAuraColor(winRate: number): string {
@@ -185,6 +194,9 @@ const MOCK_MATCHES: LiveMatch[] = [
 ];
 
 export const useWorldStore = create<WorldState>((set, get) => ({
+    appState: "spawning",
+    playerPosition: [0, 0, 8],
+    playerTarget: null,
     currentZone: "central-nexus",
     cameraMode: "free",
     cameraTarget: [0, 2, 0],
@@ -208,6 +220,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     arenaBalance: 1250.0,
 
     setZone: (zone) => set({ currentZone: zone }),
+    setAppState: (state) => set({ appState: state }),
+    setPlayerPosition: (pos) => set({ playerPosition: pos }),
+    setPlayerTarget: (pos) => set({ playerTarget: pos }),
     setCameraMode: (mode) => set({ cameraMode: mode }),
     setCameraTarget: (target) => set({ cameraTarget: target }),
     setQuality: (preset) => set({ qualityPreset: preset }),
@@ -224,6 +239,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
     addAgent: (agent) => set((s) => ({ agents: [...s.agents, agent] })),
 
+    setLiveMatches: (matches) => set({ liveMatches: matches }),
+
     addMatch: (match) => set((s) => ({ liveMatches: [...s.liveMatches, match] })),
 
     updateMatchSpectators: (matchId, count) =>
@@ -239,7 +256,88 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             set({
                 currentZone: zone,
                 cameraTarget: zoneConfig.position,
+                playerPosition: [zoneConfig.position[0], 0, zoneConfig.position[2] + 5],
+                playerTarget: null
             });
         }
+    },
+
+    connectBackendEvents: () => {
+        // Hydrate initially via HTTP
+        fetch("http://localhost:8000/arenas/live")
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.arenas && data.arenas.length > 0) {
+                    const mappedMatches = data.arenas.map((arena: any) => ({
+                        id: arena.id,
+                        gameType: arena.game_type,
+                        zone: `arena-${arena.game_type}` as WorldZone,
+                        agentA: { name: arena.agent_a?.name || "Agent A", elo: 2000 },
+                        agentB: { name: arena.agent_b?.name || "Agent B", elo: 2000 },
+                        spectators: arena.spectators || 0,
+                        odds: [parseFloat((arena.live_odds?.agent_a * 100).toFixed(0)) || 50, parseFloat((arena.live_odds?.agent_b * 100).toFixed(0)) || 50],
+                        status: arena.status,
+                        pool: 10000,
+                        dramaScore: 5.0,
+                    }));
+                    set({ liveMatches: mappedMatches });
+
+                    // Establish WebSocket connection for real-time live events to each active arena
+                    data.arenas.forEach((arena: any) => {
+                        const ws = new WebSocket(`ws://localhost:8000/arenas/${arena.id}/stream`);
+                        ws.onmessage = (event) => {
+                            try {
+                                const msg = JSON.parse(event.data);
+                                set((s) => ({
+                                    liveMatches: s.liveMatches.map((m) => {
+                                        if (m.id !== arena.id) return m;
+                                        
+                                        // Update state selectively based on event type
+                                        return {
+                                            ...m,
+                                            spectators: msg.spectators ?? m.spectators,
+                                            odds: msg.live_odds ? [
+                                                parseFloat((msg.live_odds.agent_a * 100).toFixed(0)), 
+                                                parseFloat((msg.live_odds.agent_b * 100).toFixed(0))
+                                            ] : m.odds,
+                                            dramaScore: msg.drama_score ?? m.dramaScore,
+                                        };
+                                    })
+                                }));
+                                
+                                // Make the agents "think" randomly on engine update
+                                if (msg.type === "engine_eval") {
+                                    set((s) => ({
+                                        agents: s.agents.map((a) => {
+                                            // Identify if agent belongs to this match
+                                            const isMatchAgent = a.name === arena.agent_a?.name || a.name === arena.agent_b?.name;
+                                            if (isMatchAgent) {
+                                                const originalStatus = a.status;
+                                                return { ...a, status: "thinking" };
+                                            }
+                                            return a;
+                                        })
+                                    }));
+                                    
+                                    // Revert from thinking to competing quickly
+                                    setTimeout(() => {
+                                        set((s) => ({
+                                            agents: s.agents.map(a => 
+                                                (a.name === arena.agent_a?.name || a.name === arena.agent_b?.name) 
+                                                    ? { ...a, status: "competing" } : a
+                                            )
+                                        }));
+                                    }, 2000);
+                                }
+                            } catch (e) {
+                                // ignore parse errors
+                            }
+                        };
+                    });
+                }
+            })
+            .catch((err) => console.log("Backend offline, using mock matches."));
+        
+        // Remove loop fallback now that WS is implemented
     },
 }));

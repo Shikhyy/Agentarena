@@ -210,7 +210,6 @@ function BroadcastScreens({ matchLabel, spectators }: { matchLabel: string; spec
                 fontSize={0.2}
                 color="#F59E0B"
                 anchorX="center"
-                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
             >
                 {matchLabel}
             </Text>

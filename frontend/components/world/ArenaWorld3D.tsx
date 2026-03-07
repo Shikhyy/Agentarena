@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense, useMemo, useRef } from "react";
+import React, { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Stars, Environment, OrbitControls, PerspectiveCamera, AdaptiveDpr, AdaptiveEvents } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { useWorldStore, WORLD_ZONES } from "@/lib/worldStore";
+import { WebGLSafeCanvas } from "./WebGLErrorBoundary";
 
 /* ── Zone lazy imports ───────────────────────────────────── */
 import { CentralNexus } from "./CentralNexus";
@@ -13,6 +15,10 @@ import { CommentatorAvatar3D } from "./CommentatorAvatar3D";
 import { BettingTerminal3D } from "./BettingTerminal3D";
 import { SpectatorOrbs } from "./SpectatorOrbs";
 import { AgentCharacter3D } from "./AgentCharacter3D";
+import { PlayerController } from "./PlayerController";
+import { WorkshopZone } from "./Workshop3D";
+import { MonopolyZone } from "./MonopolyZone";
+import { GrandArenaZone, HallOfFameZone, MarketplaceZone } from "./OtherZones";
 
 /* ── Loading fallback ────────────────────────────────────── */
 function LoadingFallback() {
@@ -31,41 +37,10 @@ function LoadingFallback() {
 
 /* ── Fog & atmosphere ────────────────────────────────────── */
 function Atmosphere() {
-    const { scene } = useThree();
-    scene.fog = useMemo(() => new THREE.FogExp2("#050210", 0.008), []);
-    return null;
+    return <fogExp2 attach="fog" args={["#050210", 0.008]} />;
 }
 
-/* ── Camera controller — follows zone transitions ────────── */
-function CameraController() {
-    const currentZone = useWorldStore((s) => s.currentZone);
-    const controlsRef = useRef<any>(null);
 
-    const target = useMemo(() => {
-        const zone = WORLD_ZONES.find((z) => z.id === currentZone);
-        return zone ? new THREE.Vector3(...zone.position) : new THREE.Vector3(0, 0, 0);
-    }, [currentZone]);
-
-    useFrame(() => {
-        if (!controlsRef.current) return;
-        const ctrl = controlsRef.current;
-        ctrl.target.lerp(target, 0.03);
-        ctrl.update();
-    });
-
-    return (
-        <OrbitControls
-            ref={controlsRef}
-            makeDefault
-            maxPolarAngle={Math.PI / 2.1}
-            minDistance={5}
-            maxDistance={80}
-            enableDamping
-            dampingFactor={0.05}
-            target={target.toArray() as [number, number, number]}
-        />
-    );
-}
 
 /* ── Chess arena zone ────────────────────────────────────── */
 function ChessZone() {
@@ -215,19 +190,29 @@ function PokerZone() {
 
 /* ── Entire world scene ──────────────────────────────────── */
 function WorldScene() {
+    const setPlayerTarget = useWorldStore((s) => s.setPlayerTarget);
+
     return (
         <>
             <Atmosphere />
-            <PerspectiveCamera makeDefault position={[0, 12, 25]} fov={60} near={0.1} far={1000} />
-            <CameraController />
+            <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={75} near={0.1} far={2000} />
+            <PlayerController />
 
             {/* Skybox & environment */}
             <Stars radius={200} depth={80} count={2000} factor={4} fade speed={0.5} />
             <color attach="background" args={["#050210"]} />
 
-            {/* Global lights */}
-            <ambientLight intensity={0.15} />
-            <directionalLight position={[30, 50, 30]} intensity={0.5} color="#6C3AED" />
+            {/* MVP 3D WORLD ENGINE TICK: 0.3 ambient + 3 directional (key, fill, rim) */}
+            <ambientLight intensity={0.3} />
+            <directionalLight position={[30, 50, 30]} intensity={1.5} color="#4C1D95" castShadow /> {/* Cool Key */}
+            <directionalLight position={[-40, 20, -10]} intensity={1.0} color="#F59E0B" /> {/* Warm Fill */}
+            <directionalLight position={[0, 40, -60]} intensity={2.0} color="#D8B4FE" /> {/* Rim Light */}
+
+            {/* Post-Processing MVP Tick: Bloom (1.2), Vignette */}
+            <EffectComposer>
+                <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} intensity={1.2} />
+                <Vignette eskil={false} offset={0.1} darkness={1.1} />
+            </EffectComposer>
 
             {/* Zones */}
             <Suspense fallback={<LoadingFallback />}>
@@ -242,9 +227,37 @@ function WorldScene() {
                 <PokerZone />
             </Suspense>
 
-            {/* Ground plane extending beyond nexus */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
-                <planeGeometry args={[400, 400]} />
+            <Suspense fallback={<LoadingFallback />}>
+                <WorkshopZone />
+            </Suspense>
+
+            <Suspense fallback={<LoadingFallback />}>
+                <MonopolyZone />
+            </Suspense>
+
+            <Suspense fallback={<LoadingFallback />}>
+                <GrandArenaZone />
+            </Suspense>
+
+            <Suspense fallback={<LoadingFallback />}>
+                <HallOfFameZone />
+            </Suspense>
+
+            <Suspense fallback={<LoadingFallback />}>
+                <MarketplaceZone />
+            </Suspense>
+
+            {/* Ground plane extending beyond nexus - Click to move */}
+            <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, -0.1, 0]}
+                receiveShadow
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setPlayerTarget([e.point.x, 0, e.point.z]);
+                }}
+            >
+                <planeGeometry args={[600, 600]} />
                 <meshStandardMaterial color="#030108" metalness={0} roughness={1} />
             </mesh>
         </>
@@ -266,15 +279,23 @@ export default function ArenaWorld3D() {
     }, [qualityPreset]);
 
     return (
-        <Canvas
+        <WebGLSafeCanvas
             dpr={dpr}
             shadows
             gl={{ antialias: qualityPreset !== "low", powerPreference: "high-performance" }}
             style={{ position: "absolute", inset: 0 }}
+            onCreated={({ gl }) => {
+                if (gl && gl.domElement) {
+                    gl.domElement.addEventListener('webglcontextlost', (e) => {
+                        e.preventDefault();
+                        console.error('WebGL context lost');
+                    }, false);
+                }
+            }}
         >
             <AdaptiveDpr pixelated />
             <AdaptiveEvents />
             <WorldScene />
-        </Canvas>
+        </WebGLSafeCanvas>
     );
 }

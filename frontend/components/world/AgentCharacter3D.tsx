@@ -163,6 +163,43 @@ function SkillOrbs({ count = 2, color }: { count?: number; color: string }) {
     );
 }
 
+/* ── Thinking particles ────────────────────────────────────── */
+function ThinkingParticles({ color }: { color: string }) {
+    const ref = useRef<THREE.Points>(null);
+    const count = 500;
+
+    const positions = useMemo(() => {
+        const pos = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            pos[i * 3] = (Math.random() - 0.5) * 0.4;
+            pos[i * 3 + 1] = Math.random() * 2 + 1; // Stream upwards
+            pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
+        }
+        return pos;
+    }, []);
+
+    useFrame((_, delta) => {
+        if (!ref.current) return;
+        const positions = ref.current.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < count; i++) {
+            positions[i * 3 + 1] += delta * 0.8; // Move up
+            if (positions[i * 3 + 1] > 3) {
+                positions[i * 3 + 1] = 1; // Reset to head level
+            }
+        }
+        ref.current.geometry.attributes.position.needsUpdate = true;
+    });
+
+    return (
+        <points ref={ref}>
+            <bufferGeometry>
+                <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+            </bufferGeometry>
+            <pointsMaterial size={0.03} color={color} transparent opacity={0.6} sizeAttenuation />
+        </points>
+    );
+}
+
 /* ── Full Agent Character ────────────────────────────────── */
 interface AgentCharacter3DProps {
     agent: WorldAgent;
@@ -205,66 +242,64 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
     const levelBadgeColor = agent.level >= 20 ? "#F59E0B" : agent.level >= 10 ? "#8B5CF6" : "#64748B";
 
     return (
-        <group
-            ref={groupRef}
-            position={agent.position}
-            onClick={(e) => {
-                e.stopPropagation();
-                onClick?.();
-            }}
-        >
-            {/* Agent body */}
-            <AgentBody personality={agent.personality} color={primaryColor} />
+        <group position={agent.position} onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+            <group ref={groupRef}>
+                {/* Agent body */}
+                <AgentBody personality={agent.personality} color={primaryColor} />
 
-            {/* Aura */}
-            <AgentAura
-                color={agent.auraColor}
-                winRate={agent.winRate}
-                isActive={agent.status === "competing"}
-            />
+                {/* Aura */}
+                <AgentAura
+                    color={agent.auraColor}
+                    winRate={agent.winRate}
+                    isActive={agent.status === "competing" || agent.status === "thinking"}
+                />
 
-            {/* Skill orbs */}
-            {agent.status !== "competing" && (
-                <SkillOrbs count={Math.min(Math.floor(agent.level / 8), 4)} color={primaryColor} />
-            )}
+                {/* Thinking particles */}
+                {agent.status === "thinking" && <ThinkingParticles color={primaryColor} />}
 
-            {/* Name tag + level */}
-            {showLabel && (
-                <Billboard position={[0, 2.2, 0]}>
-                    <Float speed={1.5} floatIntensity={0.1}>
-                        <Text
-                            fontSize={0.2}
-                            color={primaryColor}
-                            anchorX="center"
-                            anchorY="middle"
-                            font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
-                            outlineWidth={0.02}
-                            outlineColor="#000000"
-                        >
-                            {agent.name}
-                        </Text>
-                        <Text
-                            position={[0, -0.22, 0]}
-                            fontSize={0.11}
-                            color={levelBadgeColor}
-                            anchorX="center"
-                            anchorY="middle"
-                        >
-                            {`Lv.${agent.level}  ⚡${agent.elo}`}
-                        </Text>
-                        {agent.status === "competing" && (
+                {/* Skill orbs */}
+                {agent.status !== "competing" && (
+                    <SkillOrbs count={Math.min(Math.floor(agent.level / 8), 4)} color={primaryColor} />
+                )}
+
+                {/* Name tag + level */}
+                {showLabel && (
+                    <Billboard position={[0, 2.2, 0]}>
+                        <Float speed={1.5} floatIntensity={0.1}>
                             <Text
-                                position={[0, -0.4, 0]}
-                                fontSize={0.09}
-                                color="#10B981"
+                                fontSize={0.2}
+                                color={primaryColor}
                                 anchorX="center"
+                                anchorY="middle"
+                                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
+                                outlineWidth={0.02}
+                                outlineColor="#000000"
                             >
-                                IN MATCH
+                                {agent.name}
                             </Text>
-                        )}
-                    </Float>
-                </Billboard>
-            )}
+                            <Text
+                                position={[0, -0.22, 0]}
+                                fontSize={0.11}
+                                color={levelBadgeColor}
+                                anchorX="center"
+                                anchorY="middle"
+                            >
+                                {`Lv.${agent.level}  ⚡${agent.elo}`}
+                            </Text>
+                            {agent.status === "competing" && (
+                                <Text
+                                    position={[0, -0.4, 0]}
+                                    fontSize={0.09}
+                                    color="#10B981"
+                                    anchorX="center"
+                                >
+                                    IN MATCH
+                                </Text>
+                            )}
+                        </Float>
+                    </Billboard>
+                )}
+            </group>
         </group>
     );
 }

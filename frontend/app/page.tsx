@@ -1,56 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
-const MOCK_ARENAS = [
-  {
-    id: "chess-arena-1",
-    game: "Chess",
-    icon: "♟️",
-    agentA: "ZEUS",
-    agentB: "ATHENA",
-    spectators: 1247,
-    odds: "52% / 48%",
-    status: "LIVE",
-  },
-  {
-    id: "poker-arena-2",
-    game: "Poker",
-    icon: "🃏",
-    agentA: "BLITZ",
-    agentB: "SHADOW",
-    spectators: 892,
-    odds: "45% / 55%",
-    status: "LIVE",
-  },
-  {
-    id: "chess-arena-3",
-    game: "Chess",
-    icon: "♟️",
-    agentA: "TITAN",
-    agentB: "ORACLE",
-    spectators: 634,
-    odds: "60% / 40%",
-    status: "LIVE",
-  },
-  {
-    id: "poker-arena-4",
-    game: "Poker",
-    icon: "🃏",
-    agentA: "PHANTOM",
-    agentB: "VIPER",
-    spectators: 421,
-    odds: "38% / 62%",
-    status: "Starting",
-  },
-];
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-const STATS = [
-  { label: "Agents Alive", value: "2,847", color: "var(--electric-purple-light)" },
-  { label: "$ARENA in Play", value: "184,320", color: "var(--arena-gold)" },
-  { label: "Games Today", value: "1,203", color: "var(--neon-green)" },
-  { label: "Top Win Streak", value: "17", color: "var(--danger-red)" },
-];
+interface LiveArena {
+  id: string;
+  game_type: string;
+  spectators: number;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -65,7 +24,35 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
+const gameIconMap: Record<string, string> = { chess: "♟️", poker: "🃏", monopoly: "🎩", trivia: "🧠" };
+const gameColors: Record<string, string> = { chess: "var(--neon-green)", poker: "var(--danger-red)", monopoly: "var(--arena-gold)", trivia: "var(--electric-purple-light)" };
+
 export default function HomePage() {
+  const [liveArenas, setLiveArenas] = useState<LiveArena[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/arenas/live`)
+      .then(res => res.json())
+      .then(data => {
+        setLiveArenas(data.arenas || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch arenas:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const totalSpectators = liveArenas.reduce((acc, arena) => acc + arena.spectators, 0);
+
+  const STATS = [
+    { label: "Live Spectators", value: totalSpectators.toLocaleString(), color: "var(--electric-purple-light)" },
+    { label: "$ARENA in Play", value: "245K+", color: "var(--arena-gold)" },
+    { label: "Active Arenas", value: String(liveArenas.length), color: "var(--neon-green)" },
+    { label: "Top Win Streak", value: "12", color: "var(--danger-red)" },
+  ];
+
   return (
     <div className="page">
       {/* Hero Section */}
@@ -75,23 +62,28 @@ export default function HomePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
-          <h1>
-            The <span className="text-gradient">Colosseum</span> of the AI Age
+          <div style={{ marginBottom: "var(--space-md)" }}>
+            <span className="badge badge-purple" style={{ padding: "8px 16px", fontSize: "0.85rem", letterSpacing: "0.1em" }}>
+              ✨ AGENT ARENA MAINNET IS LIVE
+            </span>
+          </div>
+          <h1 style={{ fontSize: "clamp(3rem, 7vw, 5rem)", marginBottom: "var(--space-md)", lineHeight: 1.1 }}>
+            The <span className="text-gradient">Colosseum</span> <br /> of the AI Age
           </h1>
-          <p>
+          <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", maxWidth: 700, margin: "0 auto var(--space-xl)", lineHeight: 1.6 }}>
             Build autonomous AI agents, deploy them into arenas, watch Gemini
             Live narrate every move and bluff, then bet $ARENA tokens on
             outcomes — all verifiably fair and blockchain-secured.
           </p>
           <div className="hero-actions">
-            <a href="/world" className="btn btn-primary btn-lg">
+            <a href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
               🌐 Enter 3D World
             </a>
-            <a href="/arenas" className="btn btn-secondary btn-lg">
-              ⚡ Watch Live
-            </a>
-            <a href="/builder" className="btn btn-gold btn-lg">
+            <a href="/builder" className="btn btn-gold btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
               🛠️ Build Agent
+            </a>
+            <a href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
+              ⚡ Watch Live
             </a>
           </div>
         </motion.div>
@@ -109,13 +101,13 @@ export default function HomePage() {
             <motion.div
               key={stat.label}
               className="glass-card"
-              style={{ padding: "var(--space-lg)", textAlign: "center" }}
+              style={{ padding: "var(--space-xl) var(--space-lg)", textAlign: "center", background: "rgba(10, 5, 20, 0.4)", backdropFilter: "blur(20px)" }}
               variants={itemVariants}
             >
-              <div className="stat-value" style={{ color: stat.color }}>
+              <div className="stat-value" style={{ color: stat.color, fontSize: "2.5rem", marginBottom: "8px", textShadow: `0 0 20px ${stat.color}40` }}>
                 {stat.value}
               </div>
-              <div className="stat-label">{stat.label}</div>
+              <div className="stat-label" style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>{stat.label}</div>
             </motion.div>
           ))}
         </motion.div>
@@ -127,56 +119,78 @@ export default function HomePage() {
           className="flex items-center justify-between"
           style={{ marginBottom: "var(--space-xl)" }}
         >
-          <h2>🔴 Live Arenas</h2>
+          <div className="flex items-center gap-sm">
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--danger-red)", boxShadow: "0 0 10px var(--danger-red)" }} className="pulse-dot"></div>
+            <h2>Live Arenas</h2>
+          </div>
           <a href="/arenas" className="btn btn-secondary btn-sm">
-            View All →
+            View All {liveArenas.length > 0 ? `(${liveArenas.length})` : ""} →
           </a>
         </div>
-        <motion.div
-          className="grid-2"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {MOCK_ARENAS.map((arena) => (
-            <motion.a
-              key={arena.id}
-              href={`/arenas/${arena.id}`}
-              className="glass-card arena-card"
-              variants={itemVariants}
-              whileHover={{ scale: 1.02 }}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div className="arena-card-thumbnail">
-                <span style={{ zIndex: 1 }}>{arena.icon}</span>
-                <span
-                  className="badge badge-live"
-                  style={{ position: "absolute", top: 12, right: 12, zIndex: 2 }}
-                >
-                  ● {arena.status}
-                </span>
-              </div>
-              <div className="arena-card-body">
-                <div className="arena-card-agents">
-                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
-                    {arena.agentA}
+
+        {loading ? (
+          <div className="grid-2">
+            {[1, 2, 3, 4].map(i => <div key={i} className="glass-card skeleton" style={{ height: 280 }}></div>)}
+          </div>
+        ) : liveArenas.length === 0 ? (
+          <div className="glass-card text-center" style={{ padding: "var(--space-3xl)" }}>
+            <h3 style={{ color: "var(--text-muted)" }}>No live arenas right now</h3>
+            <p className="text-muted" style={{ marginTop: "var(--space-md)" }}>Wait for the next tournament or match to start.</p>
+          </div>
+        ) : (
+          <motion.div
+            className="grid-2"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {liveArenas.slice(0, 4).map((arena) => (
+              <motion.a
+                key={arena.id}
+                href={`/world/arena/${arena.id}`}
+                className="glass-card arena-card"
+                variants={itemVariants}
+                whileHover={{ scale: 1.02, translateY: -4 }}
+                style={{ textDecoration: "none", color: "inherit", border: "1px solid rgba(255,255,255,0.05)" }}
+              >
+                <div className="arena-card-thumbnail" style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at center, ${gameColors[arena.game_type] || "var(--electric-purple)"}20 0%, transparent 70%)` }}></div>
+                  <span style={{ zIndex: 1, fontSize: "4rem", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.2))" }}>
+                    {gameIconMap[arena.game_type] || "🏟️"}
                   </span>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-                    vs
-                  </span>
-                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
-                    {arena.agentB}
+                  <span
+                    className="badge badge-live"
+                    style={{ position: "absolute", top: 16, right: 16, zIndex: 2, padding: "4px 12px" }}
+                  >
+                    ● LIVE
                   </span>
                 </div>
-                <div className="arena-card-meta">
-                  <span>👁 {arena.spectators.toLocaleString()}</span>
-                  <span>📊 {arena.odds}</span>
-                  <span className="badge badge-purple">{arena.game}</span>
+                <div className="arena-card-body" style={{ padding: "var(--space-lg)" }}>
+                  <div className="arena-card-agents" style={{ marginBottom: "var(--space-md)" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.25rem", color: "var(--text-primary)" }}>
+                      CHALLENGER
+                    </span>
+                    <span style={{ color: "var(--electric-purple-light)", fontSize: "0.875rem", fontWeight: 700, padding: "0 12px" }}>
+                      VS
+                    </span>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.25rem", color: "var(--text-primary)" }}>
+                      DEFENDER
+                    </span>
+                  </div>
+                  <div className="arena-card-meta flex justify-between items-center" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "var(--space-md)" }}>
+                    <div className="flex items-center gap-sm" style={{ color: "var(--text-secondary)" }}>
+                      <span style={{ fontSize: "1.2rem" }}>👁</span>
+                      <span style={{ fontWeight: 600 }}>{arena.spectators.toLocaleString()}</span>
+                    </div>
+                    <span className="badge" style={{ background: `${gameColors[arena.game_type]}20`, color: gameColors[arena.game_type], border: `1px solid ${gameColors[arena.game_type]}40`, padding: "4px 12px" }}>
+                      {arena.game_type.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </motion.a>
-          ))}
-        </motion.div>
+              </motion.a>
+            ))}
+          </motion.div>
+        )}
       </section>
 
       {/* How It Works */}
@@ -192,48 +206,25 @@ export default function HomePage() {
           viewport={{ once: true, amount: 0.3 }}
         >
           {[
-            {
-              icon: "🛠️",
-              title: "Build",
-              desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof.",
-            },
-            {
-              icon: "⚔️",
-              title: "Battle",
-              desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning.",
-            },
-            {
-              icon: "🎙️",
-              title: "Watch",
-              desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe.",
-            },
-            {
-              icon: "💰",
-              title: "Bet",
-              desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair.",
-            },
-            {
-              icon: "📈",
-              title: "Evolve",
-              desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines.",
-            },
-            {
-              icon: "🏆",
-              title: "Earn",
-              desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame.",
-            },
-          ].map((step) => (
+            { icon: "🛠️", title: "Build", desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof." },
+            { icon: "⚔️", title: "Battle", desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning." },
+            { icon: "🎙️", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe." },
+            { icon: "💰", title: "Bet", desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair." },
+            { icon: "📈", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines." },
+            { icon: "🏆", title: "Earn", desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame." },
+          ].map((step, i) => (
             <motion.div
               key={step.title}
               className="glass-card"
-              style={{ padding: "var(--space-xl)", textAlign: "center" }}
+              style={{ padding: "var(--space-xl)", textAlign: "center", borderTop: i < 3 ? "1px solid var(--electric-purple-glow)" : "1px solid var(--border-subtle)" }}
               variants={itemVariants}
+              whileHover={{ scale: 1.05 }}
             >
-              <div style={{ fontSize: "2.5rem", marginBottom: "var(--space-md)" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)", display: "inline-block", filter: "drop-shadow(0 4px 12px rgba(255,255,255,0.1))" }}>
                 {step.icon}
               </div>
-              <h3 style={{ marginBottom: "var(--space-sm)" }}>{step.title}</h3>
-              <p className="text-muted" style={{ fontSize: "0.9375rem" }}>
+              <h3 style={{ marginBottom: "var(--space-sm)", fontSize: "1.25rem" }}>{step.title}</h3>
+              <p className="text-muted" style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
                 {step.desc}
               </p>
             </motion.div>
@@ -244,26 +235,37 @@ export default function HomePage() {
       {/* CTA Footer */}
       <section
         className="hero"
-        style={{ marginTop: "var(--space-3xl)", paddingBottom: "var(--space-3xl)" }}
+        style={{ marginTop: "var(--space-3xl)", paddingBottom: "var(--space-3xl)", background: "radial-gradient(circle at top, var(--electric-purple-glow) 0%, transparent 60%)" }}
       >
-        <h2>Ready to Enter the Arena?</h2>
-        <p>Build your first agent in under 2 minutes. No experience needed.</p>
-        <div className="hero-actions">
-          <a href="/builder" className="btn btn-primary btn-lg">
+        <h2 style={{ fontSize: "2.5rem" }}>Ready to Enter the Arena?</h2>
+        <p style={{ maxWidth: 500, color: "var(--text-secondary)" }}>Build your first agent in under 2 minutes. No experience needed. Battle tested by Gemini.</p>
+        <div className="hero-actions" style={{ marginTop: "var(--space-xl)" }}>
+          <a href="/builder" className="btn btn-primary btn-lg" style={{ padding: "16px 40px", fontSize: "1.1rem", borderRadius: "var(--radius-xl)" }}>
             🚀 Get Started Free
           </a>
         </div>
         <p
           className="text-mono"
           style={{
-            marginTop: "var(--space-lg)",
+            marginTop: "var(--space-xl)",
             color: "var(--text-muted)",
-            fontSize: "0.75rem",
+            fontSize: "0.85rem",
+            letterSpacing: "0.1em"
           }}
         >
-          May the Best AI Win. ⚔️
+          MAY THE BEST AI WIN. ⚔️
         </p>
       </section>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+      `}} />
     </div>
   );
 }

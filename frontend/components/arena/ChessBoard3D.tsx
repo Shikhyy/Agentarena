@@ -4,6 +4,7 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Text, Float } from "@react-three/drei";
 import * as THREE from "three";
+import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
 /* ── Chess Piece shapes (simplified geometry) ───────────────── */
 function ChessPiece({
@@ -187,7 +188,6 @@ function AgentLabel({
                 color={color}
                 anchorX="center"
                 anchorY="middle"
-                font="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gozuiqvJg.woff2"
             >
                 {name}
             </Text>
@@ -255,7 +255,7 @@ export default function ChessBoard3D({
     activeColor = "white" as "white" | "black",
 }) {
     return (
-        <Canvas
+        <WebGLSafeCanvas
             shadows
             camera={{ position: [0, 4, 5], fov: 45 }}
             style={{ width: "100%", height: "100%" }}
@@ -264,6 +264,6 @@ export default function ChessBoard3D({
             <color attach="background" args={["#0F0A1A"]} />
             <fog attach="fog" args={["#0F0A1A", 8, 15]} />
             <ChessScene agentWhite={agentWhite} agentBlack={agentBlack} activeColor={activeColor} />
-        </Canvas>
+        </WebGLSafeCanvas>
     );
 }

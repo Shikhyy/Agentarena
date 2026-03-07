@@ -27,7 +27,7 @@ class LiveOddsEngine:
         # Simple Bayesian Approximation: 
         # P(A|Evidence) = [P(Evidence|A) * P(A)] / P(Evidence)
         # Here we use an advantage multiplier (e.g., Chess Engine evaluation +1.5 pawns)
-        adv_pos = new_evidence["position"]
+        adv_pos = new_evidence.get("position", 0)
         multiplier = new_evidence.get("advantage_score", 1.0)
         
         # Scale the favored position

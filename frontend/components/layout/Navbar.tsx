@@ -50,6 +50,16 @@ export function Navbar() {
                     </Link>
                 </li>
                 <li>
+                    <Link href="/tournaments" className={`nav-link ${pathname?.startsWith("/tournaments") ? "active" : ""}`}>
+                        Tournaments
+                    </Link>
+                </li>
+                <li>
+                    <Link href="/marketplace" className={`nav-link ${pathname?.startsWith("/marketplace") ? "active" : ""}`}>
+                        Marketplace
+                    </Link>
+                </li>
+                <li>
                     <Link href="/profile" className={`nav-link ${pathname === "/profile" ? "active" : ""}`}>
                         Profile
                     </Link>

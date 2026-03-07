@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text, RoundedBox, Billboard } from "@react-three/drei";
+import { Text, RoundedBox, Billboard, Html } from "@react-three/drei";
 import * as THREE from "three";
 
 /* ── Betting Terminal 3D ─────────────────────────────────── */
@@ -27,11 +27,22 @@ export function BettingTerminal3D({
 }: BettingTerminal3DProps) {
     const glowRef = useRef<THREE.Mesh>(null);
     const screenRef = useRef<THREE.Mesh>(null);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const [betAmount, setBetAmount] = useState(10);
+    const [sealedEnvelope, setSealedEnvelope] = useState<{ y: number, visible: boolean }>({ y: 1.5, visible: false });
 
-    useFrame(() => {
+    useFrame((_, delta) => {
         if (glowRef.current) {
             const mat = glowRef.current.material as THREE.MeshStandardMaterial;
             mat.emissiveIntensity = 0.3 + Math.sin(Date.now() * 0.003) * 0.15;
+        }
+
+        // Animate sealed envelope flying to vault
+        if (sealedEnvelope.visible) {
+            setSealedEnvelope(prev => {
+                if (prev.y > 5) return { y: 1.5, visible: false }; // disappear in vault
+                return { y: prev.y + delta * 3, visible: true };
+            });
         }
     });
 
@@ -41,7 +52,10 @@ export function BettingTerminal3D({
             rotation={rotation as unknown as THREE.Euler}
             onClick={(e) => {
                 e.stopPropagation();
-                onClick?.();
+                if (!isInteracting) {
+                    setIsInteracting(true);
+                    onClick?.();
+                }
             }}
         >
             {/* Base stand */}
@@ -54,6 +68,64 @@ export function BettingTerminal3D({
             <RoundedBox position={[0, 1.3, 0]} args={[0.8, 0.9, 0.3]} radius={0.04} smoothness={4} castShadow>
                 <meshStandardMaterial color="#1E1B4B" metalness={0.4} roughness={0.5} />
             </RoundedBox>
+
+            {/* Sub-interactive UI */}
+            {isInteracting && (
+                <Html position={[0, 2.5, 0]} center transform style={{
+                    width: '240px', background: 'linear-gradient(135deg, rgba(15, 10, 26, 0.85), rgba(10, 5, 20, 0.95))',
+                    padding: '20px', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: '16px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(16, 185, 129, 0.15)',
+                    backdropFilter: 'blur(12px)', color: 'white', fontFamily: 'var(--font-body)',
+                    display: 'flex', flexDirection: 'column', gap: '12px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(16, 185, 129, 0.2)', paddingBottom: '12px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>💰</span>
+                        <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--neon-green)', fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>PLACE ZK BET</h4>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Target: <strong style={{ color: 'white' }}>AGENT A</strong></span>
+                        <span style={{ color: 'var(--neon-green)' }}>{odds[0]}% Odds</span>
+                    </div>
+
+                    <input
+                        type="range" style={{ width: "100%", accentColor: "var(--neon-green)", background: "rgba(255,255,255,0.1)", height: "4px", borderRadius: "2px", outline: "none", cursor: "pointer" }} min="10" max="1000" step="10"
+                        value={betAmount} onChange={(e) => setBetAmount(parseInt(e.target.value))}
+                    />
+
+                    <div style={{ textAlign: "center", fontSize: '1.2rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--arena-gold)', textShadow: '0 0 10px rgba(245, 158, 11, 0.3)' }}>
+                        {betAmount} $ARENA
+                    </div>
+
+                    <button
+                        style={{
+                            width: "100%", padding: "10px",
+                            background: "linear-gradient(135deg, var(--neon-green), var(--neon-green-light))",
+                            border: "1px solid var(--neon-green-light)", color: "#0F0A1A",
+                            cursor: "pointer", borderRadius: "8px", fontFamily: "var(--font-heading)",
+                            fontWeight: 800, fontSize: "13px", letterSpacing: "0.05em",
+                            boxShadow: "0 4px 15px rgba(16, 185, 129, 0.4)", textTransform: "uppercase",
+                            transition: "all 0.2s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+                        onClick={() => {
+                            setSealedEnvelope({ y: 1.5, visible: true });
+                            setIsInteracting(false);
+                        }}
+                    >
+                        LOCK CONFIDENTIAL BET
+                    </button>
+                </Html>
+            )}
+
+            {/* Envelope Animation */}
+            {sealedEnvelope.visible && (
+                <mesh position={[0, sealedEnvelope.y, 0]}>
+                    <boxGeometry args={[0.4, 0.2, 0.05]} />
+                    <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.5} />
+                </mesh>
+            )}
 
             {/* Screen */}
             <mesh ref={screenRef} position={[0, 1.35, 0.16]}>

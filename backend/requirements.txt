@@ -18,7 +18,7 @@ pydantic==2.10.0
 
 # Utilities
 python-dotenv==1.0.1
-httpx==0.28.0
+httpx>=0.28.1
 
 # Phase 2 dependencies (uncomment when needed)
 # firebase-admin==6.4.0
