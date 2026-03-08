@@ -153,11 +153,11 @@ export function BettingTerminal3D({
 
                 {/* Odds bars */}
                 <mesh position={[-0.12, 1.38, 0]}>
-                    <planeGeometry args={[0.25 * (odds[0] / 100), 0.05]} />
+                    <planeGeometry args={[Math.max(0.001, 0.25 * ((odds?.[0] || 50) / 100)), 0.05]} />
                     <meshStandardMaterial color="#10B981" emissive="#10B981" emissiveIntensity={0.5} />
                 </mesh>
                 <mesh position={[0.12, 1.38, 0]}>
-                    <planeGeometry args={[0.25 * (odds[1] / 100), 0.05]} />
+                    <planeGeometry args={[Math.max(0.001, 0.25 * ((odds?.[1] || 50) / 100)), 0.05]} />
                     <meshStandardMaterial color="#8B5CF6" emissive="#8B5CF6" emissiveIntensity={0.5} />
                 </mesh>
 
@@ -204,7 +204,7 @@ export function BettingTerminal3D({
             {/* Interactive label */}
             <Billboard position={[0, 2.1, 0]}>
                 <Text fontSize={0.08} color="#F59E0B" anchorX="center" outlineWidth={0.005} outlineColor="#000">
-                     BET TERMINAL
+                    BET TERMINAL
                 </Text>
             </Billboard>
         </group>

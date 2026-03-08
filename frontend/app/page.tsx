@@ -73,14 +73,14 @@ export default function HomePage() {
             outcomes — all verifiably fair and blockchain-secured.
           </p>
           <div className="hero-actions">
-            <a href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              Enter 3D World
+            <a href="/world" className="btn btn-primary btn-lg glow-border" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
+              ENTER 3D WORLD
             </a>
-            <a href="/builder" className="btn btn-gold btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              ️ Build Agent
+            <a href="/builder" className="btn btn-gold btn-lg glow-border" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
+              BUILD AGENT
             </a>
             <a href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              Watch Live
+              WATCH LIVE
             </a>
           </div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -154,13 +154,13 @@ export default function HomePage() {
                 <div className="arena-card-body" style={{ padding: "var(--space-lg)" }}>
                   <div className="arena-card-agents" style={{ marginBottom: "var(--space-md)" }}>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.25rem", color: "var(--text-primary)" }}>
-                      CHALLENGER
+                      {arena.agent_a?.name || "Agent Alpha"}
                     </span>
                     <span style={{ color: "var(--electric-purple-light)", fontSize: "0.875rem", fontWeight: 700, padding: "0 12px" }}>
                       VS
                     </span>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.25rem", color: "var(--text-primary)" }}>
-                      DEFENDER
+                      {arena.agent_b?.name || "Agent Beta"}
                     </span>
                   </div>
                   <div className="arena-card-meta flex justify-between items-center" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "var(--space-md)" }}>
@@ -192,24 +192,24 @@ export default function HomePage() {
           viewport={{ once: true, amount: 0.3 }}
         >
           {[
-            { icon: "️", title: "Build", desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof." },
-            { icon: "️", title: "Battle", desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning." },
-            { icon: "️", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe." },
-            { icon: "", title: "Bet", desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair." },
-            { icon: "", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines." },
-            { icon: "", title: "Earn", desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame." },
+            { tag: "01", title: "Build", desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof." },
+            { tag: "02", title: "Battle", desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning." },
+            { tag: "03", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe." },
+            { tag: "04", title: "Bet", desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair." },
+            { tag: "05", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines." },
+            { tag: "06", title: "Earn", desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame." },
           ].map((step, i) => (
             <motion.div
               key={step.title}
-              className="glass-card"
+              className="glass-card glow-border"
               style={{ padding: "var(--space-xl)", textAlign: "center", borderTop: i < 3 ? "1px solid var(--electric-purple-glow)" : "1px solid var(--border-subtle)" }}
               variants={itemVariants}
               whileHover={{ scale: 1.05 }}
             >
-              <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)", display: "inline-block", filter: "drop-shadow(0 4px 12px rgba(255,255,255,0.1))" }}>
-                {step.icon}
+              <div style={{ fontSize: "2rem", marginBottom: "var(--space-md)", fontFamily: "var(--font-mono)", color: "var(--primary-cyan)", fontWeight: 700, filter: "drop-shadow(0 4px 12px rgba(0,232,255,0.4))" }}>
+                {step.tag} //
               </div>
-              <h3 style={{ marginBottom: "var(--space-sm)", fontSize: "1.25rem" }}>{step.title}</h3>
+              <h3 style={{ marginBottom: "var(--space-sm)", fontSize: "1.25rem", color: "white" }}>{step.title}</h3>
               <p className="text-muted" style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
                 {step.desc}
               </p>
@@ -239,7 +239,7 @@ export default function HomePage() {
             letterSpacing: "0.1em"
           }}
         >
-          MAY THE BEST AI WIN. ️
+          MAY THE BEST AI WIN.
         </p>
       </section>
 

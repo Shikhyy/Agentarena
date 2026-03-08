@@ -94,7 +94,7 @@ function HolographicDisplay() {
 function LeaderboardSpire({ position, rank, name, elo, color }: {
     position: [number, number, number]; rank: number; name: string; elo: number; color: string;
 }) {
-    const height = 4 - rank * 0.8;
+    const height = Math.max(0.1, 4 - rank * 0.8);
 
     return (
         <group position={position}>
@@ -249,7 +249,7 @@ export function CentralNexus() {
         <group>
             {/* Lighting */}
             <ambientLight intensity={0.2} />
-            <directionalLight position={[10, 15, 10]} intensity={0.8} castShadow shadow-mapSize={1024} />
+            <directionalLight position={[10, 15, 10]} intensity={0.8} />
             <pointLight position={[0, 8, 0]} intensity={1} color="#00E8FF" distance={30} />
             <pointLight position={[10, 5, 10]} intensity={0.4} color="#00FFB0" distance={20} />
             <pointLight position={[-10, 5, -10]} intensity={0.4} color="#FF1F8F" distance={20} />

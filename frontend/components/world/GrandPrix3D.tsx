@@ -104,7 +104,7 @@ function SkyDeckEnvironment() {
 
 export default function GrandPrix3D() {
     return (
-        <WebGLSafeCanvas shadows camera={{ position: [0, 6, 18], fov: 45 }} style={{ width: '100%', height: '100%' }}>
+        <WebGLSafeCanvas camera={{ position: [0, 6, 18], fov: 45 }} style={{ width: '100%', height: '100%' }}>
             <color attach="background" args={["#04040F"]} />
             {/* Low atmospheric fog for epic look */}
             <fog attach="fog" args={["#04040F", 10, 35]} />

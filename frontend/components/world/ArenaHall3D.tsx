@@ -185,7 +185,7 @@ function ArenaLighting({ color, spectatorCount }: { color: string; spectatorCoun
     return (
         <>
             <ambientLight intensity={0.15} />
-            <directionalLight position={[5, 12, 5]} intensity={intensity} castShadow shadow-mapSize={1024} />
+            <directionalLight position={[5, 12, 5]} intensity={intensity} />
             <pointLight position={[0, 8, 0]} intensity={0.8} color={color} distance={25} />
             <pointLight position={[-8, 6, -8]} intensity={0.4} color="#6C3AED" distance={20} />
             <pointLight position={[8, 6, 8]} intensity={0.4} color="#10B981" distance={20} />
@@ -196,7 +196,6 @@ function ArenaLighting({ color, spectatorCount }: { color: string; spectatorCoun
                 penumbra={0.5}
                 intensity={spectatorCount > 100 ? 2.0 : 1.0}
                 color="#ffffff"
-                castShadow
                 target-position={[0, 0, 0]}
             />
         </>

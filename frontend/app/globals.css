@@ -247,9 +247,34 @@ h4 {
 .glass-panel:hover {
   background: rgba(19, 19, 53, 0.95);
   backdrop-filter: blur(16px);
-  border: 2px solid var(--primary-cyan);
+  border: 1px solid var(--primary-cyan);
   box-shadow: 0 0 40px rgba(0, 232, 255, 0.2);
   transform: translateY(-2px);
+}
+
+/* Premium gradient border overlay */
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--primary-cyan), rgba(0, 232, 255, 0) 40%, var(--skill-purple));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity var(--transition-base);
+}
+
+.glow-border:hover::before {
+  opacity: 1;
 }
 
 /* --- Buttons --- */

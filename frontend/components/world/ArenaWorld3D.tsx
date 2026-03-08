@@ -209,10 +209,11 @@ function WorldScene() {
             <directionalLight position={[0, 40, -60]} intensity={2.0} color="#8B3FE8" /> {/* Purple Rim Light */}
 
             {/* Post-Processing MVP Tick: Bloom (1.2), Vignette */}
-            <EffectComposer>
+            {/* Disabled temporarily due to exceeding MAX_TEXTURE_IMAGE_UNITS(16) on some devices */}
+            {/* <EffectComposer>
                 <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} intensity={1.2} />
                 <Vignette eskil={false} offset={0.1} darkness={1.1} />
-            </EffectComposer>
+            </EffectComposer> */}
 
             {/* Zones */}
             <Suspense fallback={<LoadingFallback />}>
@@ -281,7 +282,6 @@ export default function ArenaWorld3D() {
     return (
         <WebGLSafeCanvas
             dpr={dpr}
-            shadows
             gl={{ antialias: qualityPreset !== "low", powerPreference: "high-performance" }}
             style={{ position: "absolute", inset: 0 }}
             onCreated={({ gl }) => {
