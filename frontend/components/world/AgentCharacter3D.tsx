@@ -46,88 +46,70 @@ function AgentAura({ color, winRate, isActive }: { color: string; winRate: numbe
     );
 }
 
-/* ── Body shape derived from personality ─────────────────── */
+/* ── Premium Data Core Avatar ────────────────────────────── */
 function AgentBody({ personality, color }: { personality: WorldAgent["personality"]; color: string }) {
-    const bodyRef = useRef<THREE.Group>(null);
+    const coreRef = useRef<THREE.Mesh>(null);
+    const shellRef = useRef<THREE.Mesh>(null);
 
-    // Body archetype from PRD: aggressive=tall/angular, conservative=compact/rounded, chaotic=asymmetric, adaptive=fluid
-    const bodyConfig = useMemo(() => {
+    // Differentiate shell geometry based on personality
+    const ShellGeometry = useMemo(() => {
         switch (personality) {
-            case "aggressive":
-                return { height: 1.8, width: 0.35, topRadius: 0.15, segments: 6 };
-            case "conservative":
-                return { height: 1.3, width: 0.4, topRadius: 0.3, segments: 16 };
-            case "chaotic":
-                return { height: 1.5, width: 0.3, topRadius: 0.2, segments: 5 };
-            case "adaptive":
-                return { height: 1.5, width: 0.35, topRadius: 0.25, segments: 12 };
+            case "aggressive": return <tetrahedronGeometry args={[0.6]} />; // Sharp and pointy
+            case "conservative": return <boxGeometry args={[0.8, 0.8, 0.8]} />; // Solid and stable
+            case "chaotic": return <icosahedronGeometry args={[0.7, 0]} />; // Complex and unpredictable
+            case "adaptive": return <dodecahedronGeometry args={[0.65, 0]} />; // Fluid and multifaceted
+            default: return <octahedronGeometry args={[0.6, 0]} />;
         }
     }, [personality]);
 
     useFrame((_, delta) => {
-        if (bodyRef.current) {
-            // Idle floating bob
-            bodyRef.current.position.y = Math.sin(Date.now() * 0.002) * 0.03;
+        if (coreRef.current) {
+            coreRef.current.scale.setScalar(1 + Math.sin(Date.now() * 0.003) * 0.05); // Pulsing core
+        }
+        if (shellRef.current) {
+            shellRef.current.rotation.x += delta * 0.2;
+            shellRef.current.rotation.y += delta * 0.3;
+            shellRef.current.position.y = Math.sin(Date.now() * 0.002) * 0.1; // Gentle hover
         }
     });
 
     return (
-        <group ref={bodyRef}>
-            {/* Torso / Core */}
-            <mesh position={[0, bodyConfig.height * 0.4, 0]} castShadow>
-                <cylinderGeometry args={[bodyConfig.topRadius, bodyConfig.width, bodyConfig.height * 0.5, bodyConfig.segments]} />
+        <group position={[0, 1, 0]}>
+            {/* The Inner AI "Brain" (Pulsing Sphere) */}
+            <mesh ref={coreRef} castShadow>
+                <sphereGeometry args={[0.25, 32, 32]} />
                 <meshStandardMaterial
                     color={color}
-                    metalness={0.6}
-                    roughness={0.3}
                     emissive={color}
-                    emissiveIntensity={0.15}
+                    emissiveIntensity={1.5}
+                    toneMapped={false}
                 />
             </mesh>
 
-            {/* Head */}
-            <mesh position={[0, bodyConfig.height * 0.75, 0]} castShadow>
-                <sphereGeometry args={[0.2, bodyConfig.segments, bodyConfig.segments]} />
-                <meshStandardMaterial
-                    color={color}
-                    metalness={0.7}
-                    roughness={0.2}
+            {/* The Outer Data Shell (Glassmorphic Polyhedron) */}
+            <mesh ref={shellRef} castShadow receiveShadow>
+                {ShellGeometry}
+                <meshPhysicalMaterial
+                    color="#0C0C28"
                     emissive={color}
                     emissiveIntensity={0.2}
-                />
-            </mesh>
-
-            {/* Visor / face strip */}
-            <mesh position={[0, bodyConfig.height * 0.76, 0.15]} castShadow>
-                <boxGeometry args={[0.28, 0.06, 0.08]} />
-                <meshStandardMaterial
-                    color="#0a0a1a"
-                    emissive={color}
-                    emissiveIntensity={0.8}
                     metalness={0.9}
                     roughness={0.1}
+                    transmission={0.95} /* Glass effect */
+                    thickness={0.5}
+                    clearcoat={1}
+                    clearcoatRoughness={0.1}
                 />
             </mesh>
 
-            {/* Legs */}
-            <mesh position={[-0.1, 0.15, 0]} castShadow>
-                <cylinderGeometry args={[0.06, 0.08, 0.3, 8]} />
-                <meshStandardMaterial color="#1a1a2e" metalness={0.5} roughness={0.4} />
-            </mesh>
-            <mesh position={[0.1, 0.15, 0]} castShadow>
-                <cylinderGeometry args={[0.06, 0.08, 0.3, 8]} />
-                <meshStandardMaterial color="#1a1a2e" metalness={0.5} roughness={0.4} />
-            </mesh>
-
-            {/* Platform glow disc */}
-            <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <circleGeometry args={[0.4, 24]} />
-                <meshStandardMaterial
+            {/* Subtle Ground Reflection */}
+            <mesh position={[0, -0.99, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <circleGeometry args={[0.8, 32]} />
+                <meshBasicMaterial
                     color={color}
-                    emissive={color}
-                    emissiveIntensity={0.5}
                     transparent
-                    opacity={0.3}
+                    opacity={0.15}
+                    blending={THREE.AdditiveBlending}
                 />
             </mesh>
         </group>
@@ -277,13 +259,15 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
                                 {agent.name}
                             </Text>
                             <Text
-                                position={[0, -0.22, 0]}
-                                fontSize={0.11}
+                                position={[0, -0.25, 0]}
+                                fontSize={0.12}
+                                font="/fonts/SpaceGrotesk-Medium.ttf"
                                 color={levelBadgeColor}
                                 anchorX="center"
                                 anchorY="middle"
+                                letterSpacing={0.1}
                             >
-                                {`Lv.${agent.level}  ${agent.elo}`}
+                                {`LVL ${agent.level} — ELO ${agent.elo}`}
                             </Text>
                             {agent.status === "competing" && (
                                 <Text

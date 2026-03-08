@@ -51,15 +51,21 @@ function ChessPiece({
             </mesh>
             {/* Top */}
             <mesh position={[0, height + 0.05, 0]} castShadow>
-                <sphereGeometry args={[radius * 0.5, 16, 16]} />
+                <sphereGeometry args={[radius * 0.5, 32, 32]} />
                 <meshStandardMaterial
                     color={pieceColor}
-                    metalness={0.5}
-                    roughness={0.4}
+                    metalness={0.7}
+                    roughness={0.2}
                     emissive={isActive ? emissive : "#000000"}
-                    emissiveIntensity={isActive ? 0.6 : 0}
+                    emissiveIntensity={isActive ? 0.8 : 0}
                 />
             </mesh>
+            {isActive && (
+                <mesh position={[0, 0, 0]}>
+                    <cylinderGeometry args={[radius * 1.5, radius * 1.5, 0.05, 32]} />
+                    <meshBasicMaterial color={emissive} transparent opacity={0.3} />
+                </mesh>
+            )}
         </group>
     );
 }
@@ -85,10 +91,19 @@ function Board() {
                 <boxGeometry args={[4.2, 0.12, 4.2]} />
                 <meshStandardMaterial color="#1a1035" metalness={0.4} roughness={0.6} />
             </mesh>
-            {/* Board border glow */}
+            {/* Board border glass */}
             <mesh position={[0, -0.01, 0]}>
                 <boxGeometry args={[4.3, 0.02, 4.3]} />
-                <meshStandardMaterial color="#6C3AED" emissive="#6C3AED" emissiveIntensity={0.3} transparent opacity={0.6} />
+                <meshPhysicalMaterial
+                    color="#ffffff"
+                    emissive="#ffffff"
+                    emissiveIntensity={0.1}
+                    transparent
+                    opacity={0.15}
+                    metalness={0.9}
+                    roughness={0.1}
+                    transmission={0.9}
+                />
             </mesh>
             {/* Squares */}
             {squares.map((sq, i) => (
@@ -147,15 +162,15 @@ function parseFEN(fen: string): { pos: [number, number, number]; color: "white" 
 /* ── Particle Ring ───────────────────────────────────────── */
 function ParticleRing() {
     const ref = useRef<THREE.Points>(null);
-    const count = 200;
+    const count = 300;
 
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
-            const radius = 2.8 + Math.random() * 0.4;
+            const radius = 2.4 + Math.random() * 0.8;
             pos[i * 3] = Math.cos(angle) * radius;
-            pos[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
+            pos[i * 3 + 1] = (Math.random() - 0.5) * 1.5;
             pos[i * 3 + 2] = Math.sin(angle) * radius;
         }
         return pos;
@@ -163,7 +178,7 @@ function ParticleRing() {
 
     useFrame((_, delta) => {
         if (ref.current) {
-            ref.current.rotation.y += delta * 0.1;
+            ref.current.rotation.y += delta * 0.05;
         }
     });
 
@@ -172,7 +187,7 @@ function ParticleRing() {
             <bufferGeometry>
                 <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             </bufferGeometry>
-            <pointsMaterial size={0.03} color="#6C3AED" transparent opacity={0.6} sizeAttenuation />
+            <pointsMaterial size={0.02} color="#ffffff" transparent opacity={0.3} sizeAttenuation />
         </points>
     );
 }
@@ -188,13 +203,15 @@ function AgentLabel({
     color: string;
 }) {
     return (
-        <Float speed={2} floatIntensity={0.3}>
+        <Float speed={2} floatIntensity={0.2} floatingRange={[-0.05, 0.05]}>
             <Text
                 position={position}
-                fontSize={0.25}
+                fontSize={0.28}
+                font="/fonts/SpaceGrotesk-Bold.ttf"
                 color={color}
                 anchorX="center"
                 anchorY="middle"
+                letterSpacing={0.05}
             >
                 {name}
             </Text>
@@ -218,11 +235,11 @@ function ChessScene({
 
     return (
         <>
-            {/* Lights */}
-            <ambientLight intensity={0.3} />
-            <directionalLight position={[5, 8, 3]} intensity={1} castShadow shadow-mapSize={1024} />
-            <pointLight position={[-3, 3, -3]} intensity={0.5} color="#6C3AED" />
-            <pointLight position={[3, 3, 3]} intensity={0.5} color="#10B981" />
+            {/* Premium Lighting */}
+            <ambientLight intensity={0.15} color="#0C0C28" />
+            <spotLight position={[5, 10, 5]} intensity={1.5} angle={Math.PI / 4} penumbra={1} color="#ffffff" castShadow />
+            <pointLight position={[-4, 4, -4]} intensity={1} color="#8B3FE8" distance={15} />
+            <pointLight position={[4, 4, 4]} intensity={1} color="#00FFB0" distance={15} />
 
             {/* Board */}
             <Board />

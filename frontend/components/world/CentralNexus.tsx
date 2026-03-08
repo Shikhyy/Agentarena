@@ -19,48 +19,40 @@ function HolographicDisplay() {
 
     return (
         <group position={[0, 6, 0]}>
-            {/* Spinning hologram ring */}
-            <group ref={ref}>
-                <mesh rotation={[Math.PI / 2, 0, 0]}>
-                    <torusGeometry args={[2, 0.05, 8, 48]} />
-                    <meshStandardMaterial color="#8B3FE8" emissive="#8B3FE8" emissiveIntensity={0.8} transparent opacity={0.5} />
-                </mesh>
-                <mesh rotation={[Math.PI / 3, 0, 0]}>
-                    <torusGeometry args={[2.3, 0.03, 8, 48]} />
-                    <meshStandardMaterial color="#00FFB0" emissive="#00FFB0" emissiveIntensity={0.6} transparent opacity={0.4} />
-                </mesh>
-                <mesh rotation={[Math.PI / 2, 0, Math.PI / 4]}>
-                    <torusGeometry args={[1.8, 0.04, 8, 48]} />
-                    <meshStandardMaterial color="#FFBE00" emissive="#FFBE00" emissiveIntensity={0.5} transparent opacity={0.3} />
-                </mesh>
-            </group>
-
-            {/* Core sphere */}
-            <mesh>
-                <sphereGeometry args={[0.5, 16, 16]} />
-                <meshStandardMaterial
-                    color="#02020C"
+            {/* Dynamic Glass Core */}
+            <mesh position={[0, -0.5, 0]}>
+                <octahedronGeometry args={[1.2, 0]} />
+                <meshPhysicalMaterial
+                    color="#0C0C28"
                     emissive="#8B3FE8"
-                    emissiveIntensity={0.5}
+                    emissiveIntensity={0.2}
                     metalness={0.9}
                     roughness={0.1}
+                    transmission={0.9}
+                    thickness={0.5}
                 />
             </mesh>
 
+            {/* Inner pulsing core */}
+            <mesh position={[0, -0.5, 0]}>
+                <sphereGeometry args={[0.4, 32, 32]} />
+                <meshStandardMaterial color="#00E8FF" emissive="#00E8FF" emissiveIntensity={1.5} />
+            </mesh>
+
             {/* Title */}
-            <Float speed={1} floatIntensity={0.3}>
+            <Float speed={2} floatIntensity={0.5}>
                 <Text
-                    position={[0, 2, 0]}
-                    fontSize={0.5}
-                    color="#F59E0B"
+                    position={[0, 2.5, 0]}
+                    fontSize={0.6}
+                    font="/fonts/SpaceGrotesk-Bold.ttf"
+                    color="#ffffff"
                     anchorX="center"
-                    outlineWidth={0.02}
-                    outlineColor="#000"
+                    letterSpacing={0.05}
                 >
-                    AGENT ARENA
+                    AGENT ARENA V2
                 </Text>
-                <Text position={[0, 1.4, 0]} fontSize={0.18} color="#8B5CF6" anchorX="center">
-                    The Colosseum of the AI Age
+                <Text position={[0, 1.8, 0]} fontSize={0.2} color="#8B3FE8" anchorX="center" letterSpacing={0.1}>
+                    THE COLOSSEUM OF THE AI AGE
                 </Text>
             </Float>
 
@@ -247,12 +239,12 @@ export function CentralNexus() {
 
     return (
         <group>
-            {/* Lighting */}
-            <ambientLight intensity={0.2} />
-            <directionalLight position={[10, 15, 10]} intensity={0.8} />
-            <pointLight position={[0, 8, 0]} intensity={1} color="#00E8FF" distance={30} />
-            <pointLight position={[10, 5, 10]} intensity={0.4} color="#00FFB0" distance={20} />
-            <pointLight position={[-10, 5, -10]} intensity={0.4} color="#FF1F8F" distance={20} />
+            {/* Premium Lighting */}
+            <ambientLight intensity={0.1} color="#0C0C28" />
+            <spotLight position={[0, 20, 0]} intensity={1.5} angle={Math.PI / 4} penumbra={1} color="#00E8FF" castShadow />
+            <spotLight position={[10, 10, 10]} intensity={1} angle={Math.PI / 6} penumbra={0.8} color="#8B3FE8" castShadow />
+            <spotLight position={[-10, 10, -10]} intensity={1} angle={Math.PI / 6} penumbra={0.8} color="#00FFB0" castShadow />
+            <pointLight position={[0, 5, 0]} intensity={0.5} distance={15} color="#ffffff" />
 
             {/* Ground */}
             <NexusPlaza />

@@ -7,7 +7,7 @@ async function main() {
 
     // 1. Deploy $ARENA Token
     console.log("1️⃣  Deploying ArenaToken...");
-    const arenaToken = await hre.ethers.deployContract("ArenaToken", [deployer.address, deployer.address, deployer.address]);
+    const arenaToken = await hre.ethers.deployContract("ArenaToken", [deployer.address, deployer.address, deployer.address, deployer.address, deployer.address]);
     await arenaToken.waitForDeployment();
     const arenaTokenAddr = await arenaToken.getAddress();
     console.log("   ✅ ArenaToken:", arenaTokenAddr);

@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 import { Providers } from "./providers";
 import { Navbar } from "@/components/layout/Navbar";
+import { PageTransitionInfo } from "@/components/layout/PageTransitionInfo";
 
 export default function RootLayout({
   children,
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body>
         <Providers>
           <Navbar />
-          <main>{children}</main>
+          <PageTransitionInfo>
+            <main>{children}</main>
+          </PageTransitionInfo>
         </Providers>
       </body>
     </html>
