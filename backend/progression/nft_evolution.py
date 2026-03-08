@@ -38,7 +38,7 @@ class AgentNFTMetadata:
     ) -> "AgentNFTMetadata":
         desc = f"{personality.title()} AI agent competing in AgentArena. "
         if is_hall_of_fame:
-            desc += "🏆 Hall of Fame Legend. "
+            desc += " Hall of Fame Legend. "
         if parent_a and parent_b:
             desc += f"Gen {generation} offspring of agents {parent_a} and {parent_b}. "
         desc += f"ELO {elo} | Level {level} | {wins}W/{losses}L"

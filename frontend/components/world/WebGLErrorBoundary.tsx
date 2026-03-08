@@ -37,7 +37,7 @@ export function WebGLSafeCanvas(props: Props) {
                 width: "100%", height: "100%", zIndex: 100
             }}>
                 <div style={{ maxWidth: "500px", padding: "40px", background: "rgba(239, 68, 68, 0.1)", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
-                    <div style={{ fontSize: "4rem", marginBottom: "20px" }}>⚠️</div>
+                    <div style={{ fontSize: "4rem", marginBottom: "20px" }}>️</div>
                     <h2 style={{ color: "var(--danger-red)", marginBottom: "16px", fontFamily: "var(--font-display)", fontWeight: 800 }}>WebGL Unavailable</h2>
                     <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "24px" }}>
                         Your browser or environment failed to create a 3D WebGL context. Hardware acceleration might be disabled, or your environment is sandboxed.

@@ -12,7 +12,7 @@ function PokerCard({
     rotation = [0, 0, 0],
     faceUp = false,
     label = "",
-    suit = "♠",
+    suit = "",
 }: {
     position: [number, number, number];
     rotation?: [number, number, number];
@@ -35,7 +35,7 @@ function PokerCard({
                 <Text
                     position={[0, 0, 0.015]}
                     fontSize={0.18}
-                    color={suit === "♥" || suit === "♦" ? "#EF4444" : "#1a1a2e"}
+                    color={suit === "" || suit === "" ? "#EF4444" : "#1a1a2e"}
                     anchorX="center"
                     anchorY="middle"
                 >
@@ -249,16 +249,16 @@ function AmbientParticles() {
 /* ── Scene ────────────────────────────────────────────────── */
 function PokerScene({
     players = [
-        { name: "BLITZ", cards: [{ label: "A", suit: "♠" }, { label: "K", suit: "♠" }], chips: 950, isActive: true },
-        { name: "SHADOW", cards: [{ label: "Q", suit: "♥" }, { label: "J", suit: "♥" }], chips: 780, isActive: false },
+        { name: "BLITZ", cards: [{ label: "A", suit: "" }, { label: "K", suit: "" }], chips: 950, isActive: true },
+        { name: "SHADOW", cards: [{ label: "Q", suit: "" }, { label: "J", suit: "" }], chips: 780, isActive: false },
     ],
     pot = 540,
     communityCards = [
-        { label: "A", suit: "♠" },
-        { label: "K", suit: "♥" },
-        { label: "10", suit: "♦" },
-        { label: "7", suit: "♣" },
-        { label: "3", suit: "♥" },
+        { label: "A", suit: "" },
+        { label: "K", suit: "" },
+        { label: "10", suit: "" },
+        { label: "7", suit: "" },
+        { label: "3", suit: "" },
     ],
 }: {
     players?: { name: string; cards: { label: string; suit: string }[]; chips: number; isActive: boolean }[];

@@ -114,21 +114,21 @@ export default function ArenaHallPage() {
                 case "monopoly_negotiation":
                     setCommentary((prev) => [
                         ...prev.slice(-49),
-                        { text: `🤝 Trade offer: ${msg.message}`, dramaScore: 6, eventType: "negotiation", timestamp: Date.now() },
+                        { text: ` Trade offer: ${msg.message}`, dramaScore: 6, eventType: "negotiation", timestamp: Date.now() },
                     ]);
                     break;
 
                 case "monopoly_bankruptcy":
                     setCommentary((prev) => [
                         ...prev.slice(-49),
-                        { text: `💸 BANKRUPTCY! Agent eliminated!`, dramaScore: 10, eventType: "bankruptcy", timestamp: Date.now() },
+                        { text: ` BANKRUPTCY! Agent eliminated!`, dramaScore: 10, eventType: "bankruptcy", timestamp: Date.now() },
                     ]);
                     break;
 
                 case "match_complete":
                     setCommentary((prev) => [
                         ...prev.slice(-49),
-                        { text: `🏆 MATCH COMPLETE! Winner: ${msg.winnerId}`, dramaScore: 10, eventType: "match_complete", timestamp: Date.now() },
+                        { text: ` MATCH COMPLETE! Winner: ${msg.winnerId}`, dramaScore: 10, eventType: "match_complete", timestamp: Date.now() },
                     ]);
                     break;
             }
@@ -169,13 +169,6 @@ export default function ArenaHallPage() {
     const agentB = arenaInfo?.agent_b || { name: "Agent B", elo: 1500 };
     const gameType = arenaInfo?.game_type || "chess";
 
-    const gameIconMap: Record<string, string> = {
-        chess: "♟️",
-        poker: "🃏",
-        monopoly: "🎩",
-        trivia: "🧠",
-    };
-
     const dramaColor = (score: number) => {
         if (score >= 9) return "var(--danger-red)";
         if (score >= 7) return "var(--arena-gold)";
@@ -209,7 +202,7 @@ export default function ArenaHallPage() {
                         ← Back to World
                     </button>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", paddingLeft: "var(--space-sm)", borderLeft: "1px solid rgba(255,255,255,0.1)" }}>
-                        <span style={{ fontSize: "1.8rem", filter: "drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))" }}>{gameIconMap[gameType]}</span>
+                        <span style={{ fontSize: "1.2rem", filter: "drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))", fontFamily: "var(--font-display)", fontWeight: 700, textTransform: "uppercase" }}>{gameType}</span>
                         <div>
                             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.3rem", color: "var(--text-primary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                                 {gameType} ARENA
@@ -240,7 +233,7 @@ export default function ArenaHallPage() {
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                             <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 600 }}>SPECTATORS</span>
                             <span style={{ fontSize: "1.1rem", color: "var(--text-primary)", fontWeight: 800, fontFamily: "var(--font-display)" }}>
-                                👁 {spectators.toLocaleString()}
+                                {spectators.toLocaleString()}
                             </span>
                         </div>
                         <span className="badge" style={{
@@ -278,7 +271,7 @@ export default function ArenaHallPage() {
                                         position: "relative", zIndex: 1
                                     }}
                                 >
-                                    🤖
+
                                     {thinkingAgent === agentA.id && (
                                         <motion.div
                                             animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
@@ -322,7 +315,7 @@ export default function ArenaHallPage() {
                                         position: "relative", zIndex: 1
                                     }}
                                 >
-                                    🤖
+
                                     {thinkingAgent === agentB.id && (
                                         <motion.div
                                             animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
@@ -420,7 +413,7 @@ export default function ArenaHallPage() {
                                     transition={{ repeat: Infinity, duration: 2 }}
                                     style={{ color: "var(--neon-green)", fontSize: "1.1rem", fontWeight: 700, margin: "var(--space-md) 0 0", textShadow: "0 0 10px rgba(16,185,129,0.5)" }}
                                 >
-                                    ⚡ Neural processors actively evaluating...
+                                    Neural processors actively evaluating...
                                 </motion.div>
                             )}
                         </div>
@@ -443,7 +436,7 @@ export default function ArenaHallPage() {
                     <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                         <div style={{ padding: "var(--space-lg)", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}>
                             <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", display: "flex", alignItems: "center", gap: 8 }}>
-                                <span className="text-gradient">🎙️ Live Broadcast</span>
+                                <span className="text-gradient">️ Live Broadcast</span>
                             </h3>
                             <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Powered by Gemini 2.0 Flash Pro</div>
                         </div>
@@ -487,7 +480,7 @@ export default function ArenaHallPage() {
 
                             {commentary.length === 0 && (
                                 <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "var(--space-md)", color: "var(--text-muted)", opacity: 0.5 }}>
-                                    <div style={{ fontSize: "2rem" }}>📡</div>
+                                    <div style={{ fontSize: "2rem" }}></div>
                                     <div style={{ fontSize: "0.9rem" }}>Awaiting network broadcast...</div>
                                 </div>
                             )}
@@ -497,7 +490,7 @@ export default function ArenaHallPage() {
                     {/* Betting Panel */}
                     <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.4)", padding: "var(--space-xl)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--space-md)" }}>
-                            <span style={{ fontSize: "1.2rem" }}>💰</span>
+                            <span style={{ fontSize: "1.2rem" }}></span>
                             <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.1rem", color: "var(--text-primary)" }}>
                                 Wager Execution
                             </div>
@@ -547,7 +540,7 @@ export default function ArenaHallPage() {
                             style={{ width: "100%", padding: "14px", fontSize: "1rem", fontWeight: 800, display: "flex", justifyContent: "center", alignItems: "center", gap: 8, boxShadow: betAmount ? "0 0 20px rgba(245, 158, 11, 0.4)" : "none" }}
                             disabled={!betAmount || !connected}
                         >
-                            🔐 Commit ZK Bet
+                            Commit ZK Bet
                         </button>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "var(--space-md)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                             <span style={{ color: "var(--electric-purple-light)" }}>Shielded via Aztec</span> • Private until reveal

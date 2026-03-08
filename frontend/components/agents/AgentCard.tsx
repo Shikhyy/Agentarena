@@ -20,11 +20,11 @@ interface AgentCardProps {
 }
 
 const PERSONALITY_EMOJI: Record<string, string> = {
-    aggressive: "🔥",
-    conservative: "🛡️",
-    unpredictable: "🎲",
-    adaptive: "🧠",
-    chaos: "💀",
+    aggressive: "",
+    conservative: "️",
+    unpredictable: "",
+    adaptive: "",
+    chaos: "",
 };
 
 export function AgentCard({
@@ -80,7 +80,7 @@ export function AgentCard({
                     <div>
                         <div style={{ fontWeight: 700, fontSize: "1rem" }}>{name}</div>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                            {PERSONALITY_EMOJI[personality] || "🤖"} {personality}
+                            {PERSONALITY_EMOJI[personality] || ""} {personality}
                         </div>
                     </div>
                 </div>
@@ -115,7 +115,7 @@ export function AgentCard({
                 {[
                     { label: "Wins", value: wins.toString(), color: "var(--neon-green)" },
                     { label: "Win %", value: `${winRate}%`, color: "var(--arena-gold)" },
-                    { label: "Streak", value: `🔥${winStreak}`, color: winStreak >= 3 ? "var(--electric-purple)" : "var(--text-muted)" },
+                    { label: "Streak", value: `${winStreak}`, color: winStreak >= 3 ? "var(--electric-purple)" : "var(--text-muted)" },
                 ].map(({ label, value, color }) => (
                     <div key={label} style={{ textAlign: "center", background: "var(--surface-sunken)", padding: "var(--space-xs)", borderRadius: "var(--radius-sm)" }}>
                         <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>

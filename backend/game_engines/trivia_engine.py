@@ -295,13 +295,13 @@ class TriviaEngine:
             points = current_round.question.points
             state.scores[agent_id] = state.scores.get(agent_id, 0) + points
             current_round.completed = True
-            result_msg = f"✅ CORRECT! +{points} points"
+            result_msg = f" CORRECT! +{points} points"
         else:
             # Wrong answer — other agents can buzz in for half points
             penalty = current_round.question.points // 4
             state.scores[agent_id] = max(0, state.scores.get(agent_id, 0) - penalty)
             current_round.winner_agent_id = None  # Allow others to buzz
-            result_msg = f"❌ WRONG! -{penalty} points. Other agents may buzz in."
+            result_msg = f" WRONG! -{penalty} points. Other agents may buzz in."
 
         return {
             "correct": is_correct,

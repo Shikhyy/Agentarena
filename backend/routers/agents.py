@@ -202,5 +202,5 @@ async def breed_agents_endpoint(req: BreedRequest, wallet: str = Depends(get_cur
         "offspring_id": offspring_id,
         "offspring": traits_to_dict(offspring),
         "breeding_fee_arena": fee,
-        "message": f"🧬 Offspring '{offspring.name}' Gen {offspring.generation} created! DNA helix animation: 8s.",
+        "message": f" Offspring '{offspring.name}' Gen {offspring.generation} created! DNA helix animation: 8s.",
     }

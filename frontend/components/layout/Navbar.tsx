@@ -16,7 +16,7 @@ export function Navbar() {
     return (
         <nav className="nav">
             <Link href="/" className="nav-logo">
-                ⚔️ AgentArena
+                AgentArena
             </Link>
             <ul className="nav-links">
                 <li>

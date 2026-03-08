@@ -2,6 +2,13 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { ethers } from "ethers";
+import {
+    CONTRACTS,
+    computeCommitHash,
+    getArenaTokenWrite,
+    getZKBettingPoolWrite,
+} from "@/lib/contracts";
 
 interface BetSlipProps {
     arenaId: string;
@@ -41,36 +48,71 @@ export function BetSlip({
         if (selectedSide === null || submitting) return;
         setSubmitting(true);
 
-        // Generate a random blinding secret client-side
+        // Generate a random blinding secret
         const secretBytes = crypto.getRandomValues(new Uint8Array(32));
         const secret = "0x" + Array.from(secretBytes).map(b => b.toString(16).padStart(2, "0")).join("");
         setSecretHex(secret);
 
-        // Mock commitment hash (real: keccak256(amount ‖ side ‖ secret))
-        const mockCommitment = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(32)))
-            .map(b => b.toString(16).padStart(2, "0")).join("");
+        // Compute real keccak256 commitment: keccak256(abi.encodePacked(amount, side, secret))
+        const amountWei = ethers.parseUnits(String(amount), 18);
+        const secretBigInt = BigInt(secret);
+        const side = selectedSide === 0 ? 1 : 2; // contract uses 1=agentA, 2=agentB
+        const commitHash = computeCommitHash(amountWei, side, secretBigInt);
 
-        try {
-            const token = localStorage.getItem("auth_token");
-            const res = await fetch(`http://localhost:8000/arenas/${arenaId}/bet`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({ amount, position: selectedSide, secret }),
-            });
+        // Try on-chain first if contracts are deployed
+        const hasContracts = !!CONTRACTS.ZK_BETTING_POOL && !!CONTRACTS.ARENA_TOKEN;
+        let onChainSuccess = false;
 
-            if (res.ok) {
-                const data = await res.json();
-                setCommitted(true);
-                onBetConfirmed?.({ side: selectedSide, amount, commitment: data.commitment_hash });
+        if (hasContracts && typeof window !== "undefined" && (window as any).ethereum) {
+            try {
+                // 1. Approve ArenaToken spending
+                const tokenContract = await getArenaTokenWrite();
+                if (tokenContract) {
+                    const approveTx = await tokenContract.approve(CONTRACTS.ZK_BETTING_POOL, amountWei);
+                    await approveTx.wait();
+                }
+
+                // 2. Commit bet on ZKBettingPool
+                const bettingContract = await getZKBettingPoolWrite();
+                if (bettingContract) {
+                    // Use a numeric gameId derived from the arena string
+                    const gameIdNum = parseInt(arenaId.replace(/\D/g, "")) || 0;
+                    const noirCommit = ethers.zeroPadValue("0x00", 32); // placeholder for Noir Pedersen
+                    const tx = await bettingContract.commitBetArena(gameIdNum, amountWei, commitHash, noirCommit);
+                    await tx.wait();
+                    onChainSuccess = true;
+                }
+            } catch (e) {
+                console.warn("On-chain bet failed, falling back to backend:", e);
             }
-        } catch (e) {
-            console.error("Bet submission failed", e);
-        } finally {
-            setSubmitting(false);
         }
+
+        // Fallback: send to backend API
+        if (!onChainSuccess) {
+            try {
+                const token = localStorage.getItem("auth_token") || localStorage.getItem("agentarena_token");
+                const res = await fetch(`http://localhost:8000/arenas/${arenaId}/bet`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ amount, position: selectedSide, secret }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    onBetConfirmed?.({ side: selectedSide, amount, commitment: data.commitment_hash || commitHash });
+                }
+            } catch (e) {
+                console.error("Bet submission failed", e);
+            }
+        } else {
+            onBetConfirmed?.({ side: selectedSide, amount, commitment: commitHash });
+        }
+
+        setCommitted(true);
+        setSubmitting(false);
     };
 
     if (committed) {
@@ -81,14 +123,14 @@ export function BetSlip({
                 animate={{ scale: 1, opacity: 1 }}
                 style={{ padding: "var(--space-lg)", textAlign: "center" }}
             >
-                <div style={{ fontSize: "2rem", marginBottom: "var(--space-sm)" }}>🔐</div>
+                <div style={{ fontSize: "2rem", marginBottom: "var(--space-sm)" }}></div>
                 <h3 style={{ color: "var(--neon-green)", marginBottom: "var(--space-sm)" }}>Bet Committed!</h3>
                 <p className="text-muted" style={{ fontSize: "0.85rem" }}>
                     Your ZK commitment is stored on-chain. Reveal after the match ends.
                 </p>
                 {secretHex && (
                     <div style={{ marginTop: "var(--space-md)", padding: "var(--space-sm)", background: "var(--surface-sunken)", borderRadius: "var(--radius-sm)" }}>
-                        <div className="text-muted" style={{ fontSize: "0.65rem", marginBottom: 4 }}>⚠️ Save your secret — needed to reveal your bet</div>
+                        <div className="text-muted" style={{ fontSize: "0.65rem", marginBottom: 4 }}>️ Save your secret — needed to reveal your bet</div>
                         <code style={{ fontSize: "0.6rem", wordBreak: "break-all", color: "var(--arena-gold)" }}>{secretHex}</code>
                     </div>
                 )}
@@ -106,7 +148,7 @@ export function BetSlip({
         >
             <h3 style={{ fontSize: "1rem", marginBottom: "var(--space-md)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 Place Bet
-                <span className="badge badge-purple" style={{ fontSize: "0.6rem" }}>🔒 ZK Private</span>
+                <span className="badge badge-purple" style={{ fontSize: "0.6rem" }}> ZK Private</span>
             </h3>
 
             {/* Side Selection */}

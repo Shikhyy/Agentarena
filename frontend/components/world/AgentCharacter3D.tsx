@@ -283,7 +283,7 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
                                 anchorX="center"
                                 anchorY="middle"
                             >
-                                {`Lv.${agent.level}  ⚡${agent.elo}`}
+                                {`Lv.${agent.level}  ${agent.elo}`}
                             </Text>
                             {agent.status === "competing" && (
                                 <Text

@@ -52,7 +52,7 @@ export default function AgentStatsPage() {
         fetch(`${BACKEND_URL}/agents/${params.id}`)
             .then(res => res.json())
             .then(data => {
-                // Synthesize missing arrays for safety since backend might not populate all defaults if newly synthesized mock agent
+                // Synthesize missing arrays for safety since backend might not populate all defaults if newly synthesized  agent
                 const safeStats = {
                     ...data,
                     battle_history: data.battle_history || [],
@@ -100,13 +100,13 @@ export default function AgentStatsPage() {
                     <h1 style={{ fontSize: "2rem", marginBottom: 4 }}>{stats.name}</h1>
                     <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
                         <span className="badge badge-purple">Level {stats.level}</span>
-                        <span className="badge" style={{ color: "var(--arena-gold)" }}>🏆 {stats.elo} ELO</span>
+                        <span className="badge" style={{ color: "var(--arena-gold)" }}> {stats.elo} ELO</span>
                         <span className="badge">{stats.personality}</span>
                         {stats.generation > 0 && <span className="badge badge-win">Gen {stats.generation}</span>}
                     </div>
                 </div>
                 <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                    <div style={{ color: "var(--neon-green)", fontWeight: 700, fontSize: "1.1rem" }}>🔥 {stats.win_streak} streak</div>
+                    <div style={{ color: "var(--neon-green)", fontWeight: 700, fontSize: "1.1rem" }}> {stats.win_streak} streak</div>
                     <div className="text-muted" style={{ fontSize: "0.8rem" }}>Peak: {stats.peak_elo} ELO</div>
                 </div>
             </motion.div>
@@ -126,10 +126,10 @@ export default function AgentStatsPage() {
             {/* Stats Grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-md)", marginBottom: "var(--space-xl)" }}>
                 {[
-                    { label: "Win Rate", value: `${winRate}%`, color: "var(--neon-green)", icon: "🏆" },
-                    { label: "Wins", value: stats.wins, color: "var(--neon-green)", icon: "⚔️" },
-                    { label: "Losses", value: stats.losses, color: "#EF4444", icon: "💀" },
-                    { label: "Games", value: stats.games_played, color: "var(--text-primary)", icon: "🎮" },
+                    { label: "Win Rate", value: `${winRate}%`, color: "var(--neon-green)", icon: "" },
+                    { label: "Wins", value: stats.wins, color: "var(--neon-green)", icon: "️" },
+                    { label: "Losses", value: stats.losses, color: "#EF4444", icon: "" },
+                    { label: "Games", value: stats.games_played, color: "var(--text-primary)", icon: "" },
                 ].map(({ label, value, color, icon }) => (
                     <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }} className="glass-panel" style={{ padding: "var(--space-lg)", textAlign: "center" }}>
@@ -154,17 +154,17 @@ export default function AgentStatsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-lg)" }}>
                     {/* Skills */}
                     <div className="glass-panel" style={{ padding: "var(--space-lg)" }}>
-                        <h3 style={{ marginBottom: "var(--space-md)" }}>⚡ Equipped Skills</h3>
+                        <h3 style={{ marginBottom: "var(--space-md)" }}> Equipped Skills</h3>
                         {stats.skills.map(skill => (
                             <div key={skill} style={{ display: "flex", alignItems: "center", gap: "var(--space-md)", padding: "var(--space-sm)", background: "var(--surface-sunken)", borderRadius: "var(--radius-sm)", marginBottom: "var(--space-sm)" }}>
-                                <span>⚡</span>
+                                <span></span>
                                 <span style={{ fontWeight: 600 }}>{skill}</span>
                             </div>
                         ))}
                     </div>
                     {/* Win/Loss chart */}
                     <div className="glass-panel" style={{ padding: "var(--space-lg)" }}>
-                        <h3 style={{ marginBottom: "var(--space-md)" }}>📊 Record Breakdown</h3>
+                        <h3 style={{ marginBottom: "var(--space-md)" }}> Record Breakdown</h3>
                         {[{ label: "Wins", value: stats.wins, color: "var(--neon-green)" }, { label: "Losses", value: stats.losses, color: "#EF4444" }, { label: "Draws", value: stats.draws, color: "#F59E0B" }].map(({ label, value, color }) => (
                             <div key={label} style={{ marginBottom: "var(--space-sm)" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: 4 }}>
@@ -216,7 +216,7 @@ export default function AgentStatsPage() {
 
             {tab === "elo_curve" && (
                 <div className="glass-panel" style={{ padding: "var(--space-xl)" }}>
-                    <h3 style={{ marginBottom: "var(--space-lg)" }}>📈 ELO Over Time</h3>
+                    <h3 style={{ marginBottom: "var(--space-lg)" }}> ELO Over Time</h3>
                     <svg viewBox="0 0 500 100" style={{ width: "100%", height: 160 }}>
                         <defs>
                             <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">

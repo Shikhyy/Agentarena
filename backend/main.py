@@ -66,48 +66,66 @@ manager = ConnectionManager()
 
 
 from game_engines.chess_engine import ChessEngine
+from routers.agents import agents_db
 
 # Initialize Engines
 chess_engine = ChessEngine()
 # You would similarly initialize poker_engine, etc. here
 
-# Create active mock games using the REAL engines
+# ─── Seed demo agents into agents_db so they can be fetched via API ────
+DEMO_AGENTS = [
+    {"agent_id": "agent_alphago", "name": "AlphaGo Zero", "elo": 2800, "personality": "aggressive", "status": "active", "level": 15, "owner": "system"},
+    {"agent_id": "agent_deepblue", "name": "DeepBlue Next", "elo": 2750, "personality": "conservative", "status": "active", "level": 14, "owner": "system"},
+    {"agent_id": "agent_bluffking", "name": "BluffKing", "elo": 2300, "personality": "unpredictable", "status": "active", "level": 12, "owner": "system"},
+    {"agent_id": "agent_texasai", "name": "TexasHoldem AI", "elo": 2250, "personality": "adaptive", "status": "active", "level": 11, "owner": "system"},
+    {"agent_id": "agent_monopoly_a", "name": "Monopoly Master", "elo": 1800, "personality": "conservative", "status": "active", "level": 8, "owner": "system"},
+    {"agent_id": "agent_monopoly_b", "name": "Property Baron", "elo": 1750, "personality": "aggressive", "status": "active", "level": 7, "owner": "system"},
+    {"agent_id": "agent_trivia_a", "name": "QuizMaster AI", "elo": 1600, "personality": "adaptive", "status": "active", "level": 6, "owner": "system"},
+    {"agent_id": "agent_trivia_b", "name": "JeopardyBot", "elo": 1580, "personality": "chaos", "status": "active", "level": 5, "owner": "system"},
+]
+
+for agent in DEMO_AGENTS:
+    if agent["agent_id"] not in agents_db:
+        agents_db[agent["agent_id"]] = agent
+
+# Pull agents dynamically from the store to create games
+def _get_agent(agent_id: str) -> dict:
+    a = agents_db.get(agent_id, {})
+    return {"id": a.get("agent_id", agent_id), "name": a.get("name", agent_id), "elo": a.get("elo", 1500)}
+
 chess_game_1 = chess_engine.create_game(
-    agent_white={"id": "agent_alphago", "name": "AlphaGo Zero", "elo": 2800},
-    agent_black={"id": "agent_deepblue", "name": "DeepBlue Next", "elo": 2750}
+    agent_white=_get_agent("agent_alphago"),
+    agent_black=_get_agent("agent_deepblue"),
 )
 # Force set the game ID for consistency with the frontend/mock data routing
 chess_game_1.game_id = "test_arena_1"
 chess_engine.games["test_arena_1"] = chess_game_1
-del chess_engine.games[chess_game_1.game_id] # Clean up the old randomly generated uuid key
-chess_game_1.game_id = "test_arena_1"
-chess_engine.games["test_arena_1"] = chess_game_1
 
 # ─── In-Memory Game State Store ─────────────────────────────────────
-# We still maintain the shape of the dict for the REST API but we will derive it from the engines
+# Derived from the agent store — NO hardcoded names.
 games: Dict[str, dict] = {
     "test_arena_1": {
         "game_type": "chess",
-        "agent_a": {"id": "agent_alphago", "name": "AlphaGo Zero", "elo": 2800},
-        "agent_b": {"id": "agent_deepblue", "name": "DeepBlue Next", "elo": 2750},
+        "agent_a": _get_agent("agent_alphago"),
+        "agent_b": _get_agent("agent_deepblue"),
         "status": "live",
     },
     "test_arena_poker_1": {
         "game_type": "poker",
-        "agent_a": {"id": "agent_bluffking", "name": "BluffKing", "elo": 2300},
-        "agent_b": {"id": "agent_texasai", "name": "TexasHoldem AI", "elo": 2250},
+        "agent_a": _get_agent("agent_bluffking"),
+        "agent_b": _get_agent("agent_texasai"),
         "status": "live",
     },
     "test_arena_monopoly_1": {
         "game_type": "monopoly",
-        "agent_a": {"id": "agent_monopoly_a", "name": "Monopoly Master", "elo": 1800},
-        "agent_b": {"id": "agent_monopoly_b", "name": "Property Baron", "elo": 1750},
+        "agent_a": _get_agent("agent_monopoly_a"),
+        "agent_b": _get_agent("agent_monopoly_b"),
         "status": "live",
     },
     "test_arena_trivia_1": {
         "game_type": "trivia",
-        "agent_a": {"id": "agent_trivia_a", "name": "QuizMaster AI", "elo": 1600},
-        "agent_b": {"id": "agent_trivia_b", "name": "JeopardyBot", "elo": 1580},
+        "agent_a": _get_agent("agent_trivia_a"),
+        "agent_b": _get_agent("agent_trivia_b"),
         "status": "live",
     },
 }
@@ -268,7 +286,7 @@ async def stop_thinking(game_id, agent_id):
 # ─── FastAPI App ─────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🏟️  AgentArena Backend starting...")
+    print("️  AgentArena Backend starting...")
 
     # Wire up narrator + market agents to broadcast
     async def broadcast_callback(arena_id: str, message: dict):
@@ -283,7 +301,7 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(simulate_game_moves())
     yield
     task.cancel()
-    print("🏟️  AgentArena Backend shutting down...")
+    print("️  AgentArena Backend shutting down...")
 
 
 app = FastAPI(

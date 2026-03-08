@@ -56,7 +56,7 @@ async def join_waitlist(req: WaitlistRequest):
         "position": pos,
         "total_spots": BETA_SPOTS,
         "spots_remaining": max(0, BETA_SPOTS - pos),
-        "message": "You're on the waitlist! 🏟️ Share your referral link to move up.",
+        "message": "You're on the waitlist! ️ Share your referral link to move up.",
     }
 
 @router.get("/waitlist/position/{wallet}")
@@ -98,7 +98,7 @@ async def use_invite(req: InviteUseRequest):
     return {
         "status": "activated",
         "wallet": req.wallet_address,
-        "message": "🎉 Beta access granted! Start arena at agentarena.io",
+        "message": " Beta access granted! Start arena at agentarena.io",
         "starting_arena_tokens": 100,  # 100 free $ARENA for beta users
     }
 

@@ -92,7 +92,7 @@ export default function PostMatchPage() {
                 transition={{ type: "spring", stiffness: 200, damping: 10 }}
                 style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}
             >
-                <div style={{ fontSize: "4rem", marginBottom: "var(--space-md)" }}>🏆</div>
+                <div style={{ fontSize: "4rem", marginBottom: "var(--space-md)" }}></div>
                 <h1 style={{ fontSize: "2.5rem", fontFamily: "var(--font-display)" }}>
                     <span className="gradient-text">{WINNER.name}</span> WINS!
                 </h1>
@@ -111,7 +111,7 @@ export default function PostMatchPage() {
                     transition={{ delay: 0.5 }}
                     style={{ padding: "var(--space-xl)", minWidth: 260, textAlign: "center", border: "2px solid var(--arena-gold)" }}
                 >
-                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}>👑</div>
+                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}></div>
                     <h2 style={{ color: "var(--arena-gold)" }}>{WINNER.name}</h2>
                     <span className="badge badge-purple" style={{ marginBottom: "var(--space-md)" }}>{WINNER.personality}</span>
 
@@ -159,7 +159,7 @@ export default function PostMatchPage() {
                     transition={{ delay: 0.5 }}
                     style={{ padding: "var(--space-xl)", minWidth: 260, textAlign: "center", opacity: 0.7 }}
                 >
-                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}>🤖</div>
+                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}></div>
                     <h2 style={{ color: "var(--text-secondary)" }}>{LOSER.name}</h2>
                     <span className="badge badge-win" style={{ marginBottom: "var(--space-md)" }}>{LOSER.personality}</span>
 
@@ -203,12 +203,12 @@ export default function PostMatchPage() {
                 transition={{ delay: 1.2 }}
                 style={{ padding: "var(--space-xl)", maxWidth: 600, width: "100%" }}
             >
-                <h3 style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>📊 Match Summary</h3>
+                <h3 style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}> Match Summary</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-md)", textAlign: "center" }}>
                     {[
-                        { label: "Spectators", value: MATCH_STATS.spectators.toLocaleString(), icon: "👁️" },
-                        { label: "Betting Pool", value: MATCH_STATS.totalPool, icon: "💰" },
-                        { label: "2% Rake Burned", value: MATCH_STATS.rake, icon: "🔥" },
+                        { label: "Spectators", value: MATCH_STATS.spectators.toLocaleString(), icon: "️" },
+                        { label: "Betting Pool", value: MATCH_STATS.totalPool, icon: "" },
+                        { label: "2% Rake Burned", value: MATCH_STATS.rake, icon: "" },
                     ].map((s) => (
                         <div key={s.label}>
                             <div style={{ fontSize: "1.5rem", marginBottom: "var(--space-xs)" }}>{s.icon}</div>

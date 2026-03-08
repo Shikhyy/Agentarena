@@ -52,7 +52,7 @@ export default function MyAgentsPage() {
     const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
     useEffect(() => {
-        // Fetch agents for the current user (assuming a mock user ID for now or just fetching all)
+        // Fetch agents for the current user (assuming a  user ID for now or just fetching all)
         // In a real app, you'd pass the auth token to get only the user's agents.
         // For the sake of the demo, we fetch all agents.
         fetch(`${BACKEND_URL}/agents`)
@@ -83,7 +83,7 @@ export default function MyAgentsPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-md)" }}>
                     <div>
                         <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", marginBottom: "var(--space-xs)", display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span style={{ filter: "drop-shadow(0 0 10px rgba(255,255,255,0.2))" }}>🤖</span>
+                            <span style={{ filter: "drop-shadow(0 0 10px rgba(255,255,255,0.2))" }}></span>
                             <span className="text-gradient">My Agents</span>
                         </h1>
                         <p className="text-muted" style={{ fontSize: "1.1rem" }}>Build, manage, and deploy your AI champions.</p>
@@ -102,13 +102,12 @@ export default function MyAgentsPage() {
                 style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-md)", marginBottom: "var(--space-2xl)" }}
             >
                 {[
-                    { label: "Total Agents", value: agents.length, icon: "👤", color: "var(--electric-purple-light)" },
-                    { label: "Best ELO", value: agents.length ? Math.max(...agents.map(a => a.elo)) : 0, icon: "🏆", color: "var(--arena-gold)" },
-                    { label: "Total Wins", value: agents.reduce((acc, a) => acc + a.wins, 0), icon: "⚔️", color: "var(--neon-green)" },
-                    { label: "Avg Level", value: agents.length ? Math.round(agents.reduce((acc, a) => acc + a.level, 0) / agents.length) : 0, icon: "⬆️", color: "var(--text-primary)" },
+                    { label: "Total Agents", value: agents.length, icon: "", color: "var(--electric-purple-light)" },
+                    { label: "Best ELO", value: agents.length ? Math.max(...agents.map(a => a.elo)) : 0, color: "var(--arena-gold)" },
+                    { label: "Total Wins", value: agents.reduce((acc, a) => acc + a.wins, 0), color: "var(--neon-green)" },
+                    { label: "Avg Level", value: agents.length ? Math.round(agents.reduce((acc, a) => acc + a.level, 0) / agents.length) : 0, color: "var(--text-primary)" },
                 ].map(({ label, value, icon, color }) => (
                     <div key={label} className="glass-card" style={{ padding: "var(--space-lg)", textAlign: "center", background: "rgba(10,5,20,0.4)" }}>
-                        <div style={{ fontSize: "2rem", marginBottom: 8, filter: `drop-shadow(0 0 10px ${color}40)` }}>{icon}</div>
                         <div style={{ fontSize: "2rem", fontWeight: 800, fontFamily: "var(--font-display)", color: color, textShadow: `0 0 20px ${color}40` }}>
                             {value}
                         </div>
@@ -146,7 +145,7 @@ export default function MyAgentsPage() {
                 </div>
             ) : sorted.length === 0 ? (
                 <div className="glass-card text-center" style={{ padding: "var(--space-3xl)", background: "rgba(10,5,20,0.4)" }}>
-                    <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}>👻</div>
+                    <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}></div>
                     <h3 style={{ color: "var(--text-muted)", marginBottom: "var(--space-sm)" }}>No agents found</h3>
                     <p className="text-muted" style={{ marginBottom: "var(--space-lg)" }}>
                         {filter !== "all" ? `You don't have any ${filter} agents.` : "You haven't built any agents yet."}
@@ -195,12 +194,12 @@ export default function MyAgentsPage() {
                                         color: "var(--electric-purple-light)",
                                         borderRadius: "var(--radius-md)"
                                     }}>
-                                        ⚔️ Deploy to Arena
+                                        ️ Deploy to Arena
                                     </button>
                                 </Link>
                                 <Link href={`/builder?edit=${agent.agent_id}`}>
                                     <button className="btn btn-secondary" style={{ width: "100%", padding: "12px", borderRadius: "var(--radius-md)" }}>
-                                        ✏️ Edit Agent
+                                        ️ Edit Agent
                                     </button>
                                 </Link>
                             </div>

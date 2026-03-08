@@ -19,7 +19,7 @@ interface Tournament {
     bracket: any[];
 }
 
-const gameIconMap: Record<string, string> = { chess: "♟️", poker: "🃏", monopoly: "🎩", trivia: "🧠" };
+
 const gameColors: Record<string, string> = { chess: "var(--neon-green)", poker: "var(--danger-red)", monopoly: "var(--arena-gold)", trivia: "var(--electric-purple-light)" };
 const statusColors: Record<string, string> = {
     registration: "var(--neon-green)",
@@ -71,7 +71,7 @@ export default function TournamentsPage() {
 
     const handleEnter = async (tournamentId: string) => {
         if (!agents || agents.length === 0) {
-            alert("❌ No agent found. Build an agent first to enter a tournament.");
+            alert(" No agent found. Build an agent first to enter a tournament.");
             return;
         }
 
@@ -83,15 +83,15 @@ export default function TournamentsPage() {
                 body: JSON.stringify({ agent_id: agents[0].id }),
             });
             if (res.ok) {
-                alert("✅ Entered! Your agent has joined the tournament.");
+                alert(" Entered! Your agent has joined the tournament.");
                 fetchTournaments(); // Refresh the bracket
             } else {
                 const err = await res.json();
-                alert(`❌ Failed to enter: ${err.detail || "Unknown error"}`);
+                alert(` Failed to enter: ${err.detail || "Unknown error"}`);
             }
         } catch (e) {
             console.error(e);
-            alert("❌ Network Error.");
+            alert(" Network Error.");
         }
         setEntering(null);
     };
@@ -102,7 +102,7 @@ export default function TournamentsPage() {
             <section className="hero" style={{ paddingBottom: "var(--space-xl)" }}>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <h1>
-                        <span style={{ fontSize: "3rem", marginRight: "12px", filter: "drop-shadow(0 0 10px rgba(255,255,255,0.2))" }}>🏆</span>
+                        <span style={{ fontSize: "3rem", marginRight: "12px", filter: "drop-shadow(0 0 10px rgba(255,255,255,0.2))" }}></span>
                         <span className="text-gradient">Tournaments</span>
                     </h1>
                     <p style={{ maxWidth: 600 }}>
@@ -135,7 +135,7 @@ export default function TournamentsPage() {
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="glass-card text-center" style={{ padding: "var(--space-3xl)" }}>
-                            <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}>🎌</div>
+                            <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}></div>
                             <h3 style={{ color: "var(--text-muted)" }}>No tournaments found</h3>
                             <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>Wait for the admins to schedule the next Grand Prix.</p>
                         </div>
@@ -170,9 +170,9 @@ export default function TournamentsPage() {
                                         alignItems: "center"
                                     }}>
                                         <div className="flex items-center gap-md">
-                                            <span style={{ fontSize: "2.5rem", filter: `drop-shadow(0 0 10px ${gameColors[t.game_type] || "var(--electric-purple)"}40)` }}>
-                                                {gameIconMap[t.game_type]}
-                                            </span>
+                                            <div style={{ width: 48, height: 48, borderRadius: "12px", background: `linear-gradient(135deg, rgba(255,255,255,0.1), transparent)`, border: `1px solid ${gameColors[t.game_type]}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontFamily: "var(--font-mono)", fontWeight: 700, color: gameColors[t.game_type], textTransform: "uppercase" }}>
+                                                {t.game_type.substring(0, 3)}
+                                            </div>
                                             <div>
                                                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.25rem", color: "var(--text-primary)" }}>
                                                     {t.name}
@@ -192,7 +192,7 @@ export default function TournamentsPage() {
                                                 {t.status}
                                             </div>
                                             {t.is_grand_prix && (
-                                                <div style={{ fontSize: "0.7rem", color: "var(--arena-gold)", fontWeight: 700, letterSpacing: "0.05em" }}>⭐ GRAND PRIX (L20+)</div>
+                                                <div style={{ fontSize: "0.7rem", color: "var(--arena-gold)", fontWeight: 700, letterSpacing: "0.05em" }}> GRAND PRIX (L20+)</div>
                                             )}
                                         </div>
                                     </div>
@@ -250,7 +250,7 @@ export default function TournamentsPage() {
                                                                 Entering...
                                                             </motion.span>
                                                         ) : (
-                                                            <span><span style={{ marginRight: 8 }}>⚔️</span> Pay {t.entry_fee_arena} $ARENA to Enter</span>
+                                                            <span><span style={{ marginRight: 8 }}>️</span> Pay {t.entry_fee_arena} $ARENA to Enter</span>
                                                         )}
                                                     </button>
                                                 </>
@@ -258,13 +258,13 @@ export default function TournamentsPage() {
 
                                             {t.status === "active" && (
                                                 <a href="#/bracket" className="btn btn-secondary" style={{ width: "100%", padding: "14px", borderColor: "var(--danger-red)", color: "var(--danger-red)" }}>
-                                                    👁️ View Live Bracket
+                                                    ️ View Live Bracket
                                                 </a>
                                             )}
 
                                             {t.status === "completed" && (
                                                 <div style={{ background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", padding: "12px", borderRadius: "8px", textAlign: "center" }}>
-                                                    <span style={{ color: "var(--arena-gold)", fontWeight: 700 }}>🏆 Winner:</span>
+                                                    <span style={{ color: "var(--arena-gold)", fontWeight: 700 }}> Winner:</span>
                                                     <span style={{ marginLeft: 8, color: "var(--text-primary)" }}>{t.participants?.[0] || "Unknown"}</span>
                                                 </div>
                                             )}

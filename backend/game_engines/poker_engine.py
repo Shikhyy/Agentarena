@@ -19,7 +19,7 @@ class Suit(IntEnum):
     CLUBS = 2
     SPADES = 3
 
-SUIT_SYMBOLS = {Suit.HEARTS: "♥", Suit.DIAMONDS: "♦", Suit.CLUBS: "♣", Suit.SPADES: "♠"}
+SUIT_SYMBOLS = {Suit.HEARTS: "", Suit.DIAMONDS: "", Suit.CLUBS: "", Suit.SPADES: ""}
 RANK_NAMES = {
     2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8",
     9: "9", 10: "10", 11: "J", 12: "Q", 13: "K", 14: "A",
@@ -157,7 +157,7 @@ class PokerPlayer:
             "current_bet": self.current_bet,
             "is_folded": self.is_folded,
             "is_all_in": self.is_all_in,
-            "hole_cards": [c.to_dict() for c in self.hole_cards] if reveal else ["🂠", "🂠"],
+            "hole_cards": [c.to_dict() for c in self.hole_cards] if reveal else ["", ""],
         }
 
 

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
 import { SiweMessage } from "siwe";
+import { fetchArenaBalance } from "@/lib/contracts";
 
 // ── Types ────────────────────────────────────────────────────
 interface WalletState {
@@ -100,13 +101,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             });
             const balanceEth = (parseInt(balanceHex, 16) / 1e18).toFixed(4);
 
+            // Fetch real $ARENA balance from contract (falls back to "0" if not deployed)
+            const arenaBalanceStr = await fetchArenaBalance(address);
+
             setState({
                 address,
                 chainId,
                 isConnected: true,
                 isConnecting: false,
                 balance: balanceEth,
-                arenaBalance: "12,450", // Mock $ARENA balance
+                arenaBalance: arenaBalanceStr,
                 token,
             });
         } catch (err) {

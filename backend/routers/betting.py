@@ -105,3 +105,23 @@ async def reveal_bet(arena_id: str, req: RevealRequest, address: str = Depends(g
         "payout_pending": True,
         "details": bet_record
     }
+
+
+@router.get("/bets/{address}")
+async def get_bet_history(address: str):
+    """
+    Return bet history for a given wallet address across all arenas.
+    """
+    history = []
+    for arena_id, bets in active_bets.items():
+        for b in bets:
+            if b.get("wallet") == address:
+                history.append({
+                    "arena_id": arena_id,
+                    "commitment": b.get("commitment"),
+                    "timestamp": b.get("timestamp"),
+                    "revealed": b.get("revealed", False),
+                    "revealed_amount": b.get("revealed_amount"),
+                    "revealed_position": b.get("revealed_position"),
+                })
+    return {"bets": history, "total": len(history)}

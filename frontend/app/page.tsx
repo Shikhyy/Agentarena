@@ -28,7 +28,6 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
-const gameIconMap: Record<string, string> = { chess: "♟️", poker: "🃏", monopoly: "🎩", trivia: "🧠" };
 const gameColors: Record<string, string> = { chess: "var(--neon-green)", poker: "var(--danger-red)", monopoly: "var(--arena-gold)", trivia: "var(--electric-purple-light)" };
 
 export default function HomePage() {
@@ -51,13 +50,6 @@ export default function HomePage() {
 
   const totalSpectators = liveArenas.reduce((acc, arena) => acc + arena.spectators, 0);
 
-  const STATS = [
-    { label: "Live Spectators", value: totalSpectators.toLocaleString(), color: "var(--electric-purple-light)" },
-    { label: "$ARENA in Play", value: "245K+", color: "var(--arena-gold)" },
-    { label: "Active Arenas", value: String(liveArenas.length), color: "var(--neon-green)" },
-    { label: "Top Win Streak", value: "12", color: "var(--danger-red)" },
-  ];
-
   return (
     <div className="page">
       {/* Hero Section */}
@@ -69,7 +61,7 @@ export default function HomePage() {
         >
           <div style={{ marginBottom: "var(--space-md)" }}>
             <span className="badge badge-purple" style={{ padding: "8px 16px", fontSize: "0.85rem", letterSpacing: "0.1em" }}>
-              ✨ AGENT ARENA MAINNET IS LIVE
+              AGENT ARENA MAINNET IS LIVE
             </span>
           </div>
           <h1 style={{ fontSize: "clamp(3rem, 7vw, 5rem)", marginBottom: "var(--space-md)", lineHeight: 1.1 }}>
@@ -82,25 +74,24 @@ export default function HomePage() {
           </p>
           <div className="hero-actions">
             <a href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              🌐 Enter 3D World
+              Enter 3D World
             </a>
             <a href="/builder" className="btn btn-gold btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              🛠️ Build Agent
+              ️ Build Agent
             </a>
             <a href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 32px", fontSize: "1.1rem" }}>
-              ⚡ Watch Live
+              Watch Live
             </a>
           </div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="grid-4" style={{ marginBottom: "var(--space-3xl)" }}>
             {[
-              { label: "Active Arenas", value: liveMatches?.length || 0, icon: "🏟️", color: "var(--neon-green)" },
-              { label: "Agents Deployed", value: agents?.length || 0, icon: "🤖", color: "var(--electric-purple-light)" },
-              { label: "$ARENA in Play", value: liveMatches?.reduce((acc: number, m: any) => acc + (m.potArena || 0), 0) || 0, icon: "💎", color: "var(--arena-gold)" },
-              { label: "Top Win Streak", value: agents?.reduce((max: number, a: any) => Math.max(max, a.winStreak || 0), 0) || 0, icon: "🔥", color: "var(--danger-red)" },
+              { label: "Active Arenas", value: liveArenas.length || 0, color: "var(--neon-green)" },
+              { label: "Agents Deployed", value: agents?.length || 0, color: "var(--electric-purple-light)" },
+              { label: "$ARENA in Play", value: liveMatches?.reduce((acc: number, m: any) => acc + (m.potArena || 0), 0) || 0, color: "var(--arena-gold)" },
+              { label: "Top Win Streak", value: agents?.reduce((max: number, a: any) => Math.max(max, a.winStreak || 0), 0) || 0, color: "var(--danger-red)" },
             ].map((stat) => (
               <div key={stat.label} className="glass-card" style={{ padding: "var(--space-lg)", textAlign: "center", position: "relative", overflow: "hidden" }}>
-                <div style={{ fontSize: "2rem", marginBottom: 8, filter: `drop-shadow(0 0 10px ${stat.color}40)` }}>{stat.icon}</div>
                 <div style={{ fontSize: "2.5rem", fontWeight: 800, fontFamily: "var(--font-display)", color: stat.color, textShadow: `0 0 20px ${stat.color}40` }}>
                   {stat.value}
                 </div>
@@ -151,16 +142,13 @@ export default function HomePage() {
                 whileHover={{ scale: 1.02, translateY: -4 }}
                 style={{ textDecoration: "none", color: "inherit", border: "1px solid rgba(255,255,255,0.05)" }}
               >
-                <div className="arena-card-thumbnail" style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", inset: 0, background: `radial - gradient(circle at center, ${gameColors[arena.game_type] || "var(--electric-purple)"}20 0 %, transparent 70 %)` }}></div>
-                  <span style={{ zIndex: 1, fontSize: "4rem", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.2))" }}>
-                    {gameIconMap[arena.game_type] || "🏟️"}
-                  </span>
+                <div className="arena-card-thumbnail" style={{ position: "relative", height: 160 }}>
+                  <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at center, ${gameColors[arena.game_type] || "var(--electric-purple)"}20 0%, transparent 70%)` }}></div>
                   <span
                     className="badge badge-live"
                     style={{ position: "absolute", top: 16, right: 16, zIndex: 2, padding: "4px 12px" }}
                   >
-                    ● LIVE
+                    LIVE
                   </span>
                 </div>
                 <div className="arena-card-body" style={{ padding: "var(--space-lg)" }}>
@@ -177,7 +165,7 @@ export default function HomePage() {
                   </div>
                   <div className="arena-card-meta flex justify-between items-center" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "var(--space-md)" }}>
                     <div className="flex items-center gap-sm" style={{ color: "var(--text-secondary)" }}>
-                      <span style={{ fontSize: "1.2rem" }}>👁</span>
+                      <span style={{ fontSize: "1.2rem" }}></span>
                       <span style={{ fontWeight: 600 }}>{arena.spectators.toLocaleString()}</span>
                     </div>
                     <span className="badge" style={{ background: `${gameColors[arena.game_type]} 20`, color: gameColors[arena.game_type], border: `1px solid ${gameColors[arena.game_type]} 40`, padding: "4px 12px" }}>
@@ -204,12 +192,12 @@ export default function HomePage() {
           viewport={{ once: true, amount: 0.3 }}
         >
           {[
-            { icon: "🛠️", title: "Build", desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof." },
-            { icon: "⚔️", title: "Battle", desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning." },
-            { icon: "🎙️", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe." },
-            { icon: "💰", title: "Bet", desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair." },
-            { icon: "📈", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines." },
-            { icon: "🏆", title: "Earn", desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame." },
+            { icon: "️", title: "Build", desc: "Create your AI agent with personality archetypes, skill slots, and strategy vaults committed via ZK proof." },
+            { icon: "️", title: "Battle", desc: "Deploy into arenas. Chess, Poker, Monopoly — your agent competes autonomously with Gemini reasoning." },
+            { icon: "️", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic, analytical, or sarcastic — you choose the vibe." },
+            { icon: "", title: "Bet", desc: "Place ZK-private bets on outcomes. No one sees your position until the reveal. Verifiably fair." },
+            { icon: "", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, unlock Skill NFTs, and breed legendary bloodlines." },
+            { icon: "", title: "Earn", desc: "Win $ARENA tokens from battles, bets, and tournaments. Retire legends to the Hall of Fame." },
           ].map((step, i) => (
             <motion.div
               key={step.title}
@@ -239,7 +227,7 @@ export default function HomePage() {
         <p style={{ maxWidth: 500, color: "var(--text-secondary)" }}>Build your first agent in under 2 minutes. No experience needed. Battle tested by Gemini.</p>
         <div className="hero-actions" style={{ marginTop: "var(--space-xl)" }}>
           <a href="/builder" className="btn btn-primary btn-lg" style={{ padding: "16px 40px", fontSize: "1.1rem", borderRadius: "var(--radius-xl)" }}>
-            🚀 Get Started Free
+            Get Started Free
           </a>
         </div>
         <p
@@ -251,7 +239,7 @@ export default function HomePage() {
             letterSpacing: "0.1em"
           }}
         >
-          MAY THE BEST AI WIN. ⚔️
+          MAY THE BEST AI WIN. ️
         </p>
       </section>
 

@@ -187,7 +187,7 @@ export function TriviaBoard3D({
                                         fontFamily: "var(--font-body)",
                                     }}
                                 >
-                                    ⚡ {currentQuestion.buzzed_by} buzzed in!
+                                     {currentQuestion.buzzed_by} buzzed in!
                                 </motion.div>
                             )}
                         </motion.div>
@@ -198,7 +198,7 @@ export function TriviaBoard3D({
                             animate={{ opacity: 1 }}
                             style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "1rem" }}
                         >
-                            🧠 Next question loading...
+                             Next question loading...
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -271,7 +271,7 @@ export function TriviaBoard3D({
                                     />
                                 </div>
                                 {isThinking && (
-                                    <div style={{ fontSize: "0.5rem", color: "var(--neon-green)", marginTop: 2 }}>⚡ ANSWERING</div>
+                                    <div style={{ fontSize: "0.5rem", color: "var(--neon-green)", marginTop: 2 }}> ANSWERING</div>
                                 )}
                             </div>
                         );

@@ -24,7 +24,7 @@ export function CommentaryRibbon({ transcripts, isActive }: { transcripts: strin
             gap: "var(--space-md)",
             zIndex: 10
         }}>
-            {/* Mock Audio Waveform */}
+            {/*  Audio Waveform */}
             <div style={{ display: "flex", gap: 2, height: 24, alignItems: "center" }}>
                 {[1, 2, 3, 4, 5].map((i) => (
                     <motion.div

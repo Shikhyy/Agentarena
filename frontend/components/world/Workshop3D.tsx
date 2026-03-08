@@ -67,7 +67,7 @@ export function WorkshopZone() {
                             gap: "12px"
                         }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid rgba(139, 92, 246, 0.2)", paddingBottom: "12px" }}>
-                                <span style={{ fontSize: "1.2rem" }}>🧬</span>
+                                <span style={{ fontSize: "1.2rem" }}></span>
                                 <h3 style={{ margin: 0, color: "var(--arena-gold)", fontSize: "16px", fontFamily: "var(--font-display)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Genetic Splicer</h3>
                             </div>
 
@@ -103,7 +103,7 @@ export function WorkshopZone() {
                                     position: "relative", overflow: "hidden"
                                 }}
                             >
-                                {isMinting ? "⚙️ SPLICING DNA..." : "⚡ RENDER & MINT"}
+                                {isMinting ? "️ SPLICING DNA..." : " RENDER & MINT"}
                             </button>
                         </div>
                     </Html>

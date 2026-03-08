@@ -110,7 +110,7 @@ function BoardCenter() {
                 anchorX="center"
                 anchorY="middle"
             >
-                🏟️{"\n"}AGENT ARENA
+                ️{"\n"}AGENT ARENA
             </Text>
         </group>
     );

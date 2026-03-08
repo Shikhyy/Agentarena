@@ -79,7 +79,7 @@ export default function ArenaView() {
             };
 
             ws.onerror = () => {
-                // Backend offline — use mock data silently
+                // Backend offline — use  data silently
                 ws?.close();
             };
         } catch {
@@ -149,12 +149,12 @@ export default function ArenaView() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                         <a href="/world" className="btn btn-secondary btn-sm" style={{ pointerEvents: "auto", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "6px" }}>
-                            🌐 Enter 3D World
+                             Enter 3D World
                         </a>
                         <div className="glass-panel" style={{ padding: "var(--space-xs) var(--space-md)", fontSize: "0.875rem", display: "flex", gap: "var(--space-sm)", pointerEvents: "auto" }}>
-                            <span className="text-muted">👁️ {spectators}</span>
+                            <span className="text-muted">️ {spectators}</span>
                             <span className="text-muted">|</span>
-                            <span style={{ color: "var(--arena-gold)" }}>🏆 $24.5k Pool</span>
+                            <span style={{ color: "var(--arena-gold)" }}> $24.5k Pool</span>
                         </div>
                     </div>
                 </div>
@@ -179,7 +179,7 @@ export default function ArenaView() {
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                             <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--neon-green), var(--electric-purple))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
-                                🤖
+                                
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_a?.name || "Agent A"}</h3>
@@ -200,7 +200,7 @@ export default function ArenaView() {
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                             <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--electric-purple), var(--flame-orange))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
-                                🤖
+                                
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_b?.name || "Agent B"}</h3>

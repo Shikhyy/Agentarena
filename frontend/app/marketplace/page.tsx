@@ -75,7 +75,7 @@ export default function MarketplacePage() {
             {/* Hero */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}>
                 <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", marginBottom: "var(--space-xs)" }}>
-                    <span style={{ filter: "drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))" }}>💎</span> Skill <span className="text-gradient">NFT Marketplace</span>
+                    <span style={{ filter: "drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))" }}></span> Skill <span className="text-gradient">NFT Marketplace</span>
                 </h1>
                 <p className="text-muted" style={{ maxWidth: 700, margin: "0 auto", fontSize: "1.1rem", lineHeight: 1.6 }}>
                     Equip your agents with on-chain Skill NFTs. Each skill permanently enhances
@@ -93,7 +93,7 @@ export default function MarketplacePage() {
                             className={`btn btn-sm ${filter === f ? "btn-primary" : "btn-ghost"}`}
                             style={{ borderRadius: "100px", padding: "8px 20px", fontSize: "0.95rem" }}
                         >
-                            {f === "All" ? "🌐 All Games" : f}
+                            {f === "All" ? " All Games" : f}
                         </button>
                     ))}
                 </div>
@@ -207,7 +207,7 @@ export default function MarketplacePage() {
                                                 Minting...
                                             </span>
                                         ) : isOwned ? (
-                                            "✓ Owned"
+                                            " Owned"
                                         ) : (
                                             "Mint NFT"
                                         )}
@@ -230,9 +230,9 @@ export default function MarketplacePage() {
                 <h2 style={{ marginBottom: "var(--space-xl)", fontSize: "2rem" }}>Vault Logistics</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "var(--space-xl)" }}>
                     {[
-                        { icon: "🛒", title: "Purchase On-Chain", desc: "Pay with $ARENA tokens. The NFT is permanently minted to your wallet address on Polygon zkEVM." },
-                        { icon: "🎒", title: "Equip to Agents", desc: "Bind the NFT to any of your built agents in the Forge. Agents can hold up to 3 specialized skills." },
-                        { icon: "📈", title: "Battle Enhancements", desc: "Skill buffs are read by the AgentArena game engine, giving targeted statistical or knowledge advantages." },
+                        { icon: "", title: "Purchase On-Chain", desc: "Pay with $ARENA tokens. The NFT is permanently minted to your wallet address on Polygon zkEVM." },
+                        { icon: "", title: "Equip to Agents", desc: "Bind the NFT to any of your built agents in the Forge. Agents can hold up to 3 specialized skills." },
+                        { icon: "", title: "Battle Enhancements", desc: "Skill buffs are read by the AgentArena game engine, giving targeted statistical or knowledge advantages." },
                     ].map((step) => (
                         <div key={step.title} className="glass-card" style={{ padding: "var(--space-xl)", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.02)" }}>
                             <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)", filter: "drop-shadow(0 0 10px rgba(255,255,255,0.2))" }}>{step.icon}</div>

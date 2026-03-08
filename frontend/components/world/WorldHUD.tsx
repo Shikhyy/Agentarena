@@ -109,12 +109,12 @@ function NavBar() {
     const currentZone = useWorldStore((s) => s.currentZone);
 
     const shortcuts: { zone: WorldZone; icon: string; label: string }[] = [
-        { zone: "central-nexus", icon: "🏛️", label: "Nexus" },
-        { zone: "arena-chess", icon: "♟️", label: "Chess" },
-        { zone: "arena-poker", icon: "🃏", label: "Poker" },
-        { zone: "arena-monopoly", icon: "🎩", label: "Monopoly" },
-        { zone: "workshop", icon: "🔧", label: "Workshop" },
-        { zone: "marketplace", icon: "🛒", label: "Market" },
+        { zone: "central-nexus", icon: "️", label: "Nexus" },
+        { zone: "arena-chess", icon: "️", label: "Chess" },
+        { zone: "arena-poker", icon: "", label: "Poker" },
+        { zone: "arena-monopoly", icon: "", label: "Monopoly" },
+        { zone: "workshop", icon: "", label: "Workshop" },
+        { zone: "marketplace", icon: "", label: "Market" },
     ];
 
     return (
@@ -167,7 +167,7 @@ function ActiveAgentCard() {
             }}
         >
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: `2px solid ${myAgent.auraColor || "var(--electric-purple)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", boxShadow: `inset 0 0 10px ${myAgent.auraColor || "var(--electric-purple)"}80` }}>
-                ⚡
+                
             </div>
             <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.1rem", color: "white" }}>{myAgent.name}</div>
@@ -207,10 +207,10 @@ function MatchTicker() {
                 >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                         <div className="badge badge-live" style={{ fontSize: "0.6rem" }}>LIVE</div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>👁 {match.spectators.toLocaleString()}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}> {match.spectators.toLocaleString()}</div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ fontSize: "1.5rem" }}>{match.gameType === "chess" ? "♟️" : match.gameType === "poker" ? "🃏" : "🎩"}</div>
+                        <div style={{ fontSize: "1.5rem" }}>{match.gameType === "chess" ? "️" : match.gameType === "poker" ? "" : ""}</div>
                         <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.95rem" }}>
                             {match.agentA.name} <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", fontWeight: 400 }}>vs</span> {match.agentB.name}
                         </div>
@@ -245,7 +245,7 @@ export function WorldHUD() {
                         </Link>
 
                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(10,5,20,0.6)", backdropFilter: "blur(10px)", border: "1px solid var(--arena-gold)", borderRadius: "100px", padding: "6px 16px", boxShadow: "0 0 15px rgba(245, 158, 11, 0.2)" }}>
-                            <span style={{ fontSize: "1.1rem" }}>💰</span>
+                            <span style={{ fontSize: "1.1rem" }}></span>
                             <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--arena-gold)", fontSize: "0.95rem" }}>{arenaBalance.toLocaleString()} $ARENA</span>
                         </motion.div>
                     </div>

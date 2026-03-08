@@ -10,23 +10,23 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:800
 const STEPS = ["Identity", "Personality", "Skills", "Strategy", "Review"];
 
 const PERSONALITIES = [
-    { id: "aggressive", emoji: "🔥", label: "Aggressive", desc: "High-risk, high-reward. Attacks relentlessly.", color: "var(--neon-green)" },
-    { id: "conservative", emoji: "🛡️", label: "Conservative", desc: "Patient and methodical. Rarely makes mistakes.", color: "#60A5FA" },
-    { id: "adaptive", emoji: "🧠", label: "Adaptive", desc: "Reads the game state and shifts strategy dynamically.", color: "var(--electric-purple-light)" },
-    { id: "unpredictable", emoji: "🎲", label: "Unpredictable", desc: "Random enough to confuse opponents.", color: "var(--arena-gold)" },
-    { id: "chaos", emoji: "💀", label: "Chaos Agent", desc: "Pure anarchy. Opponents cannot predict a thing.", color: "var(--danger-red)" },
+    { id: "aggressive", emoji: "", label: "Aggressive", desc: "High-risk, high-reward. Attacks relentlessly.", color: "var(--neon-green)" },
+    { id: "conservative", emoji: "️", label: "Conservative", desc: "Patient and methodical. Rarely makes mistakes.", color: "#60A5FA" },
+    { id: "adaptive", emoji: "", label: "Adaptive", desc: "Reads the game state and shifts strategy dynamically.", color: "var(--electric-purple-light)" },
+    { id: "unpredictable", emoji: "", label: "Unpredictable", desc: "Random enough to confuse opponents.", color: "var(--arena-gold)" },
+    { id: "chaos", emoji: "", label: "Chaos Agent", desc: "Pure anarchy. Opponents cannot predict a thing.", color: "var(--danger-red)" },
 ];
 
 const ALL_SKILLS = [
-    { id: "endgame_master", label: "Endgame Master", icon: "♟️", game: "chess" },
-    { id: "opening_book", label: "Opening Book", icon: "📖", game: "chess" },
-    { id: "sacrifice_gambit", label: "Sacrifice Gambit", icon: "⚡", game: "chess" },
-    { id: "bluff_master", label: "Bluff Master", icon: "🎭", game: "poker" },
-    { id: "pot_odds", label: "Pot Odds Expert", icon: "🧮", game: "poker" },
-    { id: "property_hoarder", label: "Property Hoarder", icon: "🏠", game: "monopoly" },
-    { id: "negotiator", label: "Master Negotiator", icon: "🤝", game: "monopoly" },
-    { id: "risk_taker", label: "Risk Taker", icon: "🎯", game: "all" },
-    { id: "adaptability", label: "Quick Adapter", icon: "🔄", game: "all" },
+    { id: "endgame_master", label: "Endgame Master", icon: "️", game: "chess" },
+    { id: "opening_book", label: "Opening Book", icon: "", game: "chess" },
+    { id: "sacrifice_gambit", label: "Sacrifice Gambit", icon: "", game: "chess" },
+    { id: "bluff_master", label: "Bluff Master", icon: "", game: "poker" },
+    { id: "pot_odds", label: "Pot Odds Expert", icon: "", game: "poker" },
+    { id: "property_hoarder", label: "Property Hoarder", icon: "", game: "monopoly" },
+    { id: "negotiator", label: "Master Negotiator", icon: "", game: "monopoly" },
+    { id: "risk_taker", label: "Risk Taker", icon: "", game: "all" },
+    { id: "adaptability", label: "Quick Adapter", icon: "", game: "all" },
 ];
 
 export default function BuilderPage() {
@@ -114,7 +114,7 @@ export default function BuilderPage() {
                                 textShadow: i === step ? "0 0 10px rgba(255,255,255,0.5)" : "none",
                                 zIndex: 2, position: "relative"
                             }}>
-                                {i < step ? "✓" : i + 1}
+                                {i < step ? "" : i + 1}
                             </div>
                             <div className="text-muted" style={{ fontSize: "0.8rem", fontWeight: i === step ? 700 : 500, color: i === step ? "var(--text-primary)" : "var(--text-muted)", transition: "color 0.3s" }}>{s}</div>
                         </div>
@@ -133,7 +133,7 @@ export default function BuilderPage() {
             {/* Error Message */}
             {error && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="glass-card" style={{ padding: "var(--space-md)", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.5)", color: "var(--danger-red)", marginBottom: "var(--space-lg)", textAlign: "center", borderRadius: "var(--radius-md)" }}>
-                    ⚠️ {error}
+                    ️ {error}
                 </motion.div>
             )}
 
@@ -151,7 +151,7 @@ export default function BuilderPage() {
                     {/* Step 0: Identity */}
                     {step === 0 && (
                         <div>
-                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}>👤 Name Your Agent</h2>
+                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}> Name Your Agent</h2>
                             <p className="text-muted" style={{ marginBottom: "var(--space-2xl)", fontSize: "1.05rem" }}>Give your AI agent an identity it will carry on the blockchain forever.</p>
 
                             <div style={{ position: "relative" }}>
@@ -178,7 +178,7 @@ export default function BuilderPage() {
                     {/* Step 1: Personality */}
                     {step === 1 && (
                         <div>
-                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}>🧬 Choose Personality</h2>
+                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}> Choose Personality</h2>
                             <p className="text-muted" style={{ marginBottom: "var(--space-2xl)", fontSize: "1.05rem" }}>Personality shapes how your agent thinks under pressure. This will affect their in-game chat and fundamental playstyle.</p>
 
                             <div style={{ display: "grid", gap: "var(--space-md)" }}>
@@ -207,7 +207,7 @@ export default function BuilderPage() {
                                             background: selectedPersonality === p.id ? p.color : "transparent",
                                             display: "flex", alignItems: "center", justifyContent: "center", color: "#000", fontWeight: "bold"
                                         }}>
-                                            {selectedPersonality === p.id && "✓"}
+                                            {selectedPersonality === p.id && ""}
                                         </div>
                                     </motion.div>
                                 ))}
@@ -219,7 +219,7 @@ export default function BuilderPage() {
                     {step === 2 && (
                         <div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "var(--space-sm)" }}>
-                                <h2 style={{ fontSize: "1.8rem" }}>⚡ Equip Skills</h2>
+                                <h2 style={{ fontSize: "1.8rem" }}> Equip Skills</h2>
                                 <span className="badge" style={{ background: selectedSkills.length === 3 ? "var(--neon-green)" : "rgba(255,255,255,0.1)", color: selectedSkills.length === 3 ? "#000" : "var(--text-primary)", fontSize: "0.9rem", padding: "6px 12px" }}>
                                     {selectedSkills.length}/3 Chosen
                                 </span>
@@ -240,7 +240,7 @@ export default function BuilderPage() {
                                                 transition: "all 0.2s", boxShadow: selected ? "0 0 20px rgba(16,185,129,0.2)" : "none",
                                                 position: "relative", overflow: "hidden"
                                             }}>
-                                            {selected && <div style={{ position: "absolute", top: 8, right: 8, color: "var(--neon-green)" }}>✓</div>}
+                                            {selected && <div style={{ position: "absolute", top: 8, right: 8, color: "var(--neon-green)" }}></div>}
                                             <div style={{ fontSize: "2.5rem", marginBottom: "var(--space-sm)", filter: selected ? "drop-shadow(0 0 10px rgba(16,185,129,0.5))" : "none" }}>{skill.icon}</div>
                                             <div style={{ fontSize: "1.05rem", fontWeight: 700, color: selected ? "var(--text-primary)" : "var(--text-secondary)", marginBottom: 8 }}>{skill.label}</div>
                                             <div className="badge" style={{ fontSize: "0.7rem", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--text-muted)", textTransform: "capitalize" }}>{skill.game}</div>
@@ -254,7 +254,7 @@ export default function BuilderPage() {
                     {/* Step 3: Strategy */}
                     {step === 3 && (
                         <div>
-                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}>🎯 Fine-tune Strategy</h2>
+                            <h2 style={{ marginBottom: "var(--space-sm)", fontSize: "1.8rem" }}> Fine-tune Strategy</h2>
                             <p className="text-muted" style={{ marginBottom: "var(--space-2xl)", fontSize: "1.05rem" }}>Adjust behavioral sliders. These become the Noir circuit's private strategy commitment.</p>
 
                             <div style={{ background: "rgba(0,0,0,0.3)", padding: "var(--space-xl)", borderRadius: "var(--radius-md)", border: "1px solid rgba(255,255,255,0.05)" }}>
@@ -289,7 +289,7 @@ export default function BuilderPage() {
                     {/* Step 4: Review */}
                     {step === 4 && (
                         <div>
-                            <h2 style={{ marginBottom: "var(--space-xl)", fontSize: "1.8rem" }}>📋 Review & Mint</h2>
+                            <h2 style={{ marginBottom: "var(--space-xl)", fontSize: "1.8rem" }}> Review & Mint</h2>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-lg)" }}>
                                 <div style={{ display: "grid", gap: "var(--space-xs)" }}>
@@ -322,7 +322,7 @@ export default function BuilderPage() {
 
                             <div className="glass-panel" style={{ marginTop: "var(--space-2xl)", padding: "var(--space-lg)", borderLeft: "4px solid var(--neon-green)", background: "linear-gradient(90deg, rgba(16,185,129,0.05), transparent)" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginBottom: 8 }}>
-                                    <span style={{ fontSize: "1.5rem" }}>🔐</span>
+                                    <span style={{ fontSize: "1.5rem" }}></span>
                                     <div style={{ fontSize: "1rem", color: "var(--neon-green)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>ZK Strategy Commitment Generation</div>
                                 </div>
                                 <div className="text-muted" style={{ fontSize: "0.95rem", lineHeight: 1.5 }}>
@@ -350,7 +350,7 @@ export default function BuilderPage() {
                         background: creating ? "rgba(139, 92, 246, 0.5)" : "linear-gradient(45deg, var(--electric-purple), var(--electric-purple-light))",
                         boxShadow: creating ? "none" : "0 0 20px rgba(139, 92, 246, 0.6)"
                     }}>
-                        {creating ? "Minting Protocol..." : "🚀 Finalize & Deploy Agent"}
+                        {creating ? "Minting Protocol..." : " Finalize & Deploy Agent"}
                     </button>
                 )}
             </div>

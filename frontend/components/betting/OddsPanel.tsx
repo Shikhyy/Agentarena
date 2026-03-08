@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
+import { CONTRACTS, getZKBettingPoolRead } from "@/lib/contracts";
 
 interface AgentOdds {
     probability: number;
@@ -20,6 +21,25 @@ const DEFAULT_ODDS: OddsState = {
     agent_b: { probability: 0.48, american_odds: +108, suggested_kelly_fraction: 0.03 },
 };
 
+function impliedProbToAmerican(prob: number): number {
+    if (prob <= 0 || prob >= 1) return 0;
+    if (prob > 0.5) {
+        return Math.round((prob / (1 - prob)) * -100);
+    } else {
+        return Math.round(((1 - prob) / prob) * 100);
+    }
+}
+
+function calculateKelly(prob: number, oddsFloat: number): number {
+    // Basic Kelly criterion: f* = p - q/b
+    // where b is the net fractional odds received on a win
+    const q = 1 - prob;
+    const b = oddsFloat <= 0 ? 0 : oddsFloat;
+    let f = b > 0 ? prob - (q / b) : 0;
+    // Cap at 10% to be responsible, Floor at 0.5%
+    return Math.max(0.005, Math.min(0.1, f * 0.25)); // Quarter Kelly for safety
+}
+
 export function OddsPanel({
     arenaId,
     agentAName,
@@ -32,94 +52,92 @@ export function OddsPanel({
     const [odds, setOdds] = useState<OddsState>(DEFAULT_ODDS);
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Helper to derive full odds state from raw implied probabilities
+    const updateOddsFromProb = (probA: number) => {
+        const pA = Math.max(0.01, Math.min(0.99, probA));
+        const pB = 1 - pA;
+        const amA = impliedProbToAmerican(pA);
+        const amB = impliedProbToAmerican(pB);
+
+        const decimalA = amA > 0 ? (amA / 100) : (100 / Math.abs(amA));
+        const decimalB = amB > 0 ? (amB / 100) : (100 / Math.abs(amB));
+
+        setOdds({
+            agent_a: { probability: pA, american_odds: amA, suggested_kelly_fraction: calculateKelly(pA, decimalA) },
+            agent_b: { probability: pB, american_odds: amB, suggested_kelly_fraction: calculateKelly(pB, decimalB) },
+        });
+    };
 
     useEffect(() => {
-        // 1. Try to fetch initial odds from the API
-        const fetchInitialOdds = async () => {
+        let mounted = true;
+
+        const fetchOnChainOdds = async () => {
+            const pool = getZKBettingPoolRead();
+            if (!pool) return false;
+
             try {
-                const res = await fetch("http://localhost:8000/arenas/live", {
-                    signal: AbortSignal.timeout(3000),
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                const arena = data.arenas?.find((a: any) => a.id === arenaId);
-                if (arena?.live_odds) setOdds(arena.live_odds);
-            } catch {
-                // Backend offline — keep showing default odds silently
+                const gameIdNum = parseInt(arenaId.replace(/\D/g, "")) || 0;
+                // getGameOdds returns (totalA, totalB, impliedProbA [scaled to 1e4])
+                const [totalA, totalB, probA_BPS] = await pool.getGameOdds(gameIdNum);
+
+                // If there's volume, use the on-chain BPS probability
+                if (totalA > BigInt(0) || totalB > BigInt(0)) {
+                    const parsedProbA = Number(probA_BPS) / 10000;
+                    if (mounted) {
+                        updateOddsFromProb(parsedProbA);
+                        setIsConnected(true); // Treat contract read success as "connected"
+                    }
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                return false;
             }
         };
 
-        fetchInitialOdds();
+        const setupLiveUpdates = async () => {
+            // Priority 1: Smart Contracts (poll every 5s)
+            if (CONTRACTS.ZK_BETTING_POOL) {
+                const success = await fetchOnChainOdds();
+                if (success) {
+                    intervalRef.current = setInterval(fetchOnChainOdds, 5000);
+                    return; // skip websocket if on-chain works
+                }
+            }
 
-        // 2. WebSocket for live updates
-        const connect = () => {
+            // Priority 2: Backend REST & WebSocket (if contracts not deployed/empty)
+            try {
+                const res = await fetch("http://localhost:8000/arenas/live");
+                if (res.ok) {
+                    const data = await res.json();
+                    const arena = data.arenas?.find((a: any) => a.id === arenaId);
+                    if (arena?.live_odds && mounted) setOdds(arena.live_odds);
+                }
+            } catch { }
+
             try {
                 const ws = new WebSocket(`ws://localhost:8000/arenas/${arenaId}/stream`);
                 wsRef.current = ws;
 
-                ws.onopen = () => setIsConnected(true);
-                ws.onmessage = (event) => {
+                ws.onopen = () => { if (mounted) setIsConnected(true); };
+                ws.onmessage = (event: any) => {
                     try {
                         const msg = JSON.parse(event.data);
-                        if (msg.live_odds) setOdds(msg.live_odds);
-                        // Simulate slight odds drift when connected
-                        if (msg.type === "connected") {
-                            setOdds(prev => ({
-                                agent_a: { ...prev.agent_a, probability: 0.5 + (Math.random() - 0.5) * 0.1 },
-                                agent_b: { ...prev.agent_b, probability: 0.5 + (Math.random() - 0.5) * 0.1 },
-                            }));
-                        }
+                        if (msg.live_odds && mounted) setOdds(msg.live_odds);
                     } catch { }
                 };
-                ws.onclose = () => {
-                    setIsConnected(false);
-                    // Simulate live odds drift even without backend connection
-                    startOddsDrift();
-                };
-                ws.onerror = () => {
-                    ws.close();
-                };
-            } catch {
-                startOddsDrift();
-            }
+                ws.onclose = () => { if (mounted) setIsConnected(false); };
+            } catch { }
         };
 
-        // 3. If backend unavailable: simulate live odds drift so the UI stays lively
-        let driftInterval: NodeJS.Timeout;
-        const startOddsDrift = () => {
-            clearInterval(driftInterval);
-            driftInterval = setInterval(() => {
-                setOdds(prev => {
-                    const drift = (Math.random() - 0.5) * 0.02;
-                    const probA = Math.min(0.85, Math.max(0.15, prev.agent_a.probability + drift));
-                    const probB = 1 - probA;
-                    return {
-                        agent_a: {
-                            probability: probA,
-                            american_odds: probA > 0.5
-                                ? Math.round(-100 * probA / (1 - probA))
-                                : Math.round(100 * (1 - probA) / probA),
-                            suggested_kelly_fraction: Math.max(0, (probA - 0.5) * 0.2),
-                        },
-                        agent_b: {
-                            probability: probB,
-                            american_odds: probB > 0.5
-                                ? Math.round(-100 * probB / (1 - probB))
-                                : Math.round(100 * (1 - probB) / probB),
-                            suggested_kelly_fraction: Math.max(0, (probB - 0.5) * 0.2),
-                        },
-                    };
-                });
-            }, 2000);
-        };
-
-        connect();
-        // Start odds drift immediately (will be overridden by WS if connected)
-        startOddsDrift();
+        setupLiveUpdates();
 
         return () => {
-            wsRef.current?.close();
-            clearInterval(driftInterval);
+            mounted = false;
+            if (wsRef.current) wsRef.current.close();
+            if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, [arenaId]);
 

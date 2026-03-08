@@ -7,27 +7,27 @@ import Link from "next/link";
 
 const STEPS = [
     {
-        title: "Welcome to AgentArena 🏟️",
+        title: "Welcome to AgentArena ️",
         subtitle: "The world's first AI agent battle platform",
         content: "onboarding_welcome",
     },
     {
-        title: "Watch AI Agents Battle 🤖⚔️",
+        title: "Watch AI Agents Battle ️",
         subtitle: "Chess, Poker, Monopoly — powered by Gemini Live",
         content: "onboarding_battles",
     },
     {
-        title: "Your Agent, Your NFT 🧬",
+        title: "Your Agent, Your NFT ",
         subtitle: "Create, evolve, and breed AI agents on Polygon",
         content: "onboarding_agents",
     },
     {
-        title: "Bet Privately with ZK 🔐",
+        title: "Bet Privately with ZK ",
         subtitle: "Aztec Noir proofs keep your strategy secret",
         content: "onboarding_betting",
     },
     {
-        title: "Earn $ARENA Tokens 💰",
+        title: "Earn $ARENA Tokens ",
         subtitle: "Win battles, top leaderboards, claim rewards",
         content: "onboarding_earn",
     },
@@ -35,30 +35,30 @@ const STEPS = [
 
 const SLIDE_ILLUSTRATIONS: Record<string, React.ReactNode> = {
     onboarding_welcome: (
-        <div style={{ fontSize: "6rem", textAlign: "center" }}>🏟️</div>
+        <div style={{ fontSize: "6rem", textAlign: "center" }}>️</div>
     ),
     onboarding_battles: (
         <div style={{ display: "flex", justifyContent: "center", gap: "var(--space-xl)", fontSize: "4rem" }}>
-            <motion.span animate={{ rotateY: [0, 180, 360] }} transition={{ repeat: Infinity, duration: 3 }}>♟️</motion.span>
-            <span>⚔️</span>
-            <motion.span animate={{ rotateY: [0, -180, -360] }} transition={{ repeat: Infinity, duration: 3 }}>🃏</motion.span>
+            <motion.span animate={{ rotateY: [0, 180, 360] }} transition={{ repeat: Infinity, duration: 3 }}>️</motion.span>
+            <span>️</span>
+            <motion.span animate={{ rotateY: [0, -180, -360] }} transition={{ repeat: Infinity, duration: 3 }}></motion.span>
         </div>
     ),
     onboarding_agents: (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-md)" }}>
             <div style={{ display: "flex", gap: "var(--space-md)", fontSize: "3rem" }}>
-                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>🤖</motion.div>
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2 }}></motion.div>
                 <span style={{ fontSize: "2rem", alignSelf: "center" }}>+</span>
-                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}>🤖</motion.div>
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}></motion.div>
             </div>
             <div style={{ fontSize: "2rem" }}>↓</div>
-            <motion.div style={{ fontSize: "4rem" }} animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>🧬</motion.div>
+            <motion.div style={{ fontSize: "4rem" }} animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}></motion.div>
             <div className="badge badge-purple" style={{ fontSize: "0.9rem" }}>Gen 1 Offspring</div>
         </div>
     ),
     onboarding_betting: (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-md)" }}>
-            <div style={{ fontSize: "3rem" }}>🔐</div>
+            <div style={{ fontSize: "3rem" }}></div>
             <div className="glass-panel" style={{ padding: "var(--space-md)", fontSize: "0.8rem", fontFamily: "var(--font-mono)", color: "var(--neon-green)", maxWidth: 280, wordBreak: "break-all" }}>
                 commitment: 0x7f3a8b2c9d1e...
             </div>
@@ -70,7 +70,7 @@ const SLIDE_ILLUSTRATIONS: Record<string, React.ReactNode> = {
             {[100, 250, 500].map((amount, i) => (
                 <motion.div key={amount} animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.4 }}
                     style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "2rem" }}>💰</div>
+                    <div style={{ fontSize: "2rem" }}></div>
                     <div style={{ color: "var(--arena-gold)", fontWeight: 800, fontFamily: "var(--font-mono)" }}>{amount}</div>
                     <div className="text-muted" style={{ fontSize: "0.7rem" }}>$ARENA</div>
                 </motion.div>
@@ -134,7 +134,7 @@ export default function OnboardingPage() {
                         {isLast && (
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                                 style={{ marginTop: "var(--space-xl)", padding: "var(--space-md)", background: "rgba(245,158,11,0.1)", borderRadius: "var(--radius-md)", border: "1px solid rgba(245,158,11,0.3)", width: "100%" }}>
-                                <div style={{ color: "var(--arena-gold)", fontWeight: 700, marginBottom: "var(--space-sm)" }}>🎁 Welcome Bonus</div>
+                                <div style={{ color: "var(--arena-gold)", fontWeight: 700, marginBottom: "var(--space-sm)" }}> Welcome Bonus</div>
                                 <div style={{ fontSize: "2rem", fontWeight: 800, fontFamily: "var(--font-mono)", color: "var(--arena-gold)" }}>100 $ARENA</div>
                                 <div className="text-muted" style={{ fontSize: "0.8rem", marginTop: 4 }}>Free starter tokens + 1 Starter Agent NFT</div>
                             </motion.div>
@@ -159,7 +159,7 @@ export default function OnboardingPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                         <button className="btn btn-primary" style={{ width: "100%", fontSize: "1rem", padding: "var(--space-md)" }}
                             onClick={handleConnectWallet} disabled={walletConnecting}>
-                            {walletConnecting ? "Connecting..." : "🦊 Connect Wallet & Claim"}
+                            {walletConnecting ? "Connecting..." : " Connect Wallet & Claim"}
                         </button>
                         <button className="btn btn-ghost" style={{ width: "100%" }} onClick={() => router.push("/arenas")}>
                             Watch first →
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
                     </div>
                 ) : (
                     <button className="btn btn-primary" style={{ width: "100%", fontSize: "1rem", padding: "var(--space-md)" }} onClick={handleNext}>
-                        {step === 0 ? "Let's Go 🚀" : "Continue →"}
+                        {step === 0 ? "Let's Go " : "Continue →"}
                     </button>
                 )}
             </div>

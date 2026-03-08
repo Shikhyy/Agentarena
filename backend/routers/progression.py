@@ -111,15 +111,15 @@ async def get_skills_catalog():
     """Return the catalog of available Skill NFTs for the marketplace."""
     return {
         "skills": [
-            {"id": "bluff_master", "name": "Bluff Master", "description": "Opponent bluff probability detection +30%", "price": 8, "rarity": "Rare", "game": "Poker", "icon": "🃏"},
-            {"id": "endgame_specialist", "name": "Endgame Specialist", "description": "Chess endgame accuracy +25%", "price": 15, "rarity": "Epic", "game": "Chess", "icon": "♟️"},
-            {"id": "web_scout", "name": "Web Scout", "description": "Trivia search returns 10 results vs 3", "price": 6, "rarity": "Uncommon", "game": "Trivia", "icon": "🔍"},
-            {"id": "iron_will", "name": "Iron Will", "description": "Performance never degrades after consecutive losses", "price": 12, "rarity": "Rare", "game": "All", "icon": "🔥"},
-            {"id": "negotiator", "name": "Negotiator", "description": "Monopoly trade valuation depth increased", "price": 10, "rarity": "Rare", "game": "Monopoly", "icon": "🤝"},
-            {"id": "speed_demon", "name": "Speed Demon", "description": "Turn time limit reduced to 3s", "price": 7, "rarity": "Uncommon", "game": "All", "icon": "⚡"},
-            {"id": "coalition_breaker", "name": "Coalition Breaker", "description": "Detects and counters coalition patterns", "price": 14, "rarity": "Epic", "game": "Monopoly", "icon": "💥"},
-            {"id": "grand_strategist", "name": "Grand Strategist", "description": "Access to opening/endgame specialist databases", "price": 20, "rarity": "Legendary", "game": "Chess", "icon": "🏆"},
-            {"id": "mind_reader", "name": "Mind Reader", "description": "Predicts opponent's next move with 40% accuracy", "price": 18, "rarity": "Legendary", "game": "All", "icon": "🧠"},
-            {"id": "poker_oracle", "name": "Poker Oracle", "description": "AutoML Bluff Probability model access", "price": 16, "rarity": "Epic", "game": "Poker", "icon": "🔮"},
+            {"id": "bluff_master", "name": "Bluff Master", "description": "Opponent bluff probability detection +30%", "price": 8, "rarity": "Rare", "game": "Poker", "icon": ""},
+            {"id": "endgame_specialist", "name": "Endgame Specialist", "description": "Chess endgame accuracy +25%", "price": 15, "rarity": "Epic", "game": "Chess", "icon": "️"},
+            {"id": "web_scout", "name": "Web Scout", "description": "Trivia search returns 10 results vs 3", "price": 6, "rarity": "Uncommon", "game": "Trivia", "icon": ""},
+            {"id": "iron_will", "name": "Iron Will", "description": "Performance never degrades after consecutive losses", "price": 12, "rarity": "Rare", "game": "All", "icon": ""},
+            {"id": "negotiator", "name": "Negotiator", "description": "Monopoly trade valuation depth increased", "price": 10, "rarity": "Rare", "game": "Monopoly", "icon": ""},
+            {"id": "speed_demon", "name": "Speed Demon", "description": "Turn time limit reduced to 3s", "price": 7, "rarity": "Uncommon", "game": "All", "icon": ""},
+            {"id": "coalition_breaker", "name": "Coalition Breaker", "description": "Detects and counters coalition patterns", "price": 14, "rarity": "Epic", "game": "Monopoly", "icon": ""},
+            {"id": "grand_strategist", "name": "Grand Strategist", "description": "Access to opening/endgame specialist databases", "price": 20, "rarity": "Legendary", "game": "Chess", "icon": ""},
+            {"id": "mind_reader", "name": "Mind Reader", "description": "Predicts opponent's next move with 40% accuracy", "price": 18, "rarity": "Legendary", "game": "All", "icon": ""},
+            {"id": "poker_oracle", "name": "Poker Oracle", "description": "AutoML Bluff Probability model access", "price": 16, "rarity": "Epic", "game": "Poker", "icon": ""},
         ]
     }

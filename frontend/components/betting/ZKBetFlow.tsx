@@ -74,14 +74,14 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
             {/* Header */}
             <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-lg)" }}>
                 <div>
-                    <h3 style={{ fontSize: "1.1rem", margin: 0 }}>🔐 ZK Private Bet</h3>
+                    <h3 style={{ fontSize: "1.1rem", margin: 0 }}> ZK Private Bet</h3>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                         Aztec Network • Commit → Reveal
                     </div>
                 </div>
                 {onClose && (
                     <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: "4px 10px" }}>
-                        ✕
+                        
                     </button>
                 )}
             </div>
@@ -112,7 +112,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                                     className={`btn ${position === 0 ? "btn-primary" : "btn-secondary"}`}
                                     style={{ fontSize: "0.875rem", padding: "8px 4px" }}
                                 >
-                                    🤖 {agentAName}
+                                     {agentAName}
                                     <div style={{ fontSize: "0.625rem", marginTop: 2, opacity: 0.8 }}>
                                         {Math.round(agentAProb * 100)}% win
                                     </div>
@@ -122,7 +122,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                                     className={`btn ${position === 1 ? "btn-gold" : "btn-secondary"}`}
                                     style={{ fontSize: "0.875rem", padding: "8px 4px" }}
                                 >
-                                    🤖 {agentBName}
+                                     {agentBName}
                                     <div style={{ fontSize: "0.625rem", marginTop: 2, opacity: 0.8 }}>
                                         {Math.round(agentBProb * 100)}% win
                                     </div>
@@ -171,12 +171,12 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
 
                         {error && (
                             <div style={{ color: "var(--danger-red)", fontSize: "0.8125rem", marginBottom: "var(--space-sm)" }}>
-                                ⚠️ {error}
+                                ️ {error}
                             </div>
                         )}
 
                         <button onClick={handleCommit} className="btn btn-primary" style={{ width: "100%" }}>
-                            🔒 Commit Bet (ZK Hash)
+                             Commit Bet (ZK Hash)
                         </button>
 
                         <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", marginTop: 8, textAlign: "center" }}>
@@ -198,7 +198,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                             style={{ fontSize: "2rem", display: "inline-block", marginBottom: "var(--space-md)" }}
                         >
-                            ⚙️
+                            ️
                         </motion.div>
                         <div style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>
                             Generating Pedersen Hash...
@@ -222,7 +222,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                             }}
                         >
                             <div style={{ color: "var(--neon-green)", fontWeight: 700, marginBottom: 8 }}>
-                                ✅ Bet Committed!
+                                 Bet Committed!
                             </div>
                             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 4 }}>
                                 Commitment Hash:
@@ -252,7 +252,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                         </div>
 
                         <button onClick={handleReveal} className="btn btn-gold" style={{ width: "100%" }}>
-                            🏁 Reveal Bet (at match end)
+                             Reveal Bet (at match end)
                         </button>
                     </motion.div>
                 )}
@@ -270,7 +270,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                             transition={{ repeat: Infinity, duration: 1 }}
                             style={{ fontSize: "2rem", display: "inline-block", marginBottom: "var(--space-md)" }}
                         >
-                            🔓
+                            
                         </motion.div>
                         <div style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>Revealing Bet...</div>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Verifying ZK proof on Aztec</div>
@@ -285,7 +285,7 @@ export function ZKBetFlow({ arenaId, agentAName, agentBName, agentAProb, agentBP
                         animate={{ opacity: 1, scale: 1 }}
                         style={{ textAlign: "center", padding: "var(--space-xl)" }}
                     >
-                        <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)" }}>🎉</div>
+                        <div style={{ fontSize: "3rem", marginBottom: "var(--space-md)" }}></div>
                         <div style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", marginBottom: 8 }}>
                             Bet Revealed!
                         </div>

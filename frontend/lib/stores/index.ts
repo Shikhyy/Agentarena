@@ -113,7 +113,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
                 case "monopoly_negotiation":
                     set((state) => ({
                         commentary: [
-                            { text: `🤝 ${msg.message}`, dramaScore: 6, eventType: "negotiation", timestamp: Date.now() },
+                            { text: ` ${msg.message}`, dramaScore: 6, eventType: "negotiation", timestamp: Date.now() },
                             ...state.commentary.slice(0, 49),
                         ],
                     }));
@@ -122,7 +122,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
                 case "monopoly_bankruptcy":
                     set((state) => ({
                         commentary: [
-                            { text: `💸 BANKRUPTCY DECLARED!`, dramaScore: 10, eventType: "bankruptcy", timestamp: Date.now() },
+                            { text: ` BANKRUPTCY DECLARED!`, dramaScore: 10, eventType: "bankruptcy", timestamp: Date.now() },
                             ...state.commentary.slice(0, 49),
                         ],
                     }));
@@ -131,7 +131,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
                 case "match_complete":
                     set((state) => ({
                         commentary: [
-                            { text: `🏆 MATCH COMPLETE! Winner: ${msg.winnerId}`, dramaScore: 10, eventType: "match_complete", timestamp: Date.now() },
+                            { text: ` MATCH COMPLETE! Winner: ${msg.winnerId}`, dramaScore: 10, eventType: "match_complete", timestamp: Date.now() },
                             ...state.commentary.slice(0, 49),
                         ],
                     }));
@@ -187,7 +187,7 @@ interface BettingState {
 export const useBettingStore = create<BettingState>((set, get) => ({
     activeBets: [],
     pendingReveal: null,
-    balance: 1000, // Mock $ARENA balance
+    balance: 1000, //  $ARENA balance
 
     commitBet: async (arenaId: string, amount: number, position: number, secret: string) => {
         const res = await fetch(`${BACKEND_URL}/arenas/${arenaId}/bet`, {

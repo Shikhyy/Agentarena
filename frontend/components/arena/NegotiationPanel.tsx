@@ -62,7 +62,7 @@ export function NegotiationPanel({
                 }}
             >
                 <div className="flex items-center gap-sm">
-                    <span style={{ fontSize: "1.1rem" }}>🤝</span>
+                    <span style={{ fontSize: "1.1rem" }}></span>
                     <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)" }}>
                         Negotiations
                     </span>
@@ -129,17 +129,17 @@ export function NegotiationPanel({
                                             <div style={{ fontSize: "0.6875rem" }}>
                                                 <div style={{ color: "var(--neon-green)", marginBottom: 2 }}>Offers:</div>
                                                 {offer.offerProperties.map((p) => (
-                                                    <div key={p} style={{ color: "var(--text-secondary)" }}>🏠 {p}</div>
+                                                    <div key={p} style={{ color: "var(--text-secondary)" }}> {p}</div>
                                                 ))}
-                                                {offer.offerCash > 0 && <div style={{ color: "var(--arena-gold)" }}>💰 ${offer.offerCash}</div>}
+                                                {offer.offerCash > 0 && <div style={{ color: "var(--arena-gold)" }}> ${offer.offerCash}</div>}
                                             </div>
                                             <div style={{ color: "var(--text-muted)", fontSize: "1rem" }}>⇄</div>
                                             <div style={{ fontSize: "0.6875rem" }}>
                                                 <div style={{ color: "var(--danger-red)", marginBottom: 2 }}>Wants:</div>
                                                 {offer.requestProperties.map((p) => (
-                                                    <div key={p} style={{ color: "var(--text-secondary)" }}>🏠 {p}</div>
+                                                    <div key={p} style={{ color: "var(--text-secondary)" }}> {p}</div>
                                                 ))}
-                                                {offer.requestCash > 0 && <div style={{ color: "var(--arena-gold)" }}>💰 ${offer.requestCash}</div>}
+                                                {offer.requestCash > 0 && <div style={{ color: "var(--arena-gold)" }}> ${offer.requestCash}</div>}
                                             </div>
                                         </div>
 
@@ -151,14 +151,14 @@ export function NegotiationPanel({
                                                     className="btn btn-sm"
                                                     style={{ background: "rgba(16, 255, 140, 0.2)", border: "1px solid var(--neon-green)", color: "var(--neon-green)", fontSize: "0.75rem" }}
                                                 >
-                                                    ✓ Accept
+                                                     Accept
                                                 </button>
                                                 <button
                                                     onClick={() => onReject?.(offer)}
                                                     className="btn btn-sm"
                                                     style={{ background: "rgba(255, 82, 82, 0.2)", border: "1px solid var(--danger-red)", color: "var(--danger-red)", fontSize: "0.75rem" }}
                                                 >
-                                                    ✗ Reject
+                                                     Reject
                                                 </button>
                                             </div>
                                         )}
@@ -195,7 +195,7 @@ export function NegotiationPanel({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            {offer.status === "accepted" ? "✓ DEAL" : "✗ REJECTED"}
+                                            {offer.status === "accepted" ? " DEAL" : " REJECTED"}
                                         </span>
                                     </div>
                                 ))}

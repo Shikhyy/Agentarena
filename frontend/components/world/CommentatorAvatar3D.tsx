@@ -219,7 +219,7 @@ function BroadcastScreens({ matchLabel, spectators }: { matchLabel: string; spec
                 color="#8B5CF6"
                 anchorX="center"
             >
-                {`👁 ${spectators.toLocaleString()} watching`}
+                {` ${spectators.toLocaleString()} watching`}
             </Text>
             <Text
                 position={[0, 1.7, -1.55]}
@@ -278,7 +278,7 @@ export function CommentatorAvatar3D({
                     outlineWidth={0.01}
                     outlineColor="#000000"
                 >
-                    🎙️ GEMINI LIVE
+                    ️ GEMINI LIVE
                 </Text>
             </Billboard>
 

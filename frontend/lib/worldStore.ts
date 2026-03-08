@@ -20,14 +20,14 @@ export interface ZoneConfig {
 }
 
 export const WORLD_ZONES: ZoneConfig[] = [
-    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "🏛️", color: "#6C3AED" },
-    { id: "arena-chess", label: "Hall of Chess", position: [0, 0, -60], icon: "♟️", color: "#10B981" },
-    { id: "arena-poker", label: "Hall of Poker", position: [60, 0, 0], icon: "🃏", color: "#F59E0B" },
-    { id: "arena-monopoly", label: "Hall of Monopoly", position: [-60, 0, 0], icon: "🏠", color: "#EF4444" },
-    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "🔧", color: "#8B5CF6" },
-    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "🛒", color: "#FBBF24" },
-    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "🏆", color: "#F59E0B" },
-    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "⚔️", color: "#EF4444" },
+    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "️", color: "#6C3AED" },
+    { id: "arena-chess", label: "Hall of Chess", position: [0, 0, -60], icon: "️", color: "#10B981" },
+    { id: "arena-poker", label: "Hall of Poker", position: [60, 0, 0], icon: "", color: "#F59E0B" },
+    { id: "arena-monopoly", label: "Hall of Monopoly", position: [-60, 0, 0], icon: "", color: "#EF4444" },
+    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "", color: "#8B5CF6" },
+    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "", color: "#FBBF24" },
+    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "", color: "#F59E0B" },
+    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "️", color: "#EF4444" },
 ];
 
 /* ── Agent in-world representation ───────────────────────── */
@@ -136,62 +136,9 @@ function getAuraColor(winRate: number): string {
     return "#6B7280"; // gray
 }
 
-// Generate initial mock agents
-const MOCK_AGENTS: WorldAgent[] = [
-    {
-        id: "agent-zeus", name: "ZEUS", level: 24, elo: 2450,
-        personality: "aggressive", position: [5, 0, 3], targetPosition: [5, 0, 3],
-        status: "idle", winRate: 0.82, auraColor: "#F59E0B", zone: "central-nexus",
-    },
-    {
-        id: "agent-athena", name: "ATHENA", level: 21, elo: 2380,
-        personality: "adaptive", position: [-3, 0, 7], targetPosition: [-3, 0, 7],
-        status: "idle", winRate: 0.75, auraColor: "#C0C0C0", zone: "central-nexus",
-    },
-    {
-        id: "agent-blitz", name: "BLITZ", level: 18, elo: 2200,
-        personality: "aggressive", position: [60, 0, 2], targetPosition: [60, 0, 2],
-        status: "competing", winRate: 0.68, auraColor: "#C0C0C0", zone: "arena-poker",
-    },
-    {
-        id: "agent-shadow", name: "SHADOW", level: 16, elo: 2150,
-        personality: "conservative", position: [62, 0, -2], targetPosition: [62, 0, -2],
-        status: "competing", winRate: 0.61, auraColor: "#C0C0C0", zone: "arena-poker",
-    },
-    {
-        id: "agent-titan", name: "TITAN", level: 30, elo: 2600,
-        personality: "conservative", position: [2, 0, -58], targetPosition: [2, 0, -58],
-        status: "competing", winRate: 0.88, auraColor: "#F59E0B", zone: "arena-chess",
-    },
-    {
-        id: "agent-oracle", name: "ORACLE", level: 28, elo: 2520,
-        personality: "adaptive", position: [-2, 0, -62], targetPosition: [-2, 0, -62],
-        status: "competing", winRate: 0.84, auraColor: "#F59E0B", zone: "arena-chess",
-    },
-    {
-        id: "agent-phantom", name: "PHANTOM", level: 12, elo: 1900,
-        personality: "chaotic", position: [8, 0, -5], targetPosition: [8, 0, -5],
-        status: "walking", winRate: 0.52, auraColor: "#3B82F6", zone: "central-nexus",
-    },
-    {
-        id: "agent-viper", name: "VIPER", level: 15, elo: 2050,
-        personality: "aggressive", position: [-8, 0, 2], targetPosition: [-8, 0, 2],
-        status: "idle", winRate: 0.59, auraColor: "#3B82F6", zone: "central-nexus",
-    },
-];
+const _AGENTS: WorldAgent[] = [];
 
-const MOCK_MATCHES: LiveMatch[] = [
-    {
-        id: "match-1", gameType: "chess", zone: "arena-chess",
-        agentA: { name: "TITAN", elo: 2600 }, agentB: { name: "ORACLE", elo: 2520 },
-        spectators: 1247, odds: [52, 48], status: "live", pool: 24500, dramaScore: 7.2,
-    },
-    {
-        id: "match-2", gameType: "poker", zone: "arena-poker",
-        agentA: { name: "BLITZ", elo: 2200 }, agentB: { name: "SHADOW", elo: 2150 },
-        spectators: 892, odds: [45, 55], status: "live", pool: 18200, dramaScore: 8.5,
-    },
-];
+const _MATCHES: LiveMatch[] = [];
 
 export const useWorldStore = create<WorldState>((set, get) => ({
     appState: "spawning",
@@ -203,11 +150,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     qualityPreset: "high",
     worldTime: 22, // evening for max atmosphere
 
-    agents: MOCK_AGENTS,
+    agents: _AGENTS,
     selectedAgentId: null,
     myAgentId: "agent-zeus",
 
-    liveMatches: MOCK_MATCHES,
+    liveMatches: _MATCHES,
     activeMatchId: null,
 
     spectators: [],
@@ -336,7 +283,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                     });
                 }
             })
-            .catch((err) => console.log("Backend offline, using mock matches."));
+            .catch((err) => console.log("Backend offline, using  matches."));
 
         // Remove loop fallback now that WS is implemented
     },

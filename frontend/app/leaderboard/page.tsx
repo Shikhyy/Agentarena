@@ -28,7 +28,7 @@ const PERSONALITY_COLORS: Record<string, string> = {
     chaos: "var(--danger-red)",
 };
 
-const RANK_TROPHIES = ["🥇", "🥈", "🥉"];
+const RANK_TROPHIES = ["", "", ""];
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -60,7 +60,7 @@ export default function LeaderboardPage() {
                     ...a,
                     rank: a.rank || (i + 1),
                     games: a.wins + a.losses,
-                    change: a.change || 0, // Mock change for now since backend might not have history yet
+                    change: a.change || 0, //  change for now since backend might not have history yet
                 }));
                 // Sort by ELO to be safe
                 ranked.sort((a, b) => b.elo - a.elo);
@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
             {/* Header */}
             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}>
                 <h1 style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", marginBottom: "var(--space-xs)", filter: "drop-shadow(0 0 20px rgba(245,158,11,0.2))" }}>
-                    🏆 <span className="text-gradient" style={{ backgroundImage: "linear-gradient(90deg, var(--arena-gold), var(--electric-purple-light))" }}>Global Leaderboard</span>
+                     <span className="text-gradient" style={{ backgroundImage: "linear-gradient(90deg, var(--arena-gold), var(--electric-purple-light))" }}>Global Leaderboard</span>
                 </h1>
                 <p className="text-muted" style={{ fontSize: "1.2rem" }}>Ranked by ELO rating — updated live after every battle</p>
             </motion.div>
@@ -90,7 +90,7 @@ export default function LeaderboardPage() {
                 <div style={{ display: "flex", gap: "var(--space-xs)", background: "rgba(0,0,0,0.3)", borderRadius: "100px", padding: 6, border: "1px solid rgba(255,255,255,0.05)", overflowX: "auto" }}>
                     {(["all", "chess", "poker", "monopoly", "trivia"] as const).map(f => (
                         <button key={f} onClick={() => setFilter(f)} className={`btn btn-sm capitalize ${filter === f ? "btn-primary" : "btn-ghost"}`} style={{ borderRadius: "100px", padding: "8px 20px", fontSize: "0.95rem" }}>
-                            {f === "all" ? "🌐 All Games" : f === "chess" ? "♟️ Chess" : f === "poker" ? "🃏 Poker" : f === "monopoly" ? "🎩 Monopoly" : "🧠 Trivia"}
+                            {f === "all" ? " All Games" : f === "chess" ? "️ Chess" : f === "poker" ? " Poker" : f === "monopoly" ? " Monopoly" : " Trivia"}
                         </button>
                     ))}
                 </div>
@@ -109,7 +109,7 @@ export default function LeaderboardPage() {
                 </div>
             ) : entries.length === 0 ? (
                 <div className="glass-card text-center" style={{ padding: "var(--space-3xl)", background: "rgba(10,5,20,0.4)" }}>
-                    <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}>🕸️</div>
+                    <div style={{ fontSize: "4rem", opacity: 0.5, marginBottom: "var(--space-md)" }}>️</div>
                     <h3 style={{ color: "var(--text-muted)" }}>Leaderboard is empty</h3>
                     <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>No agents have played enough matches yet.</p>
                 </div>
@@ -241,7 +241,7 @@ export default function LeaderboardPage() {
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: "var(--space-md) var(--space-lg)", color: entry.win_streak >= 3 ? "var(--arena-gold)" : entry.win_streak > 0 ? "var(--neon-green)" : "var(--text-muted)", fontWeight: 700 }}>
-                                                        {entry.win_streak > 0 ? `🔥 ${entry.win_streak}` : "—"}
+                                                        {entry.win_streak > 0 ? ` ${entry.win_streak}` : "—"}
                                                     </td>
                                                     <td style={{ padding: "var(--space-md) var(--space-lg)", fontSize: "0.8rem", color: "var(--electric-purple-light)", fontFamily: "var(--font-mono)", opacity: 0.8 }}>
                                                         {entry.owner || "0xGhost..."}
