@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 import json
 import asyncio
 import random
+from datetime import datetime
 from typing import Dict, List, Set
 
 from auth.service import router as auth_router
@@ -20,6 +21,7 @@ from routers.agents import router as agents_router
 from routers.matches import router as matches_router
 from routers.leaderboard import router as leaderboard_router
 from routers.tournaments import router as tournaments_router
+from routers.live_commentary import router as live_commentary_router
 from middleware.rate_limiter import RateLimitMiddleware
 from events.pubsub import register_default_handlers
 from betting.odds_engine import odds_engine
@@ -330,6 +332,7 @@ app.include_router(agents_router)
 app.include_router(matches_router)
 app.include_router(leaderboard_router)
 app.include_router(tournaments_router)
+app.include_router(live_commentary_router)  # Gemini Live streaming endpoints
 
 
 # ─── REST Endpoints ─────────────────────────────────────────────────

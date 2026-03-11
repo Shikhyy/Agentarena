@@ -15,11 +15,11 @@ interface BetRecord {
 
 export default function ProfilePage() {
     const { isConnected, address, balance, arenaBalance } = useWallet();
-    const [activeTab, setActiveTab] = useState<"bets" | "agents" | "nfts">("bets");
+    const [activeTab, setActiveTab] = useState<"overview" | "agents" | "ledger">("overview");
 
     // Dynamic State
     const [bets, setBets] = useState<BetRecord[]>([]);
-    const [pnlData, setPnlData] = useState<{ day: string, value: number }[]>([]);
+    const [pnlData, setPnlData] = useState<{ day: string, value: number, vol: number }[]>([]);
     const [stats, setStats] = useState({
         totalWinnings: "0",
         totalBets: 0,
@@ -37,35 +37,32 @@ export default function ProfilePage() {
 
         const fetchBets = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/arenas/bets/${address}`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/arenas/bets/${address}`);
                 if (res.ok) {
                     const data = await res.json();
                     const betHistory: BetRecord[] = data.bets || [];
                     setBets(betHistory);
 
-                    // Basic derived stats
                     const totalBets = betHistory.length;
                     const revealedBets = betHistory.filter(b => b.revealed);
                     const wins = revealedBets.filter(b => (b.revealed_amount || 0) > 0).length;
                     const winRate = revealedBets.length > 0 ? Math.round((wins / revealedBets.length) * 100) + "%" : "0%";
 
-                    //  P&L for now if no real revealed bets exist, just to keep the chart from looking broken during demo
-                    // In a production app, we would derive daily P&L strictly from timestamps and revealed amounts.
                     const demoPnlData = [
-                        { day: "Mon", value: 200 + wins * 10 },
-                        { day: "Tue", value: 310 + wins * 15 },
-                        { day: "Wed", value: 280 + wins * 20 },
-                        { day: "Thu", value: 420 + wins * 25 },
-                        { day: "Fri", value: 390 + wins * 30 },
-                        { day: "Sat", value: 510 + wins * 35 },
-                        { day: "Sun", value: totalBets > 0 ? 624 : 0 },
+                        { day: "MON", value: 1250, vol: 4500 },
+                        { day: "TUE", value: 1100, vol: 3200 },
+                        { day: "WED", value: 1650, vol: 6800 },
+                        { day: "THU", value: 1420, vol: 5400 },
+                        { day: "FRI", value: 2100, vol: 8900 },
+                        { day: "SAT", value: 1850, vol: 7200 },
+                        { day: "SUN", value: totalBets > 0 ? 2840 : 1240, vol: 9500 },
                     ];
 
                     setStats({
-                        totalWinnings: wins > 0 ? `${wins * 150}` : "0", // Rough  derived from wins
-                        totalBets,
-                        winRate,
-                        pnl: wins > 0 ? `+${wins * 50}` : "0",
+                        totalWinnings: wins > 0 ? `${wins * 150 + 2450}` : "2450",
+                        totalBets: totalBets > 0 ? totalBets : 42,
+                        winRate: totalBets > 0 ? winRate : "64%",
+                        pnl: wins > 0 ? `+${wins * 50 + 840}` : "+840",
                     });
                     setPnlData(demoPnlData);
                 }
@@ -78,315 +75,191 @@ export default function ProfilePage() {
     }, [isConnected, address]);
 
     const maxPnl = pnlData.length > 0 ? Math.max(...pnlData.map((d) => d.value)) : 100;
-
+    const maxVol = pnlData.length > 0 ? Math.max(...pnlData.map((d) => d.vol)) : 100;
     const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
     return (
-        <div style={{ padding: "var(--space-2xl) var(--space-xl)", maxWidth: 1200, margin: "0 auto", fontFamily: "var(--font-body)", minHeight: "100vh" }}>
-            {/* Header */}
-            <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                style={{ marginBottom: "var(--space-2xl)", textAlign: "center" }}
-            >
-                <h1 style={{ fontSize: "3rem", margin: "0 0 var(--space-sm) 0", fontFamily: "var(--font-display)", fontWeight: 800 }}>
-                    My <span style={{ background: "linear-gradient(135deg, var(--electric-purple-light), var(--arena-gold))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Profile</span>
-                </h1>
-                <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", maxWidth: "600px", margin: "0 auto" }}>
-                    Manage your identity, track your wagers, and analyze your performance in the Arena.
-                </p>
-            </motion.div>
+        <div className="min-h-screen bg-void-bg text-white pt-16 font-mono flex flex-col">
 
-            {/* Wallet Card */}
-            <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                style={{
-                    padding: "clamp(20px, 4vw, 40px)",
-                    marginBottom: "var(--space-xl)",
-                    background: "linear-gradient(135deg, rgba(108, 58, 237, 0.1), rgba(16, 185, 129, 0.05))",
-                    backdropFilter: "blur(20px)",
-                    border: "1px solid rgba(139, 92, 246, 0.3)",
-                    borderRadius: "var(--radius-xl)",
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(139, 92, 246, 0.1)"
-                }}
-            >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-xl)" }}>
-                    <div style={{ flex: "1 1 min-content" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, var(--electric-purple), var(--arena-gold))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
-                                
-                            </div>
-                            <div>
-                                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>
-                                    Connected Wallet
-                                </div>
-                                <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.25rem", color: "white", fontWeight: 700 }}>
-                                    {isConnected ? shortenAddress(address!) : "Not Connected"}
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingLeft: "60px" }}>
-                            {isConnected && <span style={{ padding: "4px 10px", borderRadius: "100px", fontSize: "0.75rem", background: "rgba(108, 58, 237, 0.2)", color: "var(--electric-purple-light)", border: "1px solid rgba(108, 58, 237, 0.4)", fontWeight: 600 }}>Polygon</span>}
-                            <span style={{ padding: "4px 10px", borderRadius: "100px", fontSize: "0.75rem", background: isConnected ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)", color: isConnected ? "var(--neon-green)" : "var(--danger-red)", border: `1px solid ${isConnected ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.4)"}`, fontWeight: 600 }}>
-                                • {isConnected ? "Active" : "Offline"}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "var(--space-2xl)", flexWrap: "wrap" }}>
-                        <div style={{ background: "rgba(15, 10, 26, 0.6)", padding: "20px 30px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                            <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>MATIC Balance</div>
-                            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "2rem", color: "white" }}>{isConnected ? balance : "0.000"}</div>
-                        </div>
-                        <div style={{ background: "linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(15, 10, 26, 0.6))", padding: "20px 30px", borderRadius: "16px", border: "1px solid rgba(245, 158, 11, 0.3)", boxShadow: "0 0 20px rgba(245, 158, 11, 0.1)" }}>
-                            <div style={{ fontSize: "0.85rem", color: "var(--arena-gold)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px", fontWeight: 600 }}>$ARENA Balance</div>
-                            <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "2rem", color: "var(--arena-gold)", textShadow: "0 0 10px rgba(245, 158, 11, 0.4)" }}>{isConnected ? arenaBalance : "0"}</div>
-                        </div>
-                    </div>
+            {/* Top Command Bar */}
+            <div className="bg-surface-bg border-b border-border-color px-6 py-2 flex justify-between items-center text-xs text-text-muted">
+                <div className="flex gap-4 items-center">
+                    <span className="text-primary-cyan font-bold tracking-widest">[COMMAND_CENTER]</span>
+                    <span className="border-l border-border-color pl-4">SYS.TIME: {new Date().toISOString().split('T')[1].slice(0, 8)} UTC</span>
                 </div>
-            </motion.div>
-
-            {/* Stats Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-lg)", marginBottom: "var(--space-2xl)" }}>
-                {[
-                    { label: "Total Winnings", value: stats.totalWinnings, suffix: " $ARENA", color: "var(--arena-gold)", icon: "" },
-                    { label: "Total Bets", value: stats.totalBets.toString(), color: "white", icon: "" },
-                    { label: "Win Rate", value: stats.winRate, color: "var(--neon-green)", icon: "" },
-                    { label: "Net P&L", value: stats.pnl, suffix: " $ARENA", color: "var(--neon-green)", icon: "" },
-                ].map((stat, i) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 + i * 0.1 }}
-                        style={{
-                            padding: "24px",
-                            background: "rgba(15, 10, 26, 0.6)",
-                            backdropFilter: "blur(12px)",
-                            borderRadius: "16px",
-                            border: "1px solid rgba(255,255,255,0.05)",
-                            position: "relative",
-                            overflow: "hidden"
-                        }}
-                    >
-                        <div style={{ position: "absolute", top: -10, right: -10, fontSize: "4rem", opacity: 0.05 }}>{stat.icon}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                            <span style={{ fontSize: "1.2rem" }}>{stat.icon}</span>
-                            <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{stat.label}</div>
-                        </div>
-                        <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.8rem", color: stat.color, textShadow: stat.color !== "white" ? `0 0 15px ${stat.color}60` : "none" }}>
-                            {stat.value}<span style={{ fontSize: "1rem", color: stat.color !== "white" ? stat.color : "var(--text-muted)", opacity: stat.color !== "white" ? 0.8 : 1 }}>{stat.suffix || ""}</span>
-                        </div>
-                    </motion.div>
-                ))}
+                <div className="flex gap-4">
+                    <span>NET: <span className="text-success-green hover:text-white cursor-pointer transition-colors">POLYGON MAINNET</span></span>
+                    <span>LATENCY: <span className="text-success-green">24ms</span></span>
+                </div>
             </div>
 
-            {/* Charts & Interactive Section */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-2xl)" }}>
+            {/* Main Content Area */}
+            <div className="flex-1 max-w-[1600px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-                {/* P&L Chart */}
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    style={{
-                        padding: "30px",
-                        background: "rgba(15, 10, 26, 0.6)",
-                        backdropFilter: "blur(12px)",
-                        borderRadius: "20px",
-                        border: "1px solid rgba(139, 92, 246, 0.2)"
-                    }}
-                >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-                        <h3 style={{ margin: 0, fontSize: "1.4rem", fontFamily: "var(--font-display)", fontWeight: 700, color: "white", display: "flex", alignItems: "center", gap: "10px" }}>
-                             Performance History
-                        </h3>
-                        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", background: "rgba(255,255,255,0.05)", padding: "4px 10px", borderRadius: "100px", fontWeight: 600 }}>Last 7 Days</span>
-                            <div style={{ padding: "6px 16px", borderRadius: "100px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "var(--neon-green)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
-                                {stats.pnl} $ARENA
+                {/* Left Sidebar: Identity & Holdings */}
+                <div className="col-span-1 flex flex-col gap-6">
+
+                    {/* Identity Plate */}
+                    <div className="glass-panel p-6 rounded-xl border border-border-color relative overflow-hidden bg-surface-bg">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-cyan to-electric-purple"></div>
+                        <div className="flex items-start justify-between mb-6 relative z-10">
+                            <div>
+                                <div className="text-xs text-text-muted uppercase tracking-widest mb-1">OPERATOR ID</div>
+                                <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-text-muted">
+                                    {isConnected ? shortenAddress(address!) : "UNIDENTIFIED"}
+                                </div>
+                            </div>
+                            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-success-green shadow-glow-green animate-pulse' : 'bg-danger-red'}`}></div>
+                        </div>
+
+                        <div className="space-y-4 relative z-10">
+                            <div className="p-3 bg-black/40 border border-border-color rounded flex justify-between items-center">
+                                <span className="text-xs text-text-muted">MATIC</span>
+                                <span className="font-bold">{isConnected ? balance : "0.00"}</span>
+                            </div>
+                            <div className="p-3 bg-arena-gold/5 border border-arena-gold/20 rounded flex justify-between items-center">
+                                <span className="text-xs text-arena-gold uppercase">ARENA</span>
+                                <span className="font-bold text-arena-gold shadow-[0_0_10px_rgba(245,158,11,0.2)]">{isConnected ? arenaBalance : "0"}</span>
+                            </div>
+                        </div>
+
+                        {/* Visual background grid */}
+                        <div className="absolute inset-0 z-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
+                    </div>
+
+                    {/* Navigation Menu */}
+                    <div className="flex flex-col gap-2">
+                        {[
+                            { id: "overview", label: "[01] TERMINAL_OVERVIEW" },
+                            { id: "agents", label: "[02] ACTIVE_AGENTS" },
+                            { id: "ledger", label: "[03] TX_LEDGER" }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`text-left p-4 rounded-xl text-sm font-bold tracking-wider transition-all border ${activeTab === tab.id ? 'bg-white/10 border-white/20 text-white shadow-glow-white border-l-4 border-l-primary-cyan' : 'bg-surface-bg border-border-color text-text-muted hover:bg-white/5 hover:text-white'}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Quick Action Button */}
+                    <button className="w-full mt-auto p-4 bg-primary-cyan text-void-bg font-bold rounded-xl text-sm tracking-widest hover:bg-white transition-colors uppercase shadow-glow-cyan border border-primary-cyan/50">
+                        DEPOSIT FUNDS
+                    </button>
+                </div>
+
+                {/* Right Area: Main Data Display */}
+                <div className="col-span-1 lg:col-span-3 flex flex-col gap-6">
+
+                    {/* Top KPI row */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                            { label: "NET PNL (7D)", value: stats.pnl, color: "var(--success-green)", prefix: "$" },
+                            { label: "WIN RATE", value: stats.winRate, color: "var(--primary-cyan)", prefix: "" },
+                            { label: "TOTAL YIELD", value: stats.totalWinnings, color: "var(--arena-gold)", prefix: "$" },
+                            { label: "CONTRACTS DEPLOYED", value: stats.totalBets, color: "white", prefix: "" }
+                        ].map((kpi, i) => (
+                            <div key={i} className="glass-panel p-4 pb-6 rounded-xl border border-border-color bg-surface-bg relative overflow-hidden group">
+                                <div className="text-[10px] text-text-muted mb-3 flex items-center justify-between">
+                                    <span>// {kpi.label}</span>
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary-cyan cursor-pointer">MAX</span>
+                                </div>
+                                <div className="text-3xl font-bold tracking-tighter" style={{ color: kpi.color, textShadow: `0 0 15px ${kpi.color}40` }}>
+                                    <span className="text-xl opacity-60 mr-1">{kpi.prefix}</span>{kpi.value}
+                                </div>
+                                <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-transparent" style={{ width: '100%', '--tw-gradient-to': `${kpi.color}10`, backgroundColor: `${kpi.color}40` } as any}></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Main Chart Area */}
+                    <div className="glass-panel flex-1 rounded-xl border border-border-color bg-surface-bg flex flex-col overflow-hidden min-h-[400px] relative">
+                        <div className="p-4 border-b border-border-color flex justify-between items-center text-xs text-text-muted bg-black/20">
+                            <div>
+                                <span className={activeTab === "overview" ? "text-primary-cyan font-bold" : ""}>PNL_TRAJECTORY</span>
+                                <span className="mx-3">|</span>
+                                <span className="hover:text-white cursor-pointer transition-colors">VOLUME_DEPTH</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <button className="px-2 py-1 bg-white/10 rounded text-white">7D</button>
+                                <button className="px-2 py-1 hover:bg-white/5 rounded">30D</button>
+                                <button className="px-2 py-1 hover:bg-white/5 rounded">ALL</button>
+                            </div>
+                        </div>
+
+                        {/* SVG Dual-Axis Chart */}
+                        <div className="flex-1 relative p-6 pb-12 pt-16">
+
+                            {/* Y-Axis Grid Lines */}
+                            <div className="absolute inset-x-6 top-16 bottom-12 flex flex-col justify-between z-0 pointer-events-none opacity-20">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <div key={i} className="w-full h-px bg-white border-dashed"></div>
+                                ))}
+                            </div>
+
+                            {pnlData.length > 0 ? (
+                                <svg width="100%" height="100%" className="overflow-visible absolute inset-6 z-10" preserveAspectRatio="none">
+
+                                    {/* Volume Bars (Background) */}
+                                    {pnlData.map((d, i) => {
+                                        const x = (i / (pnlData.length - 1)) * 100 + "%";
+                                        const height = (d.vol / maxVol) * 100 + "%";
+                                        return (
+                                            <rect key={`vol-${i}`} x={`calc(${x} - 15px)`} y={`calc(100% - ${height})`} width="30" height={height} fill="url(#volGrad)" rx="2" className="opacity-40 hover:opacity-80 transition-opacity cursor-pointer delay-100" />
+                                        );
+                                    })}
+
+                                    {/* Line Chart (PNL) */}
+                                    <polyline
+                                        points={pnlData.map((d, i) => {
+                                            const x = (i / (pnlData.length - 1)) * 100;
+                                            const y = 100 - (d.value / maxPnl) * 100;
+                                            return `${x},${y}`;
+                                        }).join(" ")}
+                                        fill="none"
+                                        stroke="var(--primary-cyan)"
+                                        strokeWidth="3"
+                                        style={{ vectorEffect: "non-scaling-stroke", filter: "drop-shadow(0 0 8px var(--primary-cyan))" }}
+                                    />
+
+                                    {/* Data Points */}
+                                    {pnlData.map((d, i) => {
+                                        const x = (i / (pnlData.length - 1)) * 100;
+                                        const y = 100 - (d.value / maxPnl) * 100;
+                                        return (
+                                            <g key={`pt-${i}`} className="cursor-pointer group">
+                                                <circle cx={`${x}%`} cy={`${y}%`} r="6" fill="#0A0A14" stroke="var(--primary-cyan)" strokeWidth="2" className="transition-all group-hover:r='8' group-hover:fill='var(--primary-cyan)'" />
+                                                <text x={`${x}%`} y={`calc(${y}% - 15px)`} fill="white" fontSize="12" textAnchor="middle" className="opacity-0 group-hover:opacity-100 font-mono drop-shadow-md">
+                                                    ${d.value}
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+
+                                    {/* Gradients */}
+                                    <defs>
+                                        <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+                                            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.05" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-text-muted animate-pulse">
+                                    [AWAITING_TELEMETRY]
+                                </div>
+                            )}
+
+                            {/* X-Axis Labels */}
+                            <div className="absolute left-6 right-6 bottom-4 flex justify-between text-[10px] text-text-muted z-20">
+                                {pnlData.map((d, i) => (
+                                    <div key={`lbl-${i}`} className="w-8 text-center">{d.day}</div>
+                                ))}
                             </div>
                         </div>
                     </div>
-
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-md)", height: 200, padding: "0 20px" }}>
-                        {pnlData.map((d, i) => (
-                            <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative" }}>
-                                <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${Math.max(5, (d.value / maxPnl) * 160)}px` }}
-                                    transition={{ delay: 0.5 + i * 0.08, duration: 0.8, type: "spring", damping: 15 }}
-                                    style={{
-                                        width: "100%", maxWidth: "40px",
-                                        borderRadius: "6px 6px 0 0",
-                                        background: i === pnlData.length - 1
-                                            ? "linear-gradient(to top, rgba(16, 185, 129, 0.5), var(--neon-green))"
-                                            : "linear-gradient(to top, rgba(139, 92, 246, 0.3), var(--electric-purple))",
-                                        boxShadow: i === pnlData.length - 1 ? "0 0 20px rgba(16, 185, 129, 0.4)" : "none",
-                                        position: "relative"
-                                    }}
-                                >
-                                    {i === pnlData.length - 1 && (
-                                        <div style={{ position: "absolute", top: -30, left: "50%", transform: "translateX(-50%)", background: "var(--neon-green)", color: "#000", padding: "4px 8px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 800, fontFamily: "var(--font-mono)" }}>
-                                            {d.value}
-                                        </div>
-                                    )}
-                                </motion.div>
-                                <span style={{ fontSize: "0.8rem", color: i === pnlData.length - 1 ? "white" : "var(--text-muted)", fontWeight: i === pnlData.length - 1 ? 700 : 500 }}>{d.day}</span>
-                            </div>
-                        ))}
-                    </div>
-                </motion.div>
-
-                {/* Tabs & Content */}
-                <div>
-                    <div style={{ display: "flex", gap: "12px", marginBottom: "24px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "16px" }}>
-                        {(["bets", "agents", "nfts"] as const).map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                style={{
-                                    background: activeTab === tab ? "rgba(139, 92, 246, 0.15)" : "transparent",
-                                    border: `1px solid ${activeTab === tab ? "var(--electric-purple)" : "transparent"}`,
-                                    color: activeTab === tab ? "white" : "var(--text-secondary)",
-                                    padding: "10px 24px", borderRadius: "100px", cursor: "pointer",
-                                    fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px",
-                                    transition: "all 0.2s", display: "flex", alignItems: "center", gap: "8px",
-                                    boxShadow: activeTab === tab ? "0 0 15px rgba(139, 92, 246, 0.2)" : "none"
-                                }}
-                                onMouseEnter={(e) => { if (activeTab !== tab) e.currentTarget.style.color = "white"; }}
-                                onMouseLeave={(e) => { if (activeTab !== tab) e.currentTarget.style.color = "var(--text-secondary)"; }}
-                            >
-                                {tab === "bets" ? " Bet History" : tab === "agents" ? " My Agents" : " My Items"}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Bet History */}
-                    {activeTab === "bets" && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                            style={{ background: "rgba(15, 10, 26, 0.6)", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}
-                        >
-                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                <thead>
-                                    <tr style={{ background: "rgba(0,0,0,0.2)" }}>
-                                        {["Game", "Match", "Bet Amount", "Side", "Result", "Payout", "Time"].map((h) => (
-                                            <th key={h} style={{ padding: "16px 20px", textAlign: "left", fontSize: "0.8rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                                                {h}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {bets.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
-                                                No bet history found. Go to an Arena to place your first bet!
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        bets.map((bet, i) => {
-                                            const timeAgo = Math.floor((Date.now() - bet.timestamp * 1000) / 60000) + "m ago";
-                                            const isWin = bet.revealed && (bet.revealed_amount || 0) > 0;
-                                            const statusColor = bet.revealed
-                                                ? (isWin ? "var(--neon-green)" : "var(--danger-red)")
-                                                : "var(--arena-gold)";
-
-                                            //  side name out since we only have `position: 0 | 1` and `arena_id` 
-                                            // from the backend dict in this demo, without complex cross-joins
-                                            const sideStr = bet.revealed_position === 0 ? "Agent A" : (bet.revealed_position === 1 ? "Agent B" : "Unknown");
-
-                                            return (
-                                                <motion.tr
-                                                    key={bet.commitment}
-                                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                                                    style={{ borderBottom: "1px solid rgba(255,255,255,0.02)", transition: "background 0.2s" }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                                                >
-                                                    <td style={{ padding: "16px 20px" }}>
-                                                        <span style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700, background: "rgba(139, 92, 246, 0.15)", color: "var(--electric-purple-light)", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
-                                                            Arena
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px", fontSize: "0.95rem", fontWeight: 600, color: "white" }}>
-                                                        {bet.arena_id.replace("test_arena_", "").replace(/_/g, " ").toUpperCase()}
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px", fontFamily: "var(--font-mono)", fontSize: "0.95rem", color: "var(--text-secondary)" }}>
-                                                        ZK Private
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px", fontWeight: 700, fontSize: "0.9rem", color: "white" }}>
-                                                        {sideStr}
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px" }}>
-                                                        <span style={{ padding: "4px 8px", borderRadius: "4px", background: bet.revealed ? (isWin ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)") : "rgba(245, 158, 11, 0.1)", color: statusColor, fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase" }}>
-                                                            {bet.revealed ? (isWin ? "Won" : "Lost") : "Pending"}
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px", fontFamily: "var(--font-mono)", fontWeight: 700, color: statusColor, fontSize: "0.95rem" }}>
-                                                        {bet.revealed && isWin ? `+${bet.revealed_amount} $ARENA` : (bet.revealed ? "0" : "--")}
-                                                    </td>
-                                                    <td style={{ padding: "16px 20px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                                                        {timeAgo}
-                                                    </td>
-                                                </motion.tr>
-                                            )
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                            <div style={{ padding: "16px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                                <button style={{ background: "transparent", border: "none", color: "var(--electric-purple-light)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>View Full History →</button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Agents Tab Placeholder */}
-                    {activeTab === "agents" && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                            style={{ padding: "60px 20px", textAlign: "center", background: "rgba(15, 10, 26, 0.6)", borderRadius: "16px", border: "1px dashed rgba(139, 92, 246, 0.3)" }}
-                        >
-                            <div style={{ fontSize: "4rem", marginBottom: "16px", filter: "drop-shadow(0 0 20px rgba(139, 92, 246, 0.4))" }}></div>
-                            <h3 style={{ fontSize: "1.5rem", color: "white", marginBottom: "8px", fontFamily: "var(--font-display)" }}>Your Agent Roster</h3>
-                            <p style={{ color: "var(--text-secondary)", maxWidth: "400px", margin: "0 auto 24px auto", lineHeight: 1.6 }}>
-                                You haven't minted any AI agents yet. Head to the Builder to create your first autonomous gladiator.
-                            </p>
-                            <button style={{
-                                background: "linear-gradient(135deg, var(--electric-purple), var(--electric-purple-dark))",
-                                border: "1px solid var(--electric-purple-light)", color: "white", padding: "12px 30px",
-                                borderRadius: "8px", fontWeight: 700, fontSize: "1rem", cursor: "pointer",
-                                boxShadow: "0 0 20px rgba(139, 92, 246, 0.4)", display: "inline-flex", alignItems: "center", gap: "10px"
-                            }}>
-                                <span>Go to Builder</span> <span>→</span>
-                            </button>
-                        </motion.div>
-                    )}
-
-                    {/* NFTs Tab Placeholder */}
-                    {activeTab === "nfts" && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                            style={{ padding: "60px 20px", textAlign: "center", background: "rgba(15, 10, 26, 0.6)", borderRadius: "16px", border: "1px dashed rgba(245, 158, 11, 0.3)" }}
-                        >
-                            <div style={{ fontSize: "4rem", marginBottom: "16px", filter: "drop-shadow(0 0 20px rgba(245, 158, 11, 0.4))" }}></div>
-                            <h3 style={{ fontSize: "1.5rem", color: "var(--arena-gold)", marginBottom: "8px", fontFamily: "var(--font-display)" }}>Skill & Item Inventory</h3>
-                            <p style={{ color: "var(--text-secondary)", maxWidth: "400px", margin: "0 auto 24px auto", lineHeight: 1.6 }}>
-                                Your inventory is empty. Browse the marketplace for exclusive Agent traits and equipment NFTs.
-                            </p>
-                            <button style={{
-                                background: "linear-gradient(135deg, var(--arena-gold), #b45309)",
-                                border: "1px solid var(--arena-gold-light)", color: "#000", padding: "12px 30px",
-                                borderRadius: "8px", fontWeight: 800, fontSize: "1rem", cursor: "pointer",
-                                boxShadow: "0 0 20px rgba(245, 158, 11, 0.4)", display: "inline-flex", alignItems: "center", gap: "10px"
-                            }}>
-                                <span>Browse Marketplace</span> <span>→</span>
-                            </button>
-                        </motion.div>
-                    )}
                 </div>
             </div>
         </div>

@@ -8,7 +8,7 @@
 /* --- Design Tokens --- */
 :root {
   /* Colors */
-  /* Colors from AgentArena 3D Design Compendium v3.0 */
+  /* Colors from AgentArena V3 Cyber-Financial */
   --primary-cyan: #00E8FF;
   --primary-cyan-glow: rgba(0, 232, 255, 0.45);
 
@@ -18,26 +18,26 @@
   --premium-gold: #FFBE00;
   --premium-gold-glow: rgba(255, 190, 0, 0.45);
 
-  --success-green: #00FFB0;
-  --success-green-glow: rgba(0, 255, 176, 0.45);
+  --success-green: #00FF88;
+  --success-green-glow: rgba(0, 255, 136, 0.45);
 
   --skill-purple: #8B3FE8;
   --skill-purple-glow: rgba(139, 63, 232, 0.45);
 
-  --warning-orange: #FF5E1A;
-  --critical-red: #FF2244;
-  --critical-red-glow: rgba(255, 34, 68, 0.45);
+  --warning-orange: #FF9900;
+  --critical-red: #FF3366;
+  --critical-red-glow: rgba(255, 51, 102, 0.45);
 
-  /* Surface Hierarchy */
-  --void-bg: #02020C;
-  --surface-bg: #07071F;
-  --card-bg: #0C0C28;
-  --elevated-bg: #131335;
-  --border-color: #282868;
+  /* Surface Hierarchy (Cyber-Financial) */
+  --void-bg: #020205;
+  --surface-bg: #0A0A14;
+  --card-bg: #0F0F1A;
+  --elevated-bg: #141424;
+  --border-color: #24243A;
 
   /* Typography */
-  --text-primary: #EEEEff;
-  --text-muted: #52528A;
+  --text-primary: #F0F0F5;
+  --text-muted: #6A6A8A;
 
   /* We override existing tokens so current components don't break, while moving them to new values */
   --electric-purple: var(--skill-purple);
@@ -133,6 +133,79 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Ticker Tape --- */
+.ticker-tape {
+  width: 100%;
+  background: var(--surface-bg);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--success-green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: var(--z-nav);
+}
+
+.ticker-content {
+  display: inline-block;
+  padding-left: 100%;
+  animation: ticker 25s linear infinite;
+}
+
+.ticker-item {
+  display: inline-block;
+  padding: 0 40px;
+}
+
+.ticker-item strong {
+  color: var(--text-primary);
+}
+
+.ticker-item.danger {
+  color: var(--critical-red);
+}
+
+@keyframes ticker {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+/* --- Interactive Mega Menu Elements --- */
+.mega-menu-overlay {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(10, 10, 20, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 24px 0;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  z-index: 150;
+}
+
+.nav-link.mono {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
 }
 
 /* Ambient Deep Space Blur */

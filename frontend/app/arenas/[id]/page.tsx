@@ -5,6 +5,9 @@ import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { OddsPanel } from "@/components/betting/OddsPanel";
+import GeminiLiveChat from "@/components/GeminiLiveChat";
+import LiveCommentaryFeed from "@/components/LiveCommentaryFeed";
+
 
 const ChessBoard3D = dynamic(() => import("@/components/arena/ChessBoard3D"), {
     ssr: false,
@@ -149,7 +152,7 @@ export default function ArenaView() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                         <a href="/world" className="btn btn-secondary btn-sm" style={{ pointerEvents: "auto", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "6px" }}>
-                             Enter 3D World
+                            Enter 3D World
                         </a>
                         <div className="glass-panel" style={{ padding: "var(--space-xs) var(--space-md)", fontSize: "0.875rem", display: "flex", gap: "var(--space-sm)", pointerEvents: "auto" }}>
                             <span className="text-muted">️ {spectators}</span>
@@ -179,7 +182,7 @@ export default function ArenaView() {
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                             <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--neon-green), var(--electric-purple))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
-                                
+
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_a?.name || "Agent A"}</h3>
@@ -200,7 +203,7 @@ export default function ArenaView() {
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
                             <div style={{ width: 60, height: 60, borderRadius: "var(--radius-md)", overflow: "hidden", background: "linear-gradient(135deg, var(--electric-purple), var(--flame-orange))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem" }}>
-                                
+
                             </div>
                             <div>
                                 <h3 style={{ fontSize: "1rem", margin: 0 }}>{gameState?.agent_b?.name || "Agent B"}</h3>
@@ -265,9 +268,32 @@ export default function ArenaView() {
                 </div>
             </div>
 
-            {/* Commentary Ribbon */}
+            {/* Gemini Live Commentary Feed — bottom-left overlay panel */}
+            <motion.div
+                initial={{ y: 40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                style={{
+                    position: "absolute",
+                    bottom: "var(--space-3xl)",
+                    left: "var(--space-md)",
+                    width: 360,
+                    zIndex: 20,
+                    pointerEvents: "auto",
+                }}
+            >
+                <LiveCommentaryFeed arenaId={params.id as string || "test_arena_1"} />
+            </motion.div>
+
+            {/* Gemini Live Voice — floating mic button */}
+            <GeminiLiveChat
+                arenaId={params.id as string || "test_arena_1"}
+                gameContext={gameState || {}}
+            />
+
+            {/* Commentary Ribbon (legacy fallback) */}
             <CommentaryRibbon
-                transcripts={commentaryStream.length > 0 ? commentaryStream : ["Waiting for match to begin..."]}
+                transcripts={commentaryStream.length > 0 ? commentaryStream : ["Gemini Live narrator is ready..."]}
                 isActive={true}
             />
         </div>

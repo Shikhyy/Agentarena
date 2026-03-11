@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
             {/* Header */}
             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}>
                 <h1 style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", marginBottom: "var(--space-xs)", filter: "drop-shadow(0 0 20px rgba(245,158,11,0.2))" }}>
-                     <span className="text-gradient" style={{ backgroundImage: "linear-gradient(90deg, var(--arena-gold), var(--electric-purple-light))" }}>Global Leaderboard</span>
+                    <span className="text-gradient" style={{ backgroundImage: "linear-gradient(90deg, var(--arena-gold), var(--electric-purple-light))" }}>Global Leaderboard</span>
                 </h1>
                 <p className="text-muted" style={{ fontSize: "1.2rem" }}>Ranked by ELO rating — updated live after every battle</p>
             </motion.div>

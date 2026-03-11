@@ -1,11 +1,13 @@
 """
 AgentArena — Gemini Live Commentary Pipeline
-Receives game events, formats prompts, streams narration via Gemini Live API.
+Receives game events, formats prompts, streams narration via Gemini API.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, AsyncIterator
 from dataclasses import dataclass
 import json
+import os
+import asyncio
 
 
 COMMENTARY_STYLES = {
@@ -48,7 +50,7 @@ Keep commentary to 1-2 sentences max per event.""",
 class GameEvent:
     """Structured game event for commentary generation."""
     event_type: str  # move, capture, check, checkmate, fold, raise, bluff, etc.
-    game_type: str  # chess, poker, monopoly
+    game_type: str   # chess, poker, monopoly
     agent_name: str
     move_description: str
     drama_score: int  # 1-10
@@ -67,16 +69,35 @@ Context: {json.dumps(self.game_context)}
 Generate live commentary for this moment:"""
 
 
+def _get_genai_client():
+    """Lazy-load the Gemini client to avoid import errors when no API key."""
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        from google import genai
+        return genai.Client(api_key=api_key)
+    except Exception:
+        return None
+
+
 class CommentaryPipeline:
     """
     Formats game events into commentary prompts and manages
-    the Gemini Live streaming pipeline.
+    the Gemini streaming pipeline.
     """
 
     def __init__(self, style: str = "hype"):
         self.style = style
         self.style_config = COMMENTARY_STYLES.get(style, COMMENTARY_STYLES["hype"])
         self.history: List[dict] = []
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = _get_genai_client()
+        return self._client
 
     def format_event(self, event: GameEvent) -> dict:
         """Format a game event into a commentary prompt."""
@@ -96,17 +117,28 @@ class CommentaryPipeline:
 
     async def generate_commentary(self, event: GameEvent) -> str:
         """
-        Generate commentary text for a game event.
-        In production, this calls Gemini Live API.
-        For MVP, returns the commentary hint or a placeholder.
+        Generate commentary text for a game event using Gemini.
+        Falls back gracefully if no API key is configured.
         """
-        formatted = self.format_event(event)
+        # Try real Gemini API first
+        if self.client:
+            try:
+                commentary = await self._call_gemini(event)
+                self.history.append({
+                    "event_type": event.event_type,
+                    "agent": event.agent_name,
+                    "commentary": commentary,
+                    "drama_score": event.drama_score,
+                    "source": "gemini",
+                })
+                return commentary
+            except Exception as e:
+                print(f"[Commentary] Gemini API error: {e}, falling back to template")
 
-        # MVP: Use the pre-generated commentary hint
+        # Fallback when no API key or API error
         if event.commentary_hint:
             commentary = event.commentary_hint
         else:
-            # Placeholder when no Gemini API key configured
             commentary = self._fallback_commentary(event)
 
         self.history.append({
@@ -114,9 +146,87 @@ class CommentaryPipeline:
             "agent": event.agent_name,
             "commentary": commentary,
             "drama_score": event.drama_score,
+            "source": "fallback",
         })
-
         return commentary
+
+    async def stream_commentary(self, event: GameEvent) -> AsyncIterator[str]:
+        """
+        Stream commentary tokens for an event. Yields str chunks.
+        Uses Gemini generate_content_stream for real-time token delivery.
+        """
+        if self.client:
+            try:
+                async for chunk in self._stream_gemini(event):
+                    yield chunk
+                return
+            except Exception as e:
+                print(f"[Commentary] Stream error: {e}, falling back")
+
+        # Fallback: yield full text as single chunk
+        text = self._fallback_commentary(event) if not event.commentary_hint else event.commentary_hint
+        yield text
+
+    async def _call_gemini(self, event: GameEvent) -> str:
+        """Call Gemini API synchronously (run in executor to avoid blocking)."""
+        from google import genai
+        from google.genai import types
+
+        formatted = self.format_event(event)
+        full_prompt = formatted["user_prompt"]
+        system_prompt = formatted["system_prompt"]
+
+        loop = asyncio.get_event_loop()
+
+        def _sync_call():
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    max_output_tokens=150,
+                    temperature=0.8,
+                ),
+            )
+            return response.text or ""
+
+        return await loop.run_in_executor(None, _sync_call)
+
+    async def _stream_gemini(self, event: GameEvent) -> AsyncIterator[str]:
+        """Stream Gemini response tokens."""
+        from google import genai
+        from google.genai import types
+
+        formatted = self.format_event(event)
+        full_prompt = formatted["user_prompt"]
+        system_prompt = formatted["system_prompt"]
+
+        loop = asyncio.get_event_loop()
+
+        # Use a queue to bridge sync streaming to async
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def _sync_stream():
+            for chunk in self.client.models.generate_content_stream(
+                model="gemini-2.0-flash",
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    max_output_tokens=150,
+                    temperature=0.8,
+                ),
+            ):
+                if chunk.text:
+                    loop.call_soon_threadsafe(queue.put_nowait, chunk.text)
+            loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+
+        loop.run_in_executor(None, _sync_stream)
+
+        while True:
+            token = await queue.get()
+            if token is None:
+                break
+            yield token
 
     def _fallback_commentary(self, event: GameEvent) -> str:
         """Generate basic fallback commentary without API."""

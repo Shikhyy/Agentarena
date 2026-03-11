@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text, Float, RoundedBox } from "@react-three/drei";
+import { Text, Float, RoundedBox, Html } from "@react-three/drei";
+import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { useWorldStore, WORLD_ZONES } from "@/lib/worldStore";
 import { AgentCharacter3D } from "./AgentCharacter3D";
@@ -87,9 +88,14 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
     position: [number, number, number]; rank: number; name: string; elo: number; color: string;
 }) {
     const height = Math.max(0.1, 4 - rank * 0.8);
+    const [hovered, setHovered] = useState(false);
 
     return (
-        <group position={position}>
+        <group
+            position={position}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'crosshair'; }}
+            onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
+        >
             {/* Spire */}
             <mesh position={[0, height / 2, 0]} castShadow>
                 <cylinderGeometry args={[0.2, 0.35, height, 6]} />
@@ -98,7 +104,7 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
                     metalness={0.7}
                     roughness={0.3}
                     emissive={color}
-                    emissiveIntensity={0.15}
+                    emissiveIntensity={hovered ? 0.8 : 0.15}
                 />
             </mesh>
 
@@ -108,14 +114,14 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={1}
+                    emissiveIntensity={hovered ? 2 : 1}
                     metalness={0.9}
                     roughness={0.1}
                 />
             </mesh>
 
             {/* Label */}
-            <Float speed={1.5} floatIntensity={0.1}>
+            <Float speed={hovered ? 5 : 1.5} floatIntensity={hovered ? 0.5 : 0.1}>
                 <Text
                     position={[0, height + 0.9, 0]}
                     fontSize={0.15}
@@ -130,6 +136,36 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
                     {`ELO ${elo}`}
                 </Text>
             </Float>
+
+            {/* Interactive HTML Popup */}
+            {hovered && (
+                <Html position={[0, height + 1.5, 0]} center zIndexRange={[100, 0]}>
+                    <div className="bg-surface-bg/90 backdrop-blur-md border border-border-color p-4 rounded-xl shadow-[0_0_20px_rgba(0,232,255,0.2)] w-56 pointer-events-none select-none">
+                        <div className="text-primary-cyan font-mono text-xs mb-1 tracking-widest">[DATA_CORE_LINKED]</div>
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="font-bold text-white text-xl">{name}</span>
+                            <span className="text-premium-gold font-mono text-lg">#{rank}</span>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-text-muted text-sm flex justify-between">
+                                <span>RATING (ELO)</span>
+                                <span className="text-white font-mono">{elo}</span>
+                            </div>
+                            <div className="text-text-muted text-sm flex justify-between">
+                                <span>WIN RATE</span>
+                                <span className="text-success-green font-mono">{(65 + Math.random() * 20).toFixed(1)}%</span>
+                            </div>
+                            <div className="text-text-muted text-sm flex justify-between">
+                                <span>TOTAL MATCHES</span>
+                                <span className="text-white font-mono">{Math.floor(Math.random() * 500) + 100}</span>
+                            </div>
+                        </div>
+                        <div className="mt-4 text-xs text-center text-primary-cyan/70 font-mono animate-pulse">
+                            REASONING_ENGINE_ONLINE
+                        </div>
+                    </div>
+                </Html>
+            )}
         </group>
     );
 }
@@ -188,45 +224,68 @@ function NexusPlaza() {
     );
 }
 
-/* ── Zone direction signs ────────────────────────────────── */
+/* ── Zone direction signs (Warp Gates) ───────────────────── */
+function DirectionSign({ zone }: { zone: typeof WORLD_ZONES[0] }) {
+    const router = useRouter();
+    const [hovered, setHovered] = useState(false);
+
+    const dir = new THREE.Vector3(...zone.position).normalize().multiplyScalar(18);
+    const angle = Math.atan2(dir.x, dir.z);
+
+    return (
+        <group
+            position={[dir.x, 0, dir.z]}
+            onClick={(e) => { e.stopPropagation(); router.push(`/world/arena/${zone.id}`); }}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+            onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
+        >
+            {/* Sign post / Gate Base */}
+            <mesh position={[0, 1.2, 0]} castShadow>
+                <cylinderGeometry args={[0.05, 0.05, 2.4, 6]} />
+                <meshStandardMaterial color={hovered ? zone.color : "#1a1035"} metalness={0.5} roughness={0.5} emissive={hovered ? zone.color : "#000"} emissiveIntensity={hovered ? 0.5 : 0} />
+            </mesh>
+
+            {/* Sign board */}
+            <RoundedBox position={[0, 2.2, 0]} args={[2, 0.5, 0.08]} radius={0.04} rotation={[0, -angle, 0]}>
+                <meshStandardMaterial
+                    color="#1E1B4B"
+                    emissive={zone.color}
+                    emissiveIntensity={hovered ? 0.8 : 0.1}
+                    metalness={0.3}
+                    roughness={0.6}
+                />
+            </RoundedBox>
+
+            <Text
+                position={[0, 2.2, 0]}
+                rotation={[0, -angle, 0]}
+                fontSize={0.15}
+                color={zone.color}
+                anchorX="center"
+            >
+                {`${zone.icon} ${zone.label} ${hovered ? '>>>' : '→'}`}
+            </Text>
+
+            {/* Holographic Warp Portal Text */}
+            {hovered && (
+                <Html position={[0, 3.5, 0]} center distanceFactor={15} zIndexRange={[100, 0]}>
+                    <div className="bg-void-bg/90 border border-primary-cyan/50 p-2 rounded-md text-center shadow-[0_0_15px_rgba(0,232,255,0.4)] pointer-events-none select-none">
+                        <div className="text-primary-cyan font-mono text-xs whitespace-nowrap tracking-wider">
+                            [INITIATE_WARP_{zone.id.toUpperCase()}]
+                        </div>
+                    </div>
+                </Html>
+            )}
+        </group>
+    );
+}
+
 function DirectionSigns() {
     return (
         <group>
-            {WORLD_ZONES.slice(1, 7).map((zone) => {
-                const dir = new THREE.Vector3(...zone.position).normalize().multiplyScalar(18);
-                const angle = Math.atan2(dir.x, dir.z);
-
-                return (
-                    <group key={zone.id} position={[dir.x, 0, dir.z]}>
-                        {/* Sign post */}
-                        <mesh position={[0, 1.2, 0]} castShadow>
-                            <cylinderGeometry args={[0.05, 0.05, 2.4, 6]} />
-                            <meshStandardMaterial color="#1a1035" metalness={0.5} roughness={0.5} />
-                        </mesh>
-
-                        {/* Sign board */}
-                        <RoundedBox position={[0, 2.2, 0]} args={[2, 0.5, 0.08]} radius={0.04} rotation={[0, -angle, 0]}>
-                            <meshStandardMaterial
-                                color="#1E1B4B"
-                                emissive={zone.color}
-                                emissiveIntensity={0.1}
-                                metalness={0.3}
-                                roughness={0.6}
-                            />
-                        </RoundedBox>
-
-                        <Text
-                            position={[0, 2.2, 0]}
-                            rotation={[0, -angle, 0]}
-                            fontSize={0.15}
-                            color={zone.color}
-                            anchorX="center"
-                        >
-                            {`${zone.icon} ${zone.label} →`}
-                        </Text>
-                    </group>
-                );
-            })}
+            {WORLD_ZONES.slice(1, 7).map((zone) => (
+                <DirectionSign key={zone.id} zone={zone} />
+            ))}
         </group>
     );
 }
