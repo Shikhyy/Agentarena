@@ -24,6 +24,8 @@ class Config:
     AGENT_NFT_CONTRACT = os.getenv("AGENT_NFT_CONTRACT", "")
     SKILL_NFT_CONTRACT = os.getenv("SKILL_NFT_CONTRACT", "")
     ARENA_TOKEN_CONTRACT = os.getenv("ARENA_TOKEN_CONTRACT", "")
+    ZK_BETTING_POOL_CONTRACT = os.getenv("ZK_BETTING_POOL_CONTRACT", "")
+    RESULT_ORACLE_CONTRACT = os.getenv("RESULT_ORACLE_CONTRACT", "")
 
     # Auth (Phase 2)
     FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")

@@ -6,12 +6,10 @@
  */
 
 import { create } from "zustand";
+import { apiGet, apiPost, wsUrl } from "@/lib/api";
 
 // Re-export the existing world store to avoid duplication
 export { useWorldStore } from "@/lib/worldStore";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-const BACKEND_WS = process.env.NEXT_PUBLIC_BACKEND_WS || "ws://localhost:8000";
 
 // ─── Arena Store ────────────────────────────────────────────────────────
 
@@ -68,7 +66,7 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
         const existingWs = get().ws;
         if (existingWs) existingWs.close();
 
-        const ws = new WebSocket(`${BACKEND_WS}/arenas/${arenaId}/stream`);
+        const ws = new WebSocket(wsUrl(`/arenas/${arenaId}/stream`));
 
         ws.onopen = () => set({ wsConnected: true, activeMatchId: arenaId });
 
@@ -190,12 +188,7 @@ export const useBettingStore = create<BettingState>((set, get) => ({
     balance: 1000, //  $ARENA balance
 
     commitBet: async (arenaId: string, amount: number, position: number, secret: string) => {
-        const res = await fetch(`${BACKEND_URL}/arenas/${arenaId}/bet`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer demo-token" },
-            body: JSON.stringify({ amount, position, secret }),
-        });
-        const data = await res.json();
+        const data = await apiPost(`/arenas/${arenaId}/bet`, { amount, position, secret });
 
         const bet: BetCommitment = {
             arenaId,
@@ -216,16 +209,11 @@ export const useBettingStore = create<BettingState>((set, get) => ({
     },
 
     revealBet: async (arenaId: string, commitment: BetCommitment) => {
-        const res = await fetch(`${BACKEND_URL}/arenas/${arenaId}/reveal`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer demo-token" },
-            body: JSON.stringify({
-                amount: commitment.amount,
-                position: commitment.position,
-                secret: commitment.secret,
-            }),
+        const data = await apiPost(`/arenas/${arenaId}/reveal`, {
+            amount: commitment.amount,
+            position: commitment.position,
+            secret: commitment.secret,
         });
-        const data = await res.json();
 
         set((state) => ({
             activeBets: state.activeBets.map((b) =>
@@ -281,13 +269,10 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
     selectedAgentId: null,
     loading: false,
 
-    fetchMyAgents: async (wallet: string) => {
+    fetchMyAgents: async (_wallet: string) => {
         set({ loading: true });
         try {
-            const res = await fetch(`${BACKEND_URL}/agents/my`, {
-                headers: { Authorization: "Bearer demo-token" },
-            });
-            const data = await res.json();
+            const data = await apiGet("/agents/my");
             set({ myAgents: data.agents || [], loading: false });
         } catch {
             set({ loading: false });
@@ -297,12 +282,7 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
     selectAgent: (agentId: string) => set({ selectedAgentId: agentId }),
 
     createAgent: async (config: Partial<AgentProfile>) => {
-        const res = await fetch(`${BACKEND_URL}/agents`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer demo-token" },
-            body: JSON.stringify(config),
-        });
-        const agent = await res.json();
+        const agent = await apiPost("/agents", config);
         set((state) => ({ myAgents: [...state.myAgents, agent] }));
         return agent;
     },

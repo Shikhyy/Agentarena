@@ -18,6 +18,26 @@ from middleware.rate_limiter import check_rate_limit
 router = APIRouter(prefix="/agents", tags=["Agent Progression"])
 
 
+SKILL_CATALOG = [
+    {"id": "bluff_master", "name": "Bluff Master", "description": "Opponent bluff probability detection +30%", "price": 8, "rarity": "Rare", "game": "Poker", "icon": "BM"},
+    {"id": "endgame_specialist", "name": "Endgame Specialist", "description": "Chess endgame accuracy +25%", "price": 15, "rarity": "Epic", "game": "Chess", "icon": "ES"},
+    {"id": "web_scout", "name": "Web Scout", "description": "Trivia search returns 10 results vs 3", "price": 6, "rarity": "Uncommon", "game": "Trivia", "icon": "WS"},
+    {"id": "iron_will", "name": "Iron Will", "description": "Performance never degrades after consecutive losses", "price": 12, "rarity": "Rare", "game": "All", "icon": "IW"},
+    {"id": "negotiator", "name": "Negotiator", "description": "Monopoly trade valuation depth increased", "price": 10, "rarity": "Rare", "game": "Monopoly", "icon": "NG"},
+    {"id": "speed_demon", "name": "Speed Demon", "description": "Turn time limit reduced to 3s", "price": 7, "rarity": "Uncommon", "game": "All", "icon": "SD"},
+    {"id": "coalition_breaker", "name": "Coalition Breaker", "description": "Detects and counters coalition patterns", "price": 14, "rarity": "Epic", "game": "Monopoly", "icon": "CB"},
+    {"id": "grand_strategist", "name": "Grand Strategist", "description": "Access to opening and endgame specialist databases", "price": 20, "rarity": "Legendary", "game": "Chess", "icon": "GS"},
+    {"id": "mind_reader", "name": "Mind Reader", "description": "Predicts opponent's next move with 40% accuracy", "price": 18, "rarity": "Legendary", "game": "All", "icon": "MR"},
+    {"id": "poker_oracle", "name": "Poker Oracle", "description": "AutoML bluff probability model access", "price": 16, "rarity": "Epic", "game": "Poker", "icon": "PO"},
+]
+
+
+def _skill_change_pct(skill_id: str) -> float:
+    base = sum(ord(c) for c in skill_id)
+    # Deterministic pseudo market move in range -6.0 to +9.0
+    return round(((base % 31) - 12) / 2.0, 1)
+
+
 # ── XP / Game Result ────────────────────────────────────────────
 class GameResultRequest(BaseModel):
     agent_id: str
@@ -109,17 +129,21 @@ async def breed(req: BreedRequest, wallet: str = Depends(get_current_user)):
 @router.get("/skills")
 async def get_skills_catalog():
     """Return the catalog of available Skill NFTs for the marketplace."""
-    return {
-        "skills": [
-            {"id": "bluff_master", "name": "Bluff Master", "description": "Opponent bluff probability detection +30%", "price": 8, "rarity": "Rare", "game": "Poker", "icon": ""},
-            {"id": "endgame_specialist", "name": "Endgame Specialist", "description": "Chess endgame accuracy +25%", "price": 15, "rarity": "Epic", "game": "Chess", "icon": "️"},
-            {"id": "web_scout", "name": "Web Scout", "description": "Trivia search returns 10 results vs 3", "price": 6, "rarity": "Uncommon", "game": "Trivia", "icon": ""},
-            {"id": "iron_will", "name": "Iron Will", "description": "Performance never degrades after consecutive losses", "price": 12, "rarity": "Rare", "game": "All", "icon": ""},
-            {"id": "negotiator", "name": "Negotiator", "description": "Monopoly trade valuation depth increased", "price": 10, "rarity": "Rare", "game": "Monopoly", "icon": ""},
-            {"id": "speed_demon", "name": "Speed Demon", "description": "Turn time limit reduced to 3s", "price": 7, "rarity": "Uncommon", "game": "All", "icon": ""},
-            {"id": "coalition_breaker", "name": "Coalition Breaker", "description": "Detects and counters coalition patterns", "price": 14, "rarity": "Epic", "game": "Monopoly", "icon": ""},
-            {"id": "grand_strategist", "name": "Grand Strategist", "description": "Access to opening/endgame specialist databases", "price": 20, "rarity": "Legendary", "game": "Chess", "icon": ""},
-            {"id": "mind_reader", "name": "Mind Reader", "description": "Predicts opponent's next move with 40% accuracy", "price": 18, "rarity": "Legendary", "game": "All", "icon": ""},
-            {"id": "poker_oracle", "name": "Poker Oracle", "description": "AutoML Bluff Probability model access", "price": 16, "rarity": "Epic", "game": "Poker", "icon": ""},
-        ]
-    }
+    return {"skills": SKILL_CATALOG}
+
+
+@router.get("/skills/market")
+async def get_skills_market_snapshot():
+    """Return deterministic market metadata for the skill marketplace UI."""
+    skills = []
+    for skill in SKILL_CATALOG:
+        change = _skill_change_pct(skill["id"])
+        last_price = round(skill["price"] * (1 + change / 100.0), 2)
+        volume_24h = (sum(ord(c) for c in skill["id"]) % 500) + 80
+        skills.append({
+            **skill,
+            "last_price": last_price,
+            "change_24h_pct": change,
+            "volume_24h": volume_24h,
+        })
+    return {"skills": skills, "total": len(skills)}

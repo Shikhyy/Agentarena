@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWorldStore } from "@/lib/worldStore";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+import { apiGet, apiPost } from "@/lib/api";
 
 interface Tournament {
     tournament_id: string;
@@ -48,8 +47,7 @@ export default function TournamentsPage() {
     const [filter, setFilter] = useState("all");
 
     const fetchTournaments = () => {
-        fetch(`${BACKEND_URL}/tournaments`)
-            .then(res => res.json())
+        apiGet("/tournaments")
             .then(data => {
                 const tArray = Array.isArray(data) ? data : Object.values(data);
                 setTournaments(tArray as Tournament[]);
@@ -77,21 +75,13 @@ export default function TournamentsPage() {
 
         setEntering(tournamentId);
         try {
-            const res = await fetch(`${BACKEND_URL}/tournaments/${tournamentId}/enter`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ agent_id: agents[0].id }),
-            });
-            if (res.ok) {
-                alert(" Entered! Your agent has joined the tournament.");
-                fetchTournaments(); // Refresh the bracket
-            } else {
-                const err = await res.json();
-                alert(` Failed to enter: ${err.detail || "Unknown error"}`);
-            }
-        } catch (e) {
+            await apiPost(`/tournaments/${tournamentId}/enter`, { agent_id: agents[0].id });
+            alert(" Entered! Your agent has joined the tournament.");
+            fetchTournaments(); // Refresh the bracket
+        } catch (e: any) {
             console.error(e);
-            alert(" Network Error.");
+            const detail = e?.body?.detail || e?.message || "Unknown error";
+            alert(` Failed to enter: ${detail}`);
         }
         setEntering(null);
     };

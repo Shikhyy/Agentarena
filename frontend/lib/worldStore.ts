@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiGet, wsUrl } from "@/lib/api";
 
 /* ── Zone definitions ────────────────────────────────────── */
 export type WorldZone =
@@ -20,14 +21,14 @@ export interface ZoneConfig {
 }
 
 export const WORLD_ZONES: ZoneConfig[] = [
-    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "️", color: "#6C3AED" },
-    { id: "arena-chess", label: "Hall of Chess", position: [0, 0, -60], icon: "️", color: "#10B981" },
-    { id: "arena-poker", label: "Hall of Poker", position: [60, 0, 0], icon: "", color: "#F59E0B" },
-    { id: "arena-monopoly", label: "Hall of Monopoly", position: [-60, 0, 0], icon: "", color: "#EF4444" },
-    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "", color: "#8B5CF6" },
-    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "", color: "#FBBF24" },
-    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "", color: "#F59E0B" },
-    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "️", color: "#EF4444" },
+    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "🏛️", color: "#6C3AED" },
+    { id: "arena-chess", label: "Hall of Chess", position: [0, 0, -60], icon: "♟️", color: "#10B981" },
+    { id: "arena-poker", label: "Hall of Poker", position: [60, 0, 0], icon: "🃏", color: "#F59E0B" },
+    { id: "arena-monopoly", label: "Hall of Monopoly", position: [-60, 0, 0], icon: "🏠", color: "#EF4444" },
+    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "🔧", color: "#8B5CF6" },
+    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "🛒", color: "#FBBF24" },
+    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "🏆", color: "#F59E0B" },
+    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "⚔️", color: "#EF4444" },
 ];
 
 /* ── Agent in-world representation ───────────────────────── */
@@ -136,9 +137,62 @@ function getAuraColor(winRate: number): string {
     return "#6B7280"; // gray
 }
 
-const _AGENTS: WorldAgent[] = [];
+// Generate initial mock agents
+const MOCK_AGENTS: WorldAgent[] = [
+    {
+        id: "agent-zeus", name: "ZEUS", level: 24, elo: 2450,
+        personality: "aggressive", position: [5, 0, 3], targetPosition: [5, 0, 3],
+        status: "idle", winRate: 0.82, auraColor: "#F59E0B", zone: "central-nexus",
+    },
+    {
+        id: "agent-athena", name: "ATHENA", level: 21, elo: 2380,
+        personality: "adaptive", position: [-3, 0, 7], targetPosition: [-3, 0, 7],
+        status: "idle", winRate: 0.75, auraColor: "#C0C0C0", zone: "central-nexus",
+    },
+    {
+        id: "agent-blitz", name: "BLITZ", level: 18, elo: 2200,
+        personality: "aggressive", position: [60, 0, 2], targetPosition: [60, 0, 2],
+        status: "competing", winRate: 0.68, auraColor: "#C0C0C0", zone: "arena-poker",
+    },
+    {
+        id: "agent-shadow", name: "SHADOW", level: 16, elo: 2150,
+        personality: "conservative", position: [62, 0, -2], targetPosition: [62, 0, -2],
+        status: "competing", winRate: 0.61, auraColor: "#C0C0C0", zone: "arena-poker",
+    },
+    {
+        id: "agent-titan", name: "TITAN", level: 30, elo: 2600,
+        personality: "conservative", position: [2, 0, -58], targetPosition: [2, 0, -58],
+        status: "competing", winRate: 0.88, auraColor: "#F59E0B", zone: "arena-chess",
+    },
+    {
+        id: "agent-oracle", name: "ORACLE", level: 28, elo: 2520,
+        personality: "adaptive", position: [-2, 0, -62], targetPosition: [-2, 0, -62],
+        status: "competing", winRate: 0.84, auraColor: "#F59E0B", zone: "arena-chess",
+    },
+    {
+        id: "agent-phantom", name: "PHANTOM", level: 12, elo: 1900,
+        personality: "chaotic", position: [8, 0, -5], targetPosition: [8, 0, -5],
+        status: "walking", winRate: 0.52, auraColor: "#3B82F6", zone: "central-nexus",
+    },
+    {
+        id: "agent-viper", name: "VIPER", level: 15, elo: 2050,
+        personality: "aggressive", position: [-8, 0, 2], targetPosition: [-8, 0, 2],
+        status: "idle", winRate: 0.59, auraColor: "#3B82F6", zone: "central-nexus",
+    },
+];
 
-const _MATCHES: LiveMatch[] = [];
+const MOCK_MATCHES: LiveMatch[] = [
+    {
+        id: "match-1", gameType: "chess", zone: "arena-chess",
+        agentA: { name: "TITAN", elo: 2600 }, agentB: { name: "ORACLE", elo: 2520 },
+        spectators: 1247, odds: [52, 48], status: "live", pool: 24500, dramaScore: 7.2,
+    },
+    {
+        id: "match-2", gameType: "poker", zone: "arena-poker",
+        agentA: { name: "BLITZ", elo: 2200 }, agentB: { name: "SHADOW", elo: 2150 },
+        spectators: 892, odds: [45, 55], status: "live", pool: 18200, dramaScore: 8.5,
+    },
+];
 
 export const useWorldStore = create<WorldState>((set, get) => ({
     appState: "spawning",
@@ -150,11 +204,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     qualityPreset: "high",
     worldTime: 22, // evening for max atmosphere
 
-    agents: _AGENTS,
+    agents: MOCK_AGENTS,
     selectedAgentId: null,
     myAgentId: "agent-zeus",
 
-    liveMatches: _MATCHES,
+    liveMatches: MOCK_MATCHES,
     activeMatchId: null,
 
     spectators: [],
@@ -211,8 +265,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
     connectBackendEvents: () => {
         // Hydrate initially via HTTP
-        fetch("http://localhost:8000/arenas/live")
-            .then((res) => res.json())
+        apiGet("/arenas/live")
             .then((data) => {
                 if (data.arenas && data.arenas.length > 0) {
                     const mappedMatches = data.arenas.map((arena: any) => ({
@@ -222,7 +275,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                         agentA: { name: arena.agent_a?.name || "Agent A", elo: 2000 },
                         agentB: { name: arena.agent_b?.name || "Agent B", elo: 2000 },
                         spectators: arena.spectators || 0,
-                        odds: [parseFloat((arena.live_odds?.agent_a * 100).toFixed(0)) || 50, parseFloat((arena.live_odds?.agent_b * 100).toFixed(0)) || 50],
+                        odds: [
+                            parseFloat(((arena.live_odds?.agent_a?.probability ?? 0.5) * 100).toFixed(0)),
+                            parseFloat(((arena.live_odds?.agent_b?.probability ?? 0.5) * 100).toFixed(0)),
+                        ],
                         status: arena.status,
                         pool: 10000,
                         dramaScore: 5.0,
@@ -231,27 +287,29 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
                     // Establish WebSocket connection for real-time live events to each active arena
                     data.arenas.forEach((arena: any) => {
-                        const ws = new WebSocket(`ws://localhost:8000/arenas/${arena.id}/stream`);
+                        const ws = new WebSocket(wsUrl(`/arenas/${arena.id}/stream`));
                         ws.onmessage = (event) => {
                             try {
                                 const msg = JSON.parse(event.data);
                                 set((s) => ({
                                     liveMatches: s.liveMatches.map((m) => {
                                         if (m.id !== arena.id) return m;
-
+                                        
                                         // Update state selectively based on event type
                                         return {
                                             ...m,
                                             spectators: msg.spectators ?? m.spectators,
-                                            odds: msg.live_odds ? [
-                                                parseFloat((msg.live_odds.agent_a * 100).toFixed(0)),
-                                                parseFloat((msg.live_odds.agent_b * 100).toFixed(0))
-                                            ] : m.odds,
+                                            odds: msg.live_odds
+                                                ? [
+                                                    parseFloat(((msg.live_odds.agent_a?.probability ?? 0.5) * 100).toFixed(0)),
+                                                    parseFloat(((msg.live_odds.agent_b?.probability ?? 0.5) * 100).toFixed(0)),
+                                                ]
+                                                : m.odds,
                                             dramaScore: msg.drama_score ?? m.dramaScore,
                                         };
                                     })
                                 }));
-
+                                
                                 // Make the agents "think" randomly on engine update
                                 if (msg.type === "engine_eval") {
                                     set((s) => ({
@@ -265,12 +323,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                                             return a;
                                         })
                                     }));
-
+                                    
                                     // Revert from thinking to competing quickly
                                     setTimeout(() => {
                                         set((s) => ({
-                                            agents: s.agents.map(a =>
-                                                (a.name === arena.agent_a?.name || a.name === arena.agent_b?.name)
+                                            agents: s.agents.map(a => 
+                                                (a.name === arena.agent_a?.name || a.name === arena.agent_b?.name) 
                                                     ? { ...a, status: "competing" } : a
                                             )
                                         }));
@@ -283,8 +341,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                     });
                 }
             })
-            .catch((err) => console.log("Backend offline, using  matches."));
-
+            .catch((err) => console.log("Backend offline, using mock matches."));
+        
         // Remove loop fallback now that WS is implemented
     },
 }));

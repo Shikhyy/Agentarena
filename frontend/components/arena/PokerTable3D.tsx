@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Text, Float, RoundedBox } from "@react-three/drei";
+import { useRef, useMemo, useState, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
+import { OrbitControls, Text, Float, RoundedBox, MeshReflectorMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
@@ -20,38 +20,51 @@ function PokerCard({
     label?: string;
     suit?: string;
 }) {
-    const meshRef = useRef<THREE.Group>(null);
+    const ref = useRef<THREE.Group>(null);
+    const isRed = suit === "♥" || suit === "♦";
 
     return (
-        <group ref={meshRef} position={position} rotation={rotation as unknown as THREE.Euler}>
-            <RoundedBox args={[0.45, 0.6, 0.02]} radius={0.03} smoothness={4} castShadow>
+        <group ref={ref} position={position} rotation={rotation as unknown as THREE.Euler}>
+            <RoundedBox args={[0.42, 0.58, 0.015]} radius={0.03} smoothness={4} castShadow>
                 <meshStandardMaterial
-                    color={faceUp ? "#f8f4ef" : "#1E1B4B"}
-                    metalness={0.1}
-                    roughness={0.6}
+                    color={faceUp ? "#FAFAF5" : "#1A1535"}
+                    metalness={0.05}
+                    roughness={faceUp ? 0.5 : 0.4}
                 />
             </RoundedBox>
             {faceUp && (
-                <Text
-                    position={[0, 0, 0.015]}
-                    fontSize={0.18}
-                    color={suit === "" || suit === "" ? "#EF4444" : "#1a1a2e"}
-                    anchorX="center"
-                    anchorY="middle"
-                >
-                    {`${label}${suit}`}
-                </Text>
+                <>
+                    <Text
+                        position={[0, 0.06, 0.01]}
+                        fontSize={0.16}
+                        color={isRed ? "#DC2626" : "#111827"}
+                        anchorX="center"
+                        anchorY="middle"
+                        fontWeight={700}
+                    >
+                        {label}
+                    </Text>
+                    <Text
+                        position={[0, -0.1, 0.01]}
+                        fontSize={0.12}
+                        color={isRed ? "#DC2626" : "#111827"}
+                        anchorX="center"
+                        anchorY="middle"
+                    >
+                        {suit}
+                    </Text>
+                </>
             )}
             {!faceUp && (
                 <>
-                    {/* Card back pattern */}
-                    <mesh position={[0, 0, 0.012]}>
-                        <planeGeometry args={[0.35, 0.5]} />
-                        <meshStandardMaterial color="#6C3AED" emissive="#6C3AED" emissiveIntensity={0.2} />
+                    {/* Card back — elegant pattern */}
+                    <mesh position={[0, 0, 0.009]}>
+                        <planeGeometry args={[0.34, 0.5]} />
+                        <meshStandardMaterial color="#6C3AED" emissive="#6C3AED" emissiveIntensity={0.15} />
                     </mesh>
-                    <mesh position={[0, 0, 0.013]}>
-                        <planeGeometry args={[0.28, 0.43]} />
-                        <meshStandardMaterial color="#1E1B4B" />
+                    <mesh position={[0, 0, 0.01]}>
+                        <planeGeometry args={[0.28, 0.44]} />
+                        <meshStandardMaterial color="#1A1535" />
                     </mesh>
                 </>
             )}
@@ -72,16 +85,16 @@ function PokerChip({
     return (
         <group position={position}>
             <mesh castShadow>
-                <cylinderGeometry args={[0.18, 0.18, 0.06, 24]} />
-                <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} />
+                <cylinderGeometry args={[0.16, 0.16, 0.05, 32]} />
+                <meshStandardMaterial color={color} metalness={0.6} roughness={0.3} />
             </mesh>
-            {/* Edge stripe */}
+            {/* Edge rim */}
             <mesh>
-                <torusGeometry args={[0.17, 0.015, 8, 24]} />
-                <meshStandardMaterial color="#ffffff" metalness={0.3} roughness={0.6} transparent opacity={0.7} />
+                <torusGeometry args={[0.15, 0.012, 8, 32]} />
+                <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.5} transparent opacity={0.6} />
             </mesh>
             {value && (
-                <Text position={[0, 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.08} color="white" anchorX="center">
+                <Text position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.06} color="white" anchorX="center" fontWeight={700}>
                     {value}
                 </Text>
             )}
@@ -89,24 +102,29 @@ function PokerChip({
     );
 }
 
-/* ── Table ────────────────────────────────────────────────── */
+/* ── Felt Table ──────────────────────────────────────────── */
 function Table() {
     return (
         <group>
-            {/* Table surface */}
+            {/* Green felt surface */}
             <mesh position={[0, 0, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-                <circleGeometry args={[3, 48]} />
-                <meshStandardMaterial color="#0a3d1f" metalness={0.1} roughness={0.9} />
+                <circleGeometry args={[2.8, 64]} />
+                <meshStandardMaterial color="#0B4D2C" metalness={0.05} roughness={0.95} />
             </mesh>
-            {/* Table edge */}
-            <mesh position={[0, -0.05, 0]}>
-                <torusGeometry args={[3, 0.15, 16, 48]} />
-                <meshStandardMaterial color="#2a1505" metalness={0.3} roughness={0.7} />
+            {/* Wood rail */}
+            <mesh position={[0, -0.04, 0]}>
+                <torusGeometry args={[2.85, 0.16, 16, 64]} />
+                <meshStandardMaterial color="#2A1505" metalness={0.35} roughness={0.65} />
             </mesh>
-            {/* Inner ring */}
+            {/* Inner gold line */}
             <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[1.8, 1.85, 48]} />
-                <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.3} transparent opacity={0.6} />
+                <ringGeometry args={[1.7, 1.73, 64]} />
+                <meshStandardMaterial color="#D4A842" emissive="#D4A842" emissiveIntensity={0.25} transparent opacity={0.5} />
+            </mesh>
+            {/* Table leg shadow base */}
+            <mesh position={[0, -0.2, 0]} receiveShadow>
+                <cylinderGeometry args={[1.2, 1.4, 0.04, 32]} />
+                <meshStandardMaterial color="#1A0E03" metalness={0.4} roughness={0.6} />
             </mesh>
         </group>
     );
@@ -115,11 +133,11 @@ function Table() {
 /* ── Community Cards ─────────────────────────────────────── */
 function CommunityCards({ cards }: { cards: { label: string; suit: string }[] }) {
     return (
-        <group position={[0, 0.05, 0]}>
+        <group position={[0, 0.04, 0]}>
             {cards.map((card, i) => (
                 <PokerCard
                     key={i}
-                    position={[(i - 2) * 0.55, 0, 0]}
+                    position={[(i - 2) * 0.52, 0, 0]}
                     rotation={[-Math.PI / 2, 0, 0]}
                     faceUp={true}
                     label={card.label}
@@ -146,8 +164,8 @@ function PlayerPosition({
     isActive?: boolean;
     color?: string;
 }) {
-    const x = Math.sin(angle) * 2.3;
-    const z = Math.cos(angle) * 2.3;
+    const x = Math.sin(angle) * 2.2;
+    const z = Math.cos(angle) * 2.2;
 
     return (
         <group position={[x, 0, z]} rotation={[0, -angle, 0]}>
@@ -155,8 +173,8 @@ function PlayerPosition({
             {holeCards.map((card, i) => (
                 <PokerCard
                     key={i}
-                    position={[(i - 0.5) * 0.3, 0.05, 0]}
-                    rotation={[-Math.PI / 2.5, 0, (i - 0.5) * 0.1]}
+                    position={[(i - 0.5) * 0.28, 0.03, 0]}
+                    rotation={[-Math.PI / 2.3, 0, (i - 0.5) * 0.08]}
                     faceUp={isActive}
                     label={card.label}
                     suit={card.suit}
@@ -164,26 +182,27 @@ function PlayerPosition({
             ))}
 
             {/* Chip stack */}
-            {Array.from({ length: Math.min(Math.ceil(chips / 200), 5) }, (_, i) => (
+            {Array.from({ length: Math.min(Math.ceil(chips / 250), 4) }, (_, i) => (
                 <PokerChip
                     key={i}
-                    position={[0.5, 0.03 + i * 0.065, -0.2]}
-                    color={isActive ? "#F59E0B" : "#6C3AED"}
+                    position={[0.45, 0.025 + i * 0.055, -0.15]}
+                    color={isActive ? "#D4A842" : "#6C3AED"}
                 />
             ))}
 
-            {/* Player name */}
-            <Float speed={isActive ? 3 : 1} floatIntensity={isActive ? 0.4 : 0.1}>
+            {/* Player name tag */}
+            <Float speed={isActive ? 2.5 : 0.8} floatIntensity={isActive ? 0.3 : 0.08}>
                 <Text
-                    position={[0, 0.8, 0]}
-                    fontSize={0.2}
-                    color={isActive ? "#F59E0B" : color}
+                    position={[0, 0.7, 0]}
+                    fontSize={0.16}
+                    color={isActive ? "#D4A842" : color}
                     anchorX="center"
+                    fontWeight={700}
                 >
                     {name}
                 </Text>
                 {isActive && (
-                    <Text position={[0, 0.55, 0]} fontSize={0.1} color="#10B981" anchorX="center">
+                    <Text position={[0, 0.5, 0]} fontSize={0.08} color="#22C55E" anchorX="center">
                         THINKING...
                     </Text>
                 )}
@@ -194,71 +213,62 @@ function PlayerPosition({
 
 /* ── Pot Display ─────────────────────────────────────────── */
 function PotDisplay({ amount }: { amount: number }) {
+    // Use stable positions instead of random
+    const chipPositions = useMemo(() => {
+        return Array.from({ length: 5 }, (_, i) => ({
+            x: Math.cos((i / 5) * Math.PI * 2) * 0.2,
+            z: Math.sin((i / 5) * Math.PI * 2) * 0.15,
+        }));
+    }, []);
+
     return (
-        <group position={[0, 0.05, -1]}>
-            {/* Chips in pot */}
-            {Array.from({ length: 6 }, (_, i) => (
+        <group position={[0, 0.04, -0.9]}>
+            {chipPositions.map((pos, i) => (
                 <PokerChip
                     key={i}
-                    position={[
-                        (Math.random() - 0.5) * 0.6,
-                        i * 0.065,
-                        (Math.random() - 0.5) * 0.3,
-                    ]}
-                    color={i % 2 === 0 ? "#F59E0B" : "#6C3AED"}
+                    position={[pos.x, i * 0.055, pos.z]}
+                    color={i % 2 === 0 ? "#D4A842" : "#6C3AED"}
                 />
             ))}
-            <Text position={[0, 0.6, 0]} fontSize={0.15} color="#F59E0B" anchorX="center">
+            <Text position={[0, 0.5, 0]} fontSize={0.12} color="#D4A842" anchorX="center" fontWeight={700}>
                 {`POT: ${amount}`}
             </Text>
         </group>
     );
 }
 
-/* ── Ambient Particles ───────────────────────────────────── */
-function AmbientParticles() {
-    const ref = useRef<THREE.Points>(null);
-    const count = 150;
-
-    const positions = useMemo(() => {
-        const pos = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
-            pos[i * 3] = (Math.random() - 0.5) * 10;
-            pos[i * 3 + 1] = Math.random() * 5;
-            pos[i * 3 + 2] = (Math.random() - 0.5) * 10;
-        }
-        return pos;
-    }, []);
-
-    useFrame((_, delta) => {
-        if (ref.current) {
-            ref.current.rotation.y += delta * 0.02;
-        }
-    });
-
+/* ── Reflective Floor ────────────────────────────────────── */
+function Floor() {
     return (
-        <points ref={ref}>
-            <bufferGeometry>
-                <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-            </bufferGeometry>
-            <pointsMaterial size={0.02} color="#F59E0B" transparent opacity={0.4} sizeAttenuation />
-        </points>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.25, 0]} receiveShadow>
+            <planeGeometry args={[20, 20]} />
+            <MeshReflectorMaterial
+                mirror={0.12}
+                blur={[200, 100]}
+                resolution={512}
+                mixBlur={1}
+                mixStrength={0.3}
+                color="#050508"
+                metalness={0.8}
+                roughness={0.7}
+            />
+        </mesh>
     );
 }
 
 /* ── Scene ────────────────────────────────────────────────── */
 function PokerScene({
     players = [
-        { name: "BLITZ", cards: [{ label: "A", suit: "" }, { label: "K", suit: "" }], chips: 950, isActive: true },
-        { name: "SHADOW", cards: [{ label: "Q", suit: "" }, { label: "J", suit: "" }], chips: 780, isActive: false },
+        { name: "BLITZ", cards: [{ label: "A", suit: "♠" }, { label: "K", suit: "♠" }], chips: 950, isActive: true },
+        { name: "SHADOW", cards: [{ label: "Q", suit: "♥" }, { label: "J", suit: "♦" }], chips: 780, isActive: false },
     ],
     pot = 540,
     communityCards = [
-        { label: "A", suit: "" },
-        { label: "K", suit: "" },
-        { label: "10", suit: "" },
-        { label: "7", suit: "" },
-        { label: "3", suit: "" },
+        { label: "A", suit: "♥" },
+        { label: "K", suit: "♦" },
+        { label: "10", suit: "♣" },
+        { label: "7", suit: "♠" },
+        { label: "3", suit: "♥" },
     ],
 }: {
     players?: { name: string; cards: { label: string; suit: string }[]; chips: number; isActive: boolean }[];
@@ -267,22 +277,20 @@ function PokerScene({
 }) {
     return (
         <>
-            {/* Lights */}
-            <ambientLight intensity={0.2} />
-            <directionalLight position={[3, 8, 3]} intensity={0.8} castShadow shadow-mapSize={1024} />
-            <pointLight position={[0, 4, 0]} intensity={1} color="#F59E0B" distance={10} />
-            <spotLight position={[0, 6, 0]} angle={0.4} penumbra={0.5} intensity={1.5} color="#ffffff" castShadow />
+            {/* Lighting */}
+            <ambientLight intensity={0.15} />
+            <directionalLight position={[3, 8, 3]} intensity={0.8} castShadow shadow-mapSize={[2048, 2048]} color="#FFFAF0" />
+            {/* Spotlight on table */}
+            <spotLight position={[0, 7, 0]} angle={0.5} penumbra={0.7} intensity={1.8} color="#FFF8E7" castShadow />
+            {/* Accent lights */}
+            <pointLight position={[-3, 2, -3]} intensity={0.4} color="#6C3AED" distance={8} />
+            <pointLight position={[3, 2, 3]} intensity={0.4} color="#D4A842" distance={8} />
 
-            {/* Table */}
             <Table />
-
-            {/* Community cards */}
+            <Floor />
             <CommunityCards cards={communityCards} />
-
-            {/* Pot */}
             <PotDisplay amount={pot} />
 
-            {/* Players */}
             {players.map((player, i) => {
                 const angle = (i / players.length) * Math.PI * 2 + Math.PI;
                 return (
@@ -293,23 +301,21 @@ function PokerScene({
                         holeCards={player.cards || []}
                         chips={player.chips}
                         isActive={player.isActive}
-                        color={i === 0 ? "#8B5CF6" : "#10B981"}
+                        color={i === 0 ? "#8B5CF6" : "#22C55E"}
                     />
                 );
             })}
 
-            {/* Particles */}
-            <AmbientParticles />
-
-            {/* Camera controls */}
             <OrbitControls
                 enablePan={false}
                 enableZoom={true}
                 minDistance={4}
-                maxDistance={10}
-                maxPolarAngle={Math.PI / 2.5}
+                maxDistance={9}
+                maxPolarAngle={Math.PI / 2.3}
                 autoRotate
-                autoRotateSpeed={0.3}
+                autoRotateSpeed={0.2}
+                enableDamping
+                dampingFactor={0.05}
             />
         </>
     );
@@ -328,12 +334,12 @@ export default function PokerTable3D({
     return (
         <WebGLSafeCanvas
             shadows
-            camera={{ position: [0, 5, 6], fov: 40 }}
+            camera={{ position: [0, 4.5, 5.5], fov: 38 }}
             style={{ width: "100%", height: "100%" }}
             gl={{ antialias: true }}
         >
-            <color attach="background" args={["#0F0A1A"]} />
-            <fog attach="fog" args={["#0F0A1A", 10, 18]} />
+            <color attach="background" args={["#030308"]} />
+            <fog attach="fog" args={["#030308", 8, 16]} />
             <PokerScene players={players} pot={pot} communityCards={communityCards} />
         </WebGLSafeCanvas>
     );

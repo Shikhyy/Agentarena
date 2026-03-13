@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 
 const WINNER = {
@@ -32,15 +33,20 @@ const MATCH_STATS = {
 
 const CONFETTI_COLORS = ["#6C3AED", "#10B981", "#F59E0B", "#8B5CF6", "#34D399", "#FBBF24"];
 
+function seededUnit(seed: number) {
+    const value = Math.sin(seed * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+}
+
 function Confetti() {
     const pieces = Array.from({ length: 60 }, (_, i) => ({
         id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 2,
-        duration: 2 + Math.random() * 3,
-        size: 4 + Math.random() * 8,
-        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        rotation: Math.random() * 360,
+        x: seededUnit(i * 5 + 1) * 100,
+        delay: seededUnit(i * 5 + 2) * 2,
+        duration: 2 + seededUnit(i * 5 + 3) * 3,
+        size: 4 + seededUnit(i * 5 + 4) * 8,
+        color: CONFETTI_COLORS[Math.floor(seededUnit(i * 5 + 5) * CONFETTI_COLORS.length)],
+        rotation: seededUnit(i * 5 + 6) * 360,
     }));
 
     return (
@@ -227,9 +233,9 @@ export default function PostMatchPage() {
                 className="flex gap-md"
                 style={{ marginTop: "var(--space-xl)" }}
             >
-                <a href="/arenas" className="btn btn-primary">Watch Another Match →</a>
-                <a href="/leaderboard" className="btn btn-secondary">View Leaderboard</a>
-                <a href="/profile" className="btn btn-gold">View Winnings</a>
+                <Link href="/arenas" className="btn btn-primary">Watch Another Match →</Link>
+                <Link href="/leaderboard" className="btn btn-secondary">View Leaderboard</Link>
+                <Link href="/profile" className="btn btn-gold">View Winnings</Link>
             </motion.div>
         </div>
     );

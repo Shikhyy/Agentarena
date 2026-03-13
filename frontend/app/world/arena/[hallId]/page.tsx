@@ -25,8 +25,7 @@ const TriviaZone = dynamic(() => import("@/components/world/TriviaZone"), {
     loading: () => <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>Initializing WebGL Engine...</div>
 });
 
-const BACKEND_WS = process.env.NEXT_PUBLIC_BACKEND_WS || "ws://localhost:8000";
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+import { apiGet, wsUrl } from "@/lib/api";
 
 interface AgentState {
     id: string;
@@ -74,7 +73,7 @@ export default function ArenaHallPage() {
 
     // Connect WebSocket
     useEffect(() => {
-        const ws = new WebSocket(`${BACKEND_WS}/arenas/${hallId}/stream`);
+        const ws = new WebSocket(wsUrl(`/arenas/${hallId}/stream`));
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -137,8 +136,7 @@ export default function ArenaHallPage() {
         ws.onclose = () => setConnected(false);
 
         // Load arena info from REST
-        fetch(`${BACKEND_URL}/arenas/live`)
-            .then((r) => r.json())
+        apiGet("/arenas/live")
             .then((data) => {
                 const arena = data.arenas?.find((a: any) => a.id === hallId);
                 if (arena) setArenaInfo(arena);

@@ -31,15 +31,39 @@ export function TriviaBoard3D({
     onBuzz,
     thinkingAgentId,
 }: TriviaBoardProps) {
-    const [timeLeft, setTimeLeft] = useState(15);
-    const [buzzerActive, setBuzzerActive] = useState(false);
+    const questionKey = currentQuestion
+        ? `${currentQuestion.round_number}:${currentQuestion.question}`
+        : "no-question";
+
+    return (
+        <TriviaBoardSession
+            key={questionKey}
+            scores={scores}
+            currentQuestion={currentQuestion}
+            agents={agents}
+            currentRound={currentRound}
+            totalRounds={totalRounds}
+            onBuzz={onBuzz}
+            thinkingAgentId={thinkingAgentId}
+        />
+    );
+}
+
+function TriviaBoardSession({
+    scores,
+    currentQuestion,
+    agents,
+    currentRound,
+    totalRounds,
+    onBuzz,
+    thinkingAgentId,
+}: TriviaBoardProps) {
+    const [timeLeft, setTimeLeft] = useState(() => currentQuestion?.time_limit || 15);
+    const [buzzerActive, setBuzzerActive] = useState(() => Boolean(currentQuestion));
     const [buzzEffect, setBuzzEffect] = useState(false);
 
     useEffect(() => {
         if (!currentQuestion) return;
-        setTimeLeft(currentQuestion.time_limit || 15);
-        setBuzzerActive(true);
-        setBuzzEffect(false);
 
         const interval = setInterval(() => {
             setTimeLeft((t) => {

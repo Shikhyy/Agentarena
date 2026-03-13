@@ -2,20 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useWorldStore } from "@/lib/worldStore";
-import dynamic from "next/dynamic";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-
-const HeroBackground3D = dynamic(() => import("@/components/world/HeroBackground3D"), { ssr: false });
+import { apiGet } from "@/lib/api";
 
 interface LiveArena {
   id: string;
   game_type: string;
   status: string;
   spectators: number;
-  agent_a: any;
-  agent_b: any;
+  agent_a: { name?: string; elo?: number };
+  agent_b: { name?: string; elo?: number };
 }
 
 const containerVariants = {
@@ -31,7 +28,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
-const gameColors: Record<string, string> = { chess: "var(--neon-green)", poker: "var(--danger-red)", monopoly: "var(--arena-gold)", trivia: "var(--electric-purple-light)" };
+const gameColors: Record<string, string> = { chess: "var(--apex-green)", poker: "var(--apex-red)", monopoly: "var(--apex-gold)", trivia: "var(--apex-violet)" };
 
 export default function HomePage() {
   const { liveMatches, agents } = useWorldStore();
@@ -39,8 +36,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/arenas/live`)
-      .then(res => res.json())
+    apiGet<{ arenas: LiveArena[] }>("/arenas/live")
       .then(data => {
         setLiveArenas(data.arenas || []);
         setLoading(false);
@@ -51,19 +47,14 @@ export default function HomePage() {
       });
   }, []);
 
-  const totalSpectators = liveArenas.reduce((acc, arena) => acc + arena.spectators, 0);
-
   return (
-    <div className="page" style={{ position: "relative" }}>
-      <HeroBackground3D />
-
+    <div className="page">
       {/* Hero Section */}
-      <section className="hero relative z-10 min-h-screen flex flex-col justify-center pt-24 pb-16">
+      <section className="hero">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="container mx-auto px-4"
         >
           <div style={{ marginBottom: "var(--space-md)" }}>
             <span className="badge" style={{ background: "rgba(139, 63, 232, 0.1)", color: "var(--electric-purple-light)", border: "1px solid rgba(139, 63, 232, 0.2)", padding: "6px 16px", borderRadius: "var(--radius-full)", fontSize: "0.85rem", letterSpacing: "0.15em" }}>
@@ -79,12 +70,12 @@ export default function HomePage() {
             Live narrate every move. Verify logic on-chain and bet $ARENA.
           </p>
           <div className="hero-actions" style={{ gap: "var(--space-md)" }}>
-            <a href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 36px", borderRadius: "var(--radius-full)" }}>
+            <Link href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 36px", borderRadius: "var(--radius-full)" }}>
               ENTER 3D WORLD
-            </a>
-            <a href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 36px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "var(--radius-full)" }}>
+            </Link>
+            <Link href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 36px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "var(--radius-full)" }}>
               WATCH LIVE
-            </a>
+            </Link>
           </div>
 
           <motion.div
@@ -95,16 +86,16 @@ export default function HomePage() {
             style={{ marginTop: "var(--space-3xl)", gap: "var(--space-lg)" }}
           >
             {[
-              { label: "24H TRADING VOL", value: "$" + ((liveMatches?.reduce((acc: number, m: any) => acc + (m.potArena || 0), 0) || 0) * 1.5 + 45200).toLocaleString(undefined, { maximumFractionDigits: 0 }), highlight: true },
-              { label: "AVG AGENT YIELD", value: "+14.2%", highlight: true },
-              { label: "ACTIVE AI TRADERS", value: (agents?.length || 0) * 12 + 142 },
-              { label: "LIVE ARENAS", value: liveArenas.length || 0 },
+              { label: "Active Arenas", value: liveArenas.length || 0 },
+              { label: "Agents Deployed", value: agents?.length || 0 },
+              { label: "$ARENA in Play", value: (liveMatches ?? []).reduce((acc, match) => acc + (match.pool || 0), 0) },
+              { label: "Top Win Rate", value: `${Math.round((agents ?? []).reduce((max, agent) => Math.max(max, agent.winRate || 0), 0) * 100)}%` },
             ].map((stat) => (
-              <motion.div key={stat.label} variants={itemVariants} className="glass-panel" style={{ padding: "var(--space-lg)", textAlign: "center", borderRadius: "12px", border: "1px solid var(--border-color)", background: "var(--surface-bg)", boxShadow: stat.highlight ? "var(--shadow-glow-cyan)" : "none" }}>
-                <div className="mono font-bold" style={{ fontSize: "2.2rem", color: stat.highlight ? "var(--success-green)" : "var(--text-primary)", letterSpacing: "-0.02em" }}>
+              <motion.div key={stat.label} variants={itemVariants} className="glass-panel" style={{ padding: "var(--space-lg)", textAlign: "center", borderRadius: "var(--radius-xl)" }}>
+                <div style={{ fontSize: "2.5rem", fontWeight: 500, fontFamily: "var(--font-heading)", color: "var(--text-primary)", letterSpacing: "-0.05em" }}>
                   {stat.value}
                 </div>
-                <div className="text-muted mono" style={{ fontSize: "0.75rem", letterSpacing: "0.1em", marginTop: 8 }}>{stat.label}</div>
+                <div className="text-muted" style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 8 }}>{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -121,9 +112,9 @@ export default function HomePage() {
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--danger-red)", boxShadow: "0 0 10px var(--danger-red)" }} className="pulse-dot"></div>
             <h2>Live Arenas</h2>
           </div>
-          <a href="/arenas" className="btn btn-secondary btn-sm">
+          <Link href="/arenas" className="btn btn-secondary btn-sm">
             View All {liveArenas.length > 0 ? `(${liveArenas.length})` : ""} →
-          </a>
+          </Link>
         </div>
 
         {loading ? (
@@ -143,9 +134,8 @@ export default function HomePage() {
             animate="visible"
           >
             {liveArenas.slice(0, 4).map((arena) => (
-              <motion.a
-                key={arena.id}
-                href={`/world/arena/${arena.id}`}
+              <Link key={arena.id} href={`/world/arena/${arena.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <motion.div
                 className="glass-card arena-card"
                 variants={itemVariants}
                 whileHover={{ scale: 1.01, translateY: -2 }}
@@ -182,7 +172,8 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
-              </motion.a>
+              </motion.div>
+              </Link>
             ))}
           </motion.div>
         )}
@@ -234,9 +225,9 @@ export default function HomePage() {
         <h2 style={{ fontSize: "2.5rem" }}>Ready to Enter the Arena?</h2>
         <p style={{ maxWidth: 500, color: "var(--text-secondary)" }}>Build your first agent in under 2 minutes. No experience needed. Battle tested by Gemini.</p>
         <div className="hero-actions" style={{ marginTop: "var(--space-xl)" }}>
-          <a href="/builder" className="btn btn-primary btn-lg" style={{ padding: "16px 40px", fontSize: "1.1rem", borderRadius: "var(--radius-xl)" }}>
+          <Link href="/builder" className="btn btn-primary btn-lg" style={{ padding: "16px 40px", fontSize: "1.1rem", borderRadius: "var(--radius-xl)" }}>
             Get Started Free
-          </a>
+          </Link>
         </div>
         <p
           className="text-mono"
@@ -253,13 +244,12 @@ export default function HomePage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-  .pulse - dot { animation: pulse 2s infinite; }
-@keyframes pulse {
-  0 % { transform: scale(0.95); box- shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-}
-70 % { transform: scale(1); box- shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-100 % { transform: scale(0.95); box- shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
+  .pulse-dot { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
 `}} />
     </div>
   );

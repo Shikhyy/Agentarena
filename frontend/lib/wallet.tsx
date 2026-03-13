@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, ReactNode 
 
 import { SiweMessage } from "siwe";
 import { fetchArenaBalance } from "@/lib/contracts";
+import { BACKEND_URL } from "@/lib/api";
 
 // ── Types ────────────────────────────────────────────────────
 interface WalletState {
@@ -46,8 +47,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
 
     const connect = useCallback(async () => {
+        // Demo mode: if no MetaMask, simulate a wallet for development
         if (typeof window === "undefined" || !(window as any).ethereum) {
-            alert("Please install MetaMask to connect your wallet.");
+            setState({
+                address: "0xDEMO...4321",
+                chainId: 137,
+                isConnected: true,
+                isConnecting: false,
+                balance: "0.0000",
+                arenaBalance: "1000",
+                token: "demo-token",
+            });
+            console.log("[WalletProvider] Demo mode — no MetaMask detected. Simulated wallet with 1000 $ARENA.");
             return;
         }
         setState((s) => ({ ...s, isConnecting: true }));
@@ -60,7 +71,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             const chainId = parseInt(chainIdHex, 16);
 
             // 1. Get Nonce from Backend
-            const nonceRes = await fetch("http://localhost:8000/auth/nonce");
+            const nonceRes = await fetch(`${BACKEND_URL}/auth/nonce`);
             const { nonce } = await nonceRes.json();
 
             // 2. Create SIWE Message
@@ -82,7 +93,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             });
 
             // 4. Verify signature on backend
-            const verifyRes = await fetch("http://localhost:8000/auth/verify", {
+            const verifyRes = await fetch(`${BACKEND_URL}/auth/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: message, signature }),

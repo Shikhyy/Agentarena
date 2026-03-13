@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet";
+import { apiGet } from "@/lib/api";
 
 interface BetRecord {
     arena_id: string;
@@ -37,9 +38,8 @@ export default function ProfilePage() {
 
         const fetchBets = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/arenas/bets/${address}`);
-                if (res.ok) {
-                    const data = await res.json();
+                const data = await apiGet(`/arenas/bets/${address}`);
+                if (data) {
                     const betHistory: BetRecord[] = data.bets || [];
                     setBets(betHistory);
 

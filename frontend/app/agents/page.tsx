@@ -1,10 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 import { useState, useEffect } from "react";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+import { apiGet } from "@/lib/api";
 
 interface Agent {
     id: string;
@@ -24,8 +24,7 @@ export default function AgentsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`${BACKEND_URL}/agents`)
-            .then(res => res.json())
+        apiGet("/agents")
             .then(data => {
                 const arr = Array.isArray(data) ? data : data.agents || [];
                 setMyAgents(arr);
@@ -46,9 +45,9 @@ export default function AgentsPage() {
                         Manage your AI warriors. Upgrade, breed, and deploy.
                     </p>
                 </div>
-                <a href="/builder" className="btn btn-primary">
+                <Link href="/builder" className="btn btn-primary">
                     + Build New Agent
-                </a>
+                </Link>
             </div>
 
             {/* Agent Portfolio Grid */}

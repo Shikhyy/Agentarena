@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text, Float, Html, RoundedBox } from "@react-three/drei";
+import { useRef, useMemo, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, Text, MeshReflectorMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
@@ -12,7 +12,7 @@ function CameraController({ mode }: { mode: "cinematic" | "tactical" | "free" })
 
     useFrame(() => {
         if (mode === "tactical") {
-            camera.position.lerp(new THREE.Vector3(0, 8, 0.1), 0.05);
+            camera.position.lerp(new THREE.Vector3(0, 7, 0.5), 0.03);
             camera.lookAt(0, 0, 0);
         }
     });
@@ -21,129 +21,181 @@ function CameraController({ mode }: { mode: "cinematic" | "tactical" | "free" })
         <OrbitControls
             enablePan={mode === "free"}
             enableZoom={true}
-            minDistance={2}
-            maxDistance={12}
-            maxPolarAngle={mode === "tactical" ? Math.PI / 8 : Math.PI / 2.2}
+            minDistance={3}
+            maxDistance={10}
+            maxPolarAngle={mode === "tactical" ? Math.PI / 6 : Math.PI / 2.2}
             autoRotate={mode === "cinematic"}
-            autoRotateSpeed={0.5}
+            autoRotateSpeed={0.3}
+            enableDamping
+            dampingFactor={0.05}
         />
     );
 }
 
-/* ── Interactive Betting Pools ────────────────────────────── */
-function BettingPools() {
-    const [hoverA, setHoverA] = useState(false);
-    const [hoverB, setHoverB] = useState(false);
-
+/* ── Refined Chess Piece Shapes ─────────────────────────── */
+function Pawn({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
     return (
         <group>
-            {/* Pool A (White Support) */}
-            <group position={[-3.5, 0, 1.5]}>
-                <mesh
-                    onPointerOver={(e) => { e.stopPropagation(); setHoverA(true); document.body.style.cursor = 'pointer'; }}
-                    onPointerOut={() => { setHoverA(false); document.body.style.cursor = 'default'; }}
-                    onClick={(e) => { e.stopPropagation(); alert("Betting interface triggered for Agent White"); }}
-                >
-                    <cylinderGeometry args={[0.4, 0.5, 0.2, 16]} />
-                    <meshStandardMaterial color="#2d2459" emissive="#8B3FE8" emissiveIntensity={hoverA ? 1.5 : 0.5} metalness={0.8} roughness={0.2} />
-                </mesh>
-                <mesh position={[0, 0.5, 0]}>
-                    <cylinderGeometry args={[0.35, 0.35, 1, 16, 1, true]} />
-                    <meshBasicMaterial color="#8B3FE8" transparent opacity={hoverA ? 0.3 : 0.1} side={THREE.DoubleSide} />
-                </mesh>
-                <Float speed={2} floatIntensity={0.2}>
-                    <Text position={[0, 1.5, 0]} fontSize={0.15} color="#8B3FE8" anchorX="center">[LONG_POOL]</Text>
-                </Float>
-            </group>
-
-            {/* Pool B (Black Support) */}
-            <group position={[3.5, 0, -1.5]}>
-                <mesh
-                    onPointerOver={(e) => { e.stopPropagation(); setHoverB(true); document.body.style.cursor = 'pointer'; }}
-                    onPointerOut={() => { setHoverB(false); document.body.style.cursor = 'default'; }}
-                    onClick={(e) => { e.stopPropagation(); alert("Betting interface triggered for Agent Black"); }}
-                >
-                    <cylinderGeometry args={[0.4, 0.5, 0.2, 16]} />
-                    <meshStandardMaterial color="#0f0a1a" emissive="#00FFB0" emissiveIntensity={hoverB ? 1.5 : 0.5} metalness={0.8} roughness={0.2} />
-                </mesh>
-                <mesh position={[0, 0.5, 0]}>
-                    <cylinderGeometry args={[0.35, 0.35, 1, 16, 1, true]} />
-                    <meshBasicMaterial color="#00FFB0" transparent opacity={hoverB ? 0.3 : 0.1} side={THREE.DoubleSide} />
-                </mesh>
-                <Float speed={2} floatIntensity={0.2}>
-                    <Text position={[0, 1.5, 0]} fontSize={0.15} color="#00FFB0" anchorX="center">[SHORT_POOL]</Text>
-                </Float>
-            </group>
+            {/* Base disk */}
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.16, 0.18, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            {/* Body - tapered column */}
+            <mesh position={[0, 0.22, 0]} castShadow>
+                <cylinderGeometry args={[0.06, 0.13, 0.32, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Head sphere */}
+            <mesh position={[0, 0.42, 0]} castShadow>
+                <sphereGeometry args={[0.08, 24, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.6} roughness={0.2} emissive={emissive} emissiveIntensity={0.5} />
+            </mesh>
         </group>
     );
 }
 
-/* ── Mind Camera (PiP Reasoning Stream) ──────────────────── */
-function MindCamera({ activeColor, agentWhite, agentBlack }: { activeColor: string, agentWhite: string, agentBlack: string }) {
-    const [thoughts, setThoughts] = useState<string[]>([
-        "Analyzing position...",
-        "Evaluating control of e4...",
-        "Candidate moves: Nf3, d4, Nc3",
-    ]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setThoughts(prev => {
-                const newT = [...prev, `Evaluating depth ${Math.floor(Math.random() * 10 + 10)}... score +${(Math.random() * 2).toFixed(2)}`];
-                if (newT.length > 4) return newT.slice(newT.length - 4);
-                return newT;
-            });
-        }, 2000);
-        return () => clearInterval(interval);
-    }, [activeColor]);
-
-    const isWhite = activeColor === "white";
-    const xPos = isWhite ? 2 : -2;
-    const zPos = isWhite ? 2.5 : -2.5;
-    const color = isWhite ? "#8B3FE8" : "#00FFB0";
-    const bgGlow = isWhite ? "rgba(139, 63, 232, 0.15)" : "rgba(0, 255, 176, 0.15)";
-    const agentName = isWhite ? agentWhite : agentBlack;
-
+function Rook({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
     return (
-        <group position={[xPos, 2, zPos]}>
-            <Float speed={3} floatIntensity={0.2}>
-                {/* 3D Frame */}
-                <RoundedBox args={[2.2, 1.6, 0.05]} radius={0.02}>
-                    <meshStandardMaterial color="#0A0A14" metalness={0.8} roughness={0.2} emissive={color} emissiveIntensity={0.2} />
-                </RoundedBox>
-                <mesh position={[0, 0, 0.03]}>
-                    <planeGeometry args={[2.1, 1.5]} />
-                    <meshBasicMaterial color="#020205" transparent opacity={0.9} />
-                </mesh>
-
-                {/* HTML Overlay */}
-                <Html position={[0, 0, 0.04]} transform distanceFactor={5} zIndexRange={[100, 0]}>
-                    <div
-                        className="w-[300px] h-[220px] p-3 box-border flex flex-col font-mono text-xs overflow-hidden"
-                        style={{ background: bgGlow, border: `1px solid ${color}`, boxShadow: `0 0 15px ${bgGlow}` }}
-                    >
-                        <div className="flex justify-between items-center border-b pb-1 mb-2" style={{ borderColor: color, color: color }}>
-                            <span className="font-bold tracking-widest">[MIND_CAMERA_LIVE]</span>
-                            <span className="animate-pulse">● REC</span>
-                        </div>
-                        <div className="text-white mb-2 uppercase opacity-80">{agentName} // NEURAL_STREAM</div>
-                        <div className="flex-1 flex flex-col gap-1 justify-end">
-                            {thoughts.map((t, i) => (
-                                <div key={i} className="opacity-80 flex gap-2" style={{ color: i === thoughts.length - 1 ? color : '#a0a0a0' }}>
-                                    <span>&gt;</span>
-                                    <span className="truncate">{t}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </Html>
-            </Float>
+        <group>
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.17, 0.19, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.25, 0]} castShadow>
+                <cylinderGeometry args={[0.1, 0.15, 0.38, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Crenellated top */}
+            <mesh position={[0, 0.46, 0]} castShadow>
+                <cylinderGeometry args={[0.13, 0.1, 0.06, 4]} />
+                <meshStandardMaterial color={mat} metalness={0.6} roughness={0.2} emissive={emissive} emissiveIntensity={0.4} />
+            </mesh>
         </group>
     );
 }
 
+function Knight({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
+    return (
+        <group>
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.16, 0.18, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            {/* Body column */}
+            <mesh position={[0, 0.22, 0]} castShadow>
+                <cylinderGeometry args={[0.07, 0.14, 0.32, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Horse head - angled box + sphere */}
+            <mesh position={[0, 0.44, 0.04]} rotation={[0.3, 0, 0]} castShadow>
+                <boxGeometry args={[0.1, 0.16, 0.14]} />
+                <meshStandardMaterial color={mat} metalness={0.6} roughness={0.2} emissive={emissive} emissiveIntensity={0.5} />
+            </mesh>
+            <mesh position={[0, 0.5, 0.08]} castShadow>
+                <sphereGeometry args={[0.05, 16, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.7} roughness={0.2} emissive={emissive} emissiveIntensity={0.5} />
+            </mesh>
+        </group>
+    );
+}
 
-/* ── Chess Piece shapes (simplified geometry) ───────────────── */
+function Bishop({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
+    return (
+        <group>
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.16, 0.18, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.28, 0]} castShadow>
+                <cylinderGeometry args={[0.06, 0.14, 0.44, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Mitre tip */}
+            <mesh position={[0, 0.54, 0]} castShadow>
+                <coneGeometry args={[0.06, 0.12, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.7} roughness={0.2} emissive={emissive} emissiveIntensity={0.6} />
+            </mesh>
+            <mesh position={[0, 0.62, 0]} castShadow>
+                <sphereGeometry args={[0.03, 16, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.8} roughness={0.15} emissive={emissive} emissiveIntensity={0.7} />
+            </mesh>
+        </group>
+    );
+}
+
+function Queen({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
+    return (
+        <group>
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.17, 0.19, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.32, 0]} castShadow>
+                <cylinderGeometry args={[0.06, 0.15, 0.52, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Crown ring */}
+            <mesh position={[0, 0.58, 0]} castShadow>
+                <torusGeometry args={[0.07, 0.02, 8, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.8} roughness={0.15} emissive={emissive} emissiveIntensity={0.7} />
+            </mesh>
+            {/* Crown ball */}
+            <mesh position={[0, 0.64, 0]} castShadow>
+                <sphereGeometry args={[0.04, 24, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.8} roughness={0.1} emissive={emissive} emissiveIntensity={0.8} />
+            </mesh>
+        </group>
+    );
+}
+
+function King({ color, isActive }: { color: "white" | "black"; isActive: boolean }) {
+    const mat = color === "white" ? "#E8DCC8" : "#1A1A2E";
+    const emissive = isActive ? (color === "white" ? "#7B5CFA" : "#00D4FF") : "#000000";
+    return (
+        <group>
+            <mesh position={[0, 0.03, 0]} castShadow>
+                <cylinderGeometry args={[0.18, 0.2, 0.06, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.34, 0]} castShadow>
+                <cylinderGeometry args={[0.07, 0.16, 0.56, 16]} />
+                <meshStandardMaterial color={mat} metalness={0.5} roughness={0.3} emissive={emissive} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Crown platform */}
+            <mesh position={[0, 0.62, 0]} castShadow>
+                <cylinderGeometry args={[0.09, 0.07, 0.04, 24]} />
+                <meshStandardMaterial color={mat} metalness={0.7} roughness={0.2} emissive={emissive} emissiveIntensity={0.5} />
+            </mesh>
+            {/* Cross — vertical */}
+            <mesh position={[0, 0.72, 0]} castShadow>
+                <boxGeometry args={[0.02, 0.12, 0.02]} />
+                <meshStandardMaterial color={mat} metalness={0.8} roughness={0.15} emissive={emissive} emissiveIntensity={0.8} />
+            </mesh>
+            {/* Cross — horizontal */}
+            <mesh position={[0, 0.72, 0]} castShadow>
+                <boxGeometry args={[0.08, 0.02, 0.02]} />
+                <meshStandardMaterial color={mat} metalness={0.8} roughness={0.15} emissive={emissive} emissiveIntensity={0.8} />
+            </mesh>
+        </group>
+    );
+}
+
+/* ── Chess Piece Router ──────────────────────────────────── */
+const PIECE_COMPONENTS: Record<string, React.FC<{ color: "white" | "black"; isActive: boolean }>> = {
+    pawn: Pawn, rook: Rook, knight: Knight, bishop: Bishop, queen: Queen, king: King,
+};
+
 function ChessPiece({
     position,
     color,
@@ -155,52 +207,27 @@ function ChessPiece({
     type: string;
     isActive?: boolean;
 }) {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const pieceColor = color === "white" ? "#e8e0d0" : "#2a1f3d";
-    const emissive = color === "white" ? "#8B3FE8" : "#00FFB0";
+    const ref = useRef<THREE.Group>(null);
+    const Comp = PIECE_COMPONENTS[type] || Pawn;
 
-    useFrame((_, delta) => {
-        if (meshRef.current && isActive) {
-            meshRef.current.position.y = position[1] + Math.sin(Date.now() * 0.003) * 0.08;
+    useFrame(() => {
+        if (ref.current && isActive) {
+            ref.current.position.y = position[1] + Math.sin(Date.now() * 0.003) * 0.04;
         }
     });
 
-    const height = type === "king" ? 0.7 : type === "queen" ? 0.65 : type === "rook" ? 0.45 : type === "bishop" ? 0.55 : type === "knight" ? 0.5 : 0.3;
-    const radius = type === "pawn" ? 0.12 : 0.15;
-
     return (
-        <group position={position}>
-            {/* Base */}
-            <mesh ref={meshRef} castShadow>
-                <cylinderGeometry args={[radius, radius * 1.3, 0.08, 16]} />
-                <meshStandardMaterial color={pieceColor} metalness={0.3} roughness={0.6} />
-            </mesh>
-            {/* Body */}
-            <mesh position={[0, height / 2, 0]} castShadow>
-                <cylinderGeometry args={[radius * 0.6, radius, height, 16]} />
-                <meshStandardMaterial
-                    color={pieceColor}
-                    metalness={0.3}
-                    roughness={0.6}
-                    emissive={isActive ? emissive : "#000000"}
-                    emissiveIntensity={isActive ? 0.4 : 0}
-                />
-            </mesh>
-            {/* Top */}
-            <mesh position={[0, height + 0.05, 0]} castShadow>
-                <sphereGeometry args={[radius * 0.5, 32, 32]} />
-                <meshStandardMaterial
-                    color={pieceColor}
-                    metalness={0.7}
-                    roughness={0.2}
-                    emissive={isActive ? emissive : "#000000"}
-                    emissiveIntensity={isActive ? 0.8 : 0}
-                />
-            </mesh>
+        <group ref={ref} position={position}>
+            <Comp color={color} isActive={isActive} />
+            {/* Active glow ring */}
             {isActive && (
-                <mesh position={[0, 0, 0]}>
-                    <cylinderGeometry args={[radius * 1.5, radius * 1.5, 0.05, 32]} />
-                    <meshBasicMaterial color={emissive} transparent opacity={0.3} />
+                <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.18, 0.24, 32]} />
+                    <meshBasicMaterial
+                        color={color === "white" ? "#7B5CFA" : "#00D4FF"}
+                        transparent opacity={0.5}
+                        side={THREE.DoubleSide}
+                    />
                 </mesh>
             )}
         </group>
@@ -223,37 +250,98 @@ function Board() {
 
     return (
         <group>
-            {/* Board base */}
-            <mesh position={[0, -0.06, 0]} receiveShadow>
-                <boxGeometry args={[4.2, 0.12, 4.2]} />
-                <meshStandardMaterial color="#141424" metalness={0.4} roughness={0.6} />
+            {/* Board base — dark wood with chamfered edges */}
+            <mesh position={[0, -0.08, 0]} receiveShadow castShadow>
+                <boxGeometry args={[4.4, 0.16, 4.4]} />
+                <meshStandardMaterial color="#0E0E1A" metalness={0.6} roughness={0.4} />
             </mesh>
-            {/* Board border glass */}
-            <mesh position={[0, -0.01, 0]}>
-                <boxGeometry args={[4.3, 0.02, 4.3]} />
-                <meshPhysicalMaterial
-                    color="#ffffff"
-                    emissive="#ffffff"
-                    emissiveIntensity={0.1}
-                    transparent
-                    opacity={0.15}
-                    metalness={0.9}
-                    roughness={0.1}
-                    transmission={0.9}
-                />
+            {/* Edge accent strip */}
+            <mesh position={[0, -0.005, 0]} receiveShadow>
+                <boxGeometry args={[4.2, 0.01, 4.2]} />
+                <meshStandardMaterial color="#7B5CFA" emissive="#7B5CFA" emissiveIntensity={0.15} metalness={0.9} roughness={0.1} transparent opacity={0.4} />
             </mesh>
             {/* Squares */}
             {squares.map((sq, i) => (
                 <mesh key={i} position={sq.pos} receiveShadow>
-                    <boxGeometry args={[0.48, 0.04, 0.48]} />
+                    <boxGeometry args={[0.49, 0.02, 0.49]} />
                     <meshStandardMaterial
-                        color={sq.isLight ? "#24243A" : "#0A0A14"}
-                        metalness={0.2}
-                        roughness={0.8}
+                        color={sq.isLight ? "#2A2A40" : "#111120"}
+                        metalness={sq.isLight ? 0.3 : 0.5}
+                        roughness={sq.isLight ? 0.7 : 0.6}
                     />
                 </mesh>
             ))}
+            {/* File/Rank labels */}
+            {["a", "b", "c", "d", "e", "f", "g", "h"].map((l, i) => (
+                <Text key={`f${i}`} position={[(i - 3.5) * 0.5, 0.01, 2.3]} rotation={[-Math.PI / 2, 0, 0]}
+                    fontSize={0.08} color="rgba(255,255,255,0.15)" anchorX="center" anchorY="middle">{l}</Text>
+            ))}
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <Text key={`r${n}`} position={[-2.3, 0.01, ((n - 1) - 3.5) * -0.5]} rotation={[-Math.PI / 2, 0, 0]}
+                    fontSize={0.08} color="rgba(255,255,255,0.15)" anchorX="center" anchorY="middle">{n.toString()}</Text>
+            ))}
         </group>
+    );
+}
+
+/* ── Reflective Floor ────────────────────────────────────── */
+function ReflectiveFloor() {
+    return (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.17, 0]} receiveShadow>
+            <planeGeometry args={[30, 30]} />
+            <MeshReflectorMaterial
+                mirror={0.15}
+                blur={[300, 100]}
+                resolution={512}
+                mixBlur={1}
+                mixStrength={0.4}
+                color="#040408"
+                metalness={0.8}
+                roughness={0.7}
+            />
+        </mesh>
+    );
+}
+
+function seededUnit(seed: number) {
+    const value = Math.sin(seed * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+}
+
+/* ── Subtle Ambient Particles ────────────────────────────── */
+function AmbientDust() {
+    const ref = useRef<THREE.Points>(null);
+    const count = 120;
+
+    const positions = useMemo(() => {
+        const pos = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            pos[i * 3] = (seededUnit(i * 3 + 1) - 0.5) * 8;
+            pos[i * 3 + 1] = seededUnit(i * 3 + 2) * 4;
+            pos[i * 3 + 2] = (seededUnit(i * 3 + 3) - 0.5) * 8;
+        }
+        return pos;
+    }, []);
+
+    useFrame((_, delta) => {
+        if (ref.current) {
+            ref.current.rotation.y += delta * 0.01;
+            const arr = ref.current.geometry.attributes.position.array as Float32Array;
+            for (let i = 0; i < count; i++) {
+                arr[i * 3 + 1] += delta * 0.02;
+                if (arr[i * 3 + 1] > 4) arr[i * 3 + 1] = 0;
+            }
+            ref.current.geometry.attributes.position.needsUpdate = true;
+        }
+    });
+
+    return (
+        <points ref={ref}>
+            <bufferGeometry>
+                <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+            </bufferGeometry>
+            <pointsMaterial size={0.015} color="#7B5CFA" transparent opacity={0.2} sizeAttenuation />
+        </points>
     );
 }
 
@@ -281,8 +369,7 @@ function parseFEN(fen: string): { pos: [number, number, number]; color: "white" 
                 const type = typeMap[char.toLowerCase()];
                 const x = (c - 3.5) * 0.5;
                 const z = ((7 - r) - 3.5) * -0.5;
-
-                pieces.push({ pos: [x, 0.05, z], color, type, id: `${type}_${color}_${r}_${c}` });
+                pieces.push({ pos: [x, 0.02, z], color, type, id: `${type}_${color}_${r}_${c}` });
                 c += 1;
             }
         }
@@ -290,49 +377,12 @@ function parseFEN(fen: string): { pos: [number, number, number]; color: "white" 
     return pieces;
 }
 
-/* ── Particle Ring ───────────────────────────────────────── */
-function ParticleRing() {
-    const ref = useRef<THREE.Points>(null);
-    const count = 300;
-
-    const positions = useMemo(() => {
-        const pos = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
-            const angle = (i / count) * Math.PI * 2;
-            const radius = 2.4 + Math.random() * 0.8;
-            pos[i * 3] = Math.cos(angle) * radius;
-            pos[i * 3 + 1] = (Math.random() - 0.5) * 1.5;
-            pos[i * 3 + 2] = Math.sin(angle) * radius;
-        }
-        return pos;
-    }, []);
-
-    useFrame((_, delta) => {
-        if (ref.current) {
-            ref.current.rotation.y += delta * 0.05;
-        }
-    });
-
-    return (
-        <points ref={ref}>
-            <bufferGeometry>
-                <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-            </bufferGeometry>
-            <pointsMaterial size={0.02} color="#ffffff" transparent opacity={0.3} sizeAttenuation />
-        </points>
-    );
-}
-
 /* ── Scene ────────────────────────────────────────────────── */
 function ChessScene({
-    agentWhite = "ZEUS",
-    agentBlack = "ATHENA",
     activeColor = "white",
     fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     camMode = "cinematic",
 }: {
-    agentWhite?: string;
-    agentBlack?: string;
     activeColor?: "white" | "black";
     fen?: string;
     camMode?: "cinematic" | "tactical" | "free";
@@ -341,16 +391,26 @@ function ChessScene({
 
     return (
         <>
-            {/* Premium Lighting */}
-            <ambientLight intensity={0.15} color="#0C0C28" />
-            <spotLight position={[5, 10, 5]} intensity={1.5} angle={Math.PI / 4} penumbra={1} color="#ffffff" castShadow />
-            <pointLight position={[-4, 4, -4]} intensity={1} color="#8B3FE8" distance={15} />
-            <pointLight position={[4, 4, 4]} intensity={1} color="#00FFB0" distance={15} />
+            {/* Lighting rig */}
+            <ambientLight intensity={0.1} color="#0C0C28" />
+            <directionalLight
+                position={[4, 8, 3]}
+                intensity={1.2}
+                castShadow
+                shadow-mapSize={[2048, 2048]}
+                shadow-bias={-0.0001}
+                color="#FFFAF0"
+            />
+            {/* Accent rim lights */}
+            <pointLight position={[-5, 3, -5]} intensity={0.6} color="#7B5CFA" distance={12} decay={2} />
+            <pointLight position={[5, 3, 5]} intensity={0.6} color="#00D4FF" distance={12} decay={2} />
+            {/* Soft fill from below */}
+            <pointLight position={[0, -1, 0]} intensity={0.1} color="#7B5CFA" distance={5} />
 
-            {/* Board & Interactive Elements */}
+            {/* Scene elements */}
             <Board />
-            <BettingPools />
-            <MindCamera activeColor={activeColor} agentWhite={agentWhite} agentBlack={agentBlack} />
+            <ReflectiveFloor />
+            <AmbientDust />
 
             {/* Pieces */}
             {currentPieces.map((piece) => (
@@ -363,10 +423,7 @@ function ChessScene({
                 />
             ))}
 
-            {/* Particles */}
-            <ParticleRing />
-
-            {/* Camera Controls */}
+            {/* Camera */}
             <CameraController mode={camMode} />
         </>
     );
@@ -386,42 +443,51 @@ export default function ChessBoard3D({
 }) {
     const [camMode, setCamMode] = useState<"cinematic" | "tactical" | "free">("cinematic");
 
+    const modes = [
+        { key: "cinematic" as const, label: "🎬", title: "Cinematic" },
+        { key: "tactical" as const, label: "📐", title: "Top-Down" },
+        { key: "free" as const, label: "🖱", title: "Free Roam" },
+    ];
+
     return (
         <div style={{ position: "relative", width: "100%", height: "100%" }}>
-            {/* dynamic camera control UI */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-4 bg-surface-bg/90 backdrop-blur-md border border-border-color p-3 rounded-2xl shadow-card">
-                <button
-                    className={`btn btn-sm ${camMode === 'cinematic' ? 'btn-primary' : 'btn-secondary'} mono`}
-                    onClick={() => setCamMode("cinematic")}
-                    style={camMode === 'cinematic' ? { backgroundColor: 'var(--primary-cyan)', color: 'var(--void-bg)', boxShadow: 'var(--shadow-glow-cyan)' } : {}}
-                >
-                    [CINEMATIC]
-                </button>
-                <button
-                    className={`btn btn-sm ${camMode === 'tactical' ? 'btn-primary' : 'btn-secondary'} mono`}
-                    onClick={() => setCamMode("tactical")}
-                    style={camMode === 'tactical' ? { backgroundColor: 'var(--primary-cyan)', color: 'var(--void-bg)', boxShadow: 'var(--shadow-glow-cyan)' } : {}}
-                >
-                    [TACTICAL]
-                </button>
-                <button
-                    className={`btn btn-sm ${camMode === 'free' ? 'btn-primary' : 'btn-secondary'} mono`}
-                    onClick={() => setCamMode("free")}
-                    style={camMode === 'free' ? { backgroundColor: 'var(--primary-cyan)', color: 'var(--void-bg)', boxShadow: 'var(--shadow-glow-cyan)' } : {}}
-                >
-                    [FREE_ROAM]
-                </button>
+            {/* Minimal camera mode switcher */}
+            <div style={{
+                position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)",
+                zIndex: 50, display: "flex", gap: 2,
+                background: "rgba(10,10,20,0.8)", backdropFilter: "blur(16px)",
+                borderRadius: 12, padding: 3,
+                border: "1px solid rgba(255,255,255,0.06)",
+            }}>
+                {modes.map(m => (
+                    <button
+                        key={m.key}
+                        onClick={() => setCamMode(m.key)}
+                        title={m.title}
+                        style={{
+                            width: 36, height: 32, borderRadius: 9,
+                            border: "none", cursor: "pointer",
+                            fontSize: "0.8rem",
+                            background: camMode === m.key ? "rgba(123,92,250,0.2)" : "transparent",
+                            color: camMode === m.key ? "#fff" : "rgba(255,255,255,0.35)",
+                            boxShadow: camMode === m.key ? "inset 0 0 0 1px rgba(123,92,250,0.4)" : "none",
+                            transition: "all 0.2s",
+                        }}
+                    >
+                        {m.label}
+                    </button>
+                ))}
             </div>
 
             <WebGLSafeCanvas
                 shadows
-                camera={{ position: [0, 4, 6], fov: 45 }}
+                camera={{ position: [0, 3.5, 5.5], fov: 42 }}
                 style={{ width: "100%", height: "100%" }}
                 gl={{ antialias: true }}
             >
-                <color attach="background" args={["#0A0A14"]} />
-                <fog attach="fog" args={["#0A0A14", 8, 15]} />
-                <ChessScene agentWhite={agentWhite} agentBlack={agentBlack} activeColor={activeColor} fen={fen} camMode={camMode} />
+                <color attach="background" args={["#030308"]} />
+                <fog attach="fog" args={["#030308", 8, 18]} />
+                <ChessScene activeColor={activeColor} fen={fen} camMode={camMode} />
             </WebGLSafeCanvas>
         </div>
     );

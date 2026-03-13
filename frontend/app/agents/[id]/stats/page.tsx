@@ -3,8 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+import { apiGet } from "@/lib/api";
 
 interface GameEvent {
     type: string;
@@ -49,8 +48,7 @@ export default function AgentStatsPage() {
     const [tab, setTab] = useState<"overview" | "history" | "elo_curve">("overview");
 
     useEffect(() => {
-        fetch(`${BACKEND_URL}/agents/${params.id}`)
-            .then(res => res.json())
+        apiGet(`/agents/${params.id}`)
             .then(data => {
                 // Synthesize missing arrays for safety since backend might not populate all defaults if newly synthesized  agent
                 const safeStats = {

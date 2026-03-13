@@ -6,6 +6,11 @@ import { Text, Float, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { type WorldAgent } from "@/lib/worldStore";
 
+function seededUnit(seed: number) {
+    const value = Math.sin(seed * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+}
+
 /* ── Aura particles ──────────────────────────────────────── */
 function AgentAura({ color, winRate, isActive }: { color: string; winRate: number; isActive: boolean }) {
     const ref = useRef<THREE.Points>(null);
@@ -15,8 +20,8 @@ function AgentAura({ color, winRate, isActive }: { color: string; winRate: numbe
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
-            const radius = 0.5 + Math.random() * 0.3;
-            const height = (Math.random() - 0.3) * 2;
+            const radius = 0.5 + seededUnit(i * 2 + 1) * 0.3;
+            const height = (seededUnit(i * 2 + 2) - 0.3) * 2;
             pos[i * 3] = Math.cos(angle) * radius;
             pos[i * 3 + 1] = height;
             pos[i * 3 + 2] = Math.sin(angle) * radius;
@@ -153,9 +158,9 @@ function ThinkingParticles({ color }: { color: string }) {
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            pos[i * 3] = (Math.random() - 0.5) * 0.4;
-            pos[i * 3 + 1] = Math.random() * 2 + 1; // Stream upwards
-            pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
+            pos[i * 3] = (seededUnit(i * 3 + 1) - 0.5) * 0.4;
+            pos[i * 3 + 1] = seededUnit(i * 3 + 2) * 2 + 1;
+            pos[i * 3 + 2] = (seededUnit(i * 3 + 3) - 0.5) * 0.4;
         }
         return pos;
     }, []);

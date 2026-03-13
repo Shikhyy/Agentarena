@@ -9,6 +9,7 @@ import {
     getArenaTokenWrite,
     getZKBettingPoolWrite,
 } from "@/lib/contracts";
+import { apiPost } from "@/lib/api";
 
 interface BetSlipProps {
     arenaId: string;
@@ -90,18 +91,8 @@ export function BetSlip({
         // Fallback: send to backend API
         if (!onChainSuccess) {
             try {
-                const token = localStorage.getItem("auth_token") || localStorage.getItem("agentarena_token");
-                const res = await fetch(`http://localhost:8000/arenas/${arenaId}/bet`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify({ amount, position: selectedSide, secret }),
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
+                const data = await apiPost(`/arenas/${arenaId}/bet`, { amount, position: selectedSide, secret });
+                if (data) {
                     onBetConfirmed?.({ side: selectedSide, amount, commitment: data.commitment_hash || commitHash });
                 }
             } catch (e) {

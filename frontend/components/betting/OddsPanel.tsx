@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { CONTRACTS, getZKBettingPoolRead } from "@/lib/contracts";
+import { apiGet, wsUrl } from "@/lib/api";
 
 interface AgentOdds {
     probability: number;
@@ -109,16 +110,13 @@ export function OddsPanel({
 
             // Priority 2: Backend REST & WebSocket (if contracts not deployed/empty)
             try {
-                const res = await fetch("http://localhost:8000/arenas/live");
-                if (res.ok) {
-                    const data = await res.json();
-                    const arena = data.arenas?.find((a: any) => a.id === arenaId);
-                    if (arena?.live_odds && mounted) setOdds(arena.live_odds);
-                }
+                const data = await apiGet("/arenas/live");
+                const arena = data.arenas?.find((a: any) => a.id === arenaId);
+                if (arena?.live_odds && mounted) setOdds(arena.live_odds);
             } catch { }
 
             try {
-                const ws = new WebSocket(`ws://localhost:8000/arenas/${arenaId}/stream`);
+                const ws = new WebSocket(wsUrl(`/arenas/${arenaId}/stream`));
                 wsRef.current = ws;
 
                 ws.onopen = () => { if (mounted) setIsConnected(true); };
