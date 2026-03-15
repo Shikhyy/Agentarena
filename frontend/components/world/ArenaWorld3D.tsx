@@ -18,6 +18,10 @@ import { PlayerController } from "./PlayerController";
 import { WorkshopZone } from "./Workshop3D";
 import { MonopolyZone } from "./MonopolyZone";
 import { GrandArenaZone, HallOfFameZone, MarketplaceZone } from "./OtherZones";
+import { RoadSystem } from "./RoadSystem";
+import { FloatingVault } from "./FloatingVault";
+import { NPCAgents } from "./NPCAgents";
+import { TorchFlicker, DustMotes } from "./AmbientEffects";
 
 /* ── Loading Spinner ────────────────────────────────── */
 function LoadingFallback() {
@@ -291,6 +295,18 @@ function WorldScene() {
             <Suspense fallback={<LoadingFallback />}><GrandArenaZone /></Suspense>
             <Suspense fallback={<LoadingFallback />}><HallOfFameZone /></Suspense>
             <Suspense fallback={<LoadingFallback />}><MarketplaceZone /></Suspense>
+
+            {/* Road network + Vault + NPC agents */}
+            <RoadSystem />
+            <FloatingVault />
+            <NPCAgents />
+
+            {/* Ambient effects */}
+            <DustMotes count={300} spread={200} height={25} />
+            <TorchFlicker position={[10, 3, 10]} />
+            <TorchFlicker position={[-10, 3, -10]} />
+            <TorchFlicker position={[60, 3, 5]} />
+            <TorchFlicker position={[5, 3, -60]} />
 
             {/* Post-processing - premium dark atmosphere */}
             <EffectComposer multisampling={0}>

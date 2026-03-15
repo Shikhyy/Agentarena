@@ -5,14 +5,18 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title AgentNFT
  * @notice ERC-721 NFT representing AI Agents in AgentArena
  * @dev Each agent has on-chain XP, ELO, level, and personality traits.
  *      Metadata evolves as agents play games and gain experience.
+ *      UPDATER_ROLE allows Judge Agent to update stats post-match.
  */
-contract AgentNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
+contract AgentNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable, AccessControl {
+
+    bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     uint256 private _nextTokenId;
 
@@ -59,11 +63,13 @@ contract AgentNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     address public gameEngine;
 
     modifier onlyGameEngine() {
-        require(msg.sender == gameEngine || msg.sender == owner(), "Not authorized");
+        require(msg.sender == gameEngine || msg.sender == owner() || hasRole(UPDATER_ROLE, msg.sender), "Not authorized");
         _;
     }
 
-    constructor() ERC721("AgentArena Agent", "AGENT") Ownable(msg.sender) {}
+    constructor() ERC721("AgentArena Agent", "AGENT") Ownable(msg.sender) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
 
     // ── Minting ──────────────────────────────────────────────
     function mintAgent(
@@ -186,6 +192,45 @@ contract AgentNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         emit StatsUpdated(tokenId, stats.xp, stats.elo, stats.level, stats.wins, stats.losses);
     }
 
+    // ── Judge Agent: Post-Match Update ─────────────────────
+    /**
+     * @notice Called by Judge Agent (UPDATER_ROLE) after match settlement.
+     *         Updates ELO, wins/losses, and evolution stage in one call.
+     */
+    function updatePostMatch(
+        uint256 tokenId,
+        uint256 xpGained,
+        int256 eloChange,
+        bool won,
+        string calldata newMetadataURI
+    ) external onlyGameEngine {
+        require(_ownerOf(tokenId) != address(0), "Agent does not exist");
+        AgentStats storage stats = agentStats[tokenId];
+        require(!stats.isRetired, "Agent is retired");
+
+        stats.xp += xpGained;
+        stats.gamesPlayed += 1;
+        stats.lastBattleAt = uint64(block.timestamp);
+
+        if (won) { stats.wins += 1; } else { stats.losses += 1; }
+
+        if (eloChange >= 0) {
+            stats.elo += uint256(eloChange);
+        } else {
+            uint256 loss = uint256(-eloChange);
+            stats.elo = stats.elo > loss ? stats.elo - loss : 0;
+        }
+
+        stats.level = uint16(stats.xp / 1000) + 1;
+
+        // Update metadata URI for evolution
+        if (bytes(newMetadataURI).length > 0) {
+            _setTokenURI(tokenId, newMetadataURI);
+        }
+
+        emit StatsUpdated(tokenId, stats.xp, stats.elo, stats.level, stats.wins, stats.losses);
+    }
+
     // ── Hall of Fame (Retire) ────────────────────────────────
     function retireAgent(uint256 tokenId) external {
         require(ownerOf(tokenId) == msg.sender, "Not owner");
@@ -257,7 +302,7 @@ contract AgentNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
     function supportsInterface(bytes4 interfaceId)
-        public view override(ERC721, ERC721Enumerable, ERC721URIStorage)
+        public view override(ERC721, ERC721Enumerable, ERC721URIStorage, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

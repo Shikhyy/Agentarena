@@ -179,6 +179,57 @@ const MOCK_AGENTS: WorldAgent[] = [
         personality: "aggressive", position: [-8, 0, 2], targetPosition: [-8, 0, 2],
         status: "idle", winRate: 0.59, auraColor: getAuraColor(0.59), zone: "central-nexus",
     },
+    // NPC agents (autonomous walkers)
+    {
+        id: "npc-herald", name: "HERALD", level: 8, elo: 1650,
+        personality: "adaptive", position: [10, 0, 10], targetPosition: [10, 0, 10],
+        status: "idle", winRate: 0.45, auraColor: getAuraColor(0.45), zone: "central-nexus",
+    },
+    {
+        id: "npc-wraith", name: "WRAITH", level: 10, elo: 1780,
+        personality: "chaotic", position: [-15, 0, -10], targetPosition: [-15, 0, -10],
+        status: "walking", winRate: 0.48, auraColor: getAuraColor(0.48), zone: "central-nexus",
+    },
+    {
+        id: "npc-flux", name: "FLUX", level: 6, elo: 1520,
+        personality: "chaotic", position: [50, 0, 40], targetPosition: [50, 0, 40],
+        status: "idle", winRate: 0.38, auraColor: getAuraColor(0.38), zone: "marketplace",
+    },
+    {
+        id: "npc-sage", name: "SAGE", level: 14, elo: 1980,
+        personality: "conservative", position: [-40, 0, -40], targetPosition: [-40, 0, -40],
+        status: "idle", winRate: 0.55, auraColor: getAuraColor(0.55), zone: "hall-of-fame",
+    },
+    {
+        id: "npc-nova", name: "NOVA", level: 9, elo: 1700,
+        personality: "aggressive", position: [0, 0, 55], targetPosition: [0, 0, 55],
+        status: "walking", winRate: 0.42, auraColor: getAuraColor(0.42), zone: "workshop",
+    },
+    {
+        id: "npc-cipher", name: "CIPHER", level: 11, elo: 1820,
+        personality: "adaptive", position: [-55, 0, 5], targetPosition: [-55, 0, 5],
+        status: "idle", winRate: 0.50, auraColor: getAuraColor(0.50), zone: "arena-monopoly",
+    },
+    {
+        id: "npc-echo", name: "ECHO", level: 7, elo: 1580,
+        personality: "conservative", position: [12, 0, -15], targetPosition: [12, 0, -15],
+        status: "walking", winRate: 0.40, auraColor: getAuraColor(0.40), zone: "central-nexus",
+    },
+    {
+        id: "npc-jinx", name: "JINX", level: 5, elo: 1450,
+        personality: "chaotic", position: [-10, 0, 15], targetPosition: [-10, 0, 15],
+        status: "idle", winRate: 0.35, auraColor: getAuraColor(0.35), zone: "central-nexus",
+    },
+    {
+        id: "npc-rune", name: "RUNE", level: 13, elo: 1920,
+        personality: "adaptive", position: [40, 0, -30], targetPosition: [40, 0, -30],
+        status: "walking", winRate: 0.53, auraColor: getAuraColor(0.53), zone: "central-nexus",
+    },
+    {
+        id: "npc-drift", name: "DRIFT", level: 4, elo: 1380,
+        personality: "aggressive", position: [-20, 0, 30], targetPosition: [-20, 0, 30],
+        status: "idle", winRate: 0.32, auraColor: getAuraColor(0.32), zone: "central-nexus",
+    },
 ];
 
 const MOCK_MATCHES: LiveMatch[] = [
