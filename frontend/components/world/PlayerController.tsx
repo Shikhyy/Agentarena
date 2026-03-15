@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useWorldStore, WORLD_ZONES } from "@/lib/worldStore";
+import { COLORS } from "@/lib/theme";
 
 const WALK_SPEED = 15;
 
@@ -25,8 +26,11 @@ export function PlayerController() {
 
     // Cinematics state
     const cinematicTime = useRef(0);
-    const cinematicStart = new THREE.Vector3(0, 80, 80);
+    const cinematicStart = new THREE.Vector3(0, 200, 160);
     const entryTarget = new THREE.Vector3(0, 0, 10);
+
+    // Orthographic camera offset (top-down isometric per PDF spec)
+    const cameraOffset = new THREE.Vector3(0, 120, 80);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,10 +68,13 @@ export function PlayerController() {
             const t = Math.min(cinematicTime.current, 1);
             // Ease out cubic
             const ease = 1 - Math.pow(1 - t, 3);
-            
-            camera.position.lerpVectors(cinematicStart, new THREE.Vector3(entryTarget.x, entryTarget.y + 6, entryTarget.z + 12), ease);
-            camera.lookAt(0, 2, 0);
-            
+
+            // Cinematic: sweep from high angle down to player position (orthographic)
+            const startPos = cinematicStart;
+            const endPos = entryTarget.clone().add(cameraOffset);
+            camera.position.lerpVectors(startPos, endPos, ease);
+            camera.lookAt(entryTarget.x, 0, entryTarget.z);
+
             if (t >= 1) {
                 setAppState("roaming");
                 setPlayerPosition([entryTarget.x, 0, entryTarget.z]);
@@ -90,7 +97,7 @@ export function PlayerController() {
                 moveDir.normalize().multiplyScalar(WALK_SPEED * delta);
                 posVec.current.add(moveDir);
                 moved = true;
-            } 
+            }
             // 2. Click-to-Move interpolation
             else if (playerTarget) {
                 const targetVec = new THREE.Vector3(...playerTarget);
@@ -112,7 +119,7 @@ export function PlayerController() {
 
             if (moved) {
                 setPlayerPosition([posVec.current.x, posVec.current.y, posVec.current.z]);
-                
+
                 // Determine current zone based on proximity
                 let closestZone = WORLD_ZONES[0].id;
                 let minDist = Infinity;
@@ -125,7 +132,7 @@ export function PlayerController() {
                         closestZone = z.id;
                     }
                 });
-                
+
                 // If within reasonable radius, set it
                 if (minDist < 30) {
                     setZone(closestZone);
@@ -134,10 +141,10 @@ export function PlayerController() {
                 }
             }
 
-            // Camera smoothly follows player
-            const idealCamPos = posVec.current.clone().add(new THREE.Vector3(0, 10, 15));
+            // Orthographic camera smoothly follows player
+            const idealCamPos = posVec.current.clone().add(cameraOffset);
             camera.position.lerp(idealCamPos, 0.05);
-            camera.lookAt(posVec.current.clone().add(new THREE.Vector3(0, 2, 0)));
+            camera.lookAt(posVec.current.clone().add(new THREE.Vector3(0, 0, 0)));
         }
     });
 
@@ -145,21 +152,40 @@ export function PlayerController() {
 
     return (
         <group ref={playerRef} position={playerPos}>
+            {/* Player orb — gold neon */}
             <mesh position={[0, 1, 0]}>
                 <sphereGeometry args={[0.4, 16, 16]} />
-                <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={1} />
+                <meshStandardMaterial
+                    color={COLORS.gold}
+                    emissive={COLORS.gold}
+                    emissiveIntensity={2}
+                />
             </mesh>
-            <pointLight position={[0, 2, 0]} color="#F59E0B" intensity={2} distance={10} />
+            <pointLight position={[0, 2, 0]} color={COLORS.gold} intensity={3} distance={10} />
+
+            {/* Ground ring */}
             <mesh position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]}>
                 <ringGeometry args={[0.5, 0.7, 32]} />
-                <meshBasicMaterial color="#F59E0B" transparent opacity={0.8} />
+                <meshStandardMaterial
+                    color={COLORS.gold}
+                    emissive={COLORS.gold}
+                    emissiveIntensity={1}
+                    transparent
+                    opacity={0.8}
+                />
             </mesh>
-            
-            {/* If clicking to move, show indicator */}
+
+            {/* If clicking to move, show neon indicator */}
             {playerTarget && (
                 <mesh position={[playerTarget[0] - posVec.current.x, 0.1, playerTarget[2] - posVec.current.z]} rotation={[-Math.PI/2, 0, 0]}>
                     <ringGeometry args={[0.6, 0.8, 32]} />
-                    <meshBasicMaterial color="#10B981" transparent opacity={0.6} />
+                    <meshStandardMaterial
+                        color={COLORS.tealLight}
+                        emissive={COLORS.tealLight}
+                        emissiveIntensity={1}
+                        transparent
+                        opacity={0.6}
+                    />
                 </mesh>
             )}
         </group>

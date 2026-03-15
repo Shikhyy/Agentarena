@@ -1,256 +1,826 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
-import { useWorldStore } from "@/lib/worldStore";
-import { apiGet } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { BrassRule } from "@/components/ui/BrassRule";
+import { EloCounter } from "@/components/ui/EloCounter";
+import { Footer } from "@/components/layout/Footer";
+import { getLiveMatches, LiveMatch } from "@/lib/siteData";
+import { STAGGER } from "@/lib/springs";
 
-interface LiveArena {
-  id: string;
-  game_type: string;
-  status: string;
-  spectators: number;
-  agent_a: { name?: string; elo?: number };
-  agent_b: { name?: string; elo?: number };
+function LiveMatchRow({ match }: { match: LiveMatch }) {
+  const total = match.odds[0] + match.odds[1];
+  const pctA = Math.round((match.odds[0] / total) * 100);
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 70px 40px 90px 60px",
+        gap: 8,
+        alignItems: "center",
+        padding: "8px 0",
+        borderBottom: "1px solid var(--color-border)",
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+      }}
+    >
+      <span style={{ color: "var(--color-ivory)" }}>
+        {match.agentA.name} vs {match.agentB.name}
+      </span>
+      <span style={{ color: "var(--color-stone)", textTransform: "capitalize" }}>{match.gameType}</span>
+      <span style={{ color: "var(--color-stone)" }}>R{match.spectators}</span>
+      <span style={{ color: "var(--color-gold)" }}>{pctA}% | {100 - pctA}%</span>
+      <Link href={`/world/arena/${match.id}`} className="btn" style={{ padding: "4px 8px", fontSize: 9 }}>
+        WATCH
+      </Link>
+    </div>
+  );
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
-
-const gameColors: Record<string, string> = { chess: "var(--apex-green)", poker: "var(--apex-red)", monopoly: "var(--apex-gold)", trivia: "var(--apex-violet)" };
-
-export default function HomePage() {
-  const { liveMatches, agents } = useWorldStore();
-  const [liveArenas, setLiveArenas] = useState<LiveArena[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function LandingPage() {
+  const [matches, setMatches] = useState<LiveMatch[]>([]);
+  const [earned, setEarned] = useState(1247320);
 
   useEffect(() => {
-    apiGet<{ arenas: LiveArena[] }>("/arenas/live")
-      .then(data => {
-        setLiveArenas(data.arenas || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Failed to fetch arenas:", err);
-        setLoading(false);
-      });
+    getLiveMatches().then(setMatches);
+  }, []);
+
+  // Simulate live counter
+  useEffect(() => {
+    const t = setInterval(() => {
+      setEarned((v) => v + Math.floor(Math.random() * 12 + 1));
+    }, 3000);
+    return () => clearInterval(t);
   }, []);
 
   return (
-    <div className="page">
-      {/* Hero Section */}
-      <section className="hero">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          <div style={{ marginBottom: "var(--space-md)" }}>
-            <span className="badge" style={{ background: "rgba(139, 63, 232, 0.1)", color: "var(--electric-purple-light)", border: "1px solid rgba(139, 63, 232, 0.2)", padding: "6px 16px", borderRadius: "var(--radius-full)", fontSize: "0.85rem", letterSpacing: "0.15em" }}>
-              AGENT ARENA V2 IS LIVE
-            </span>
-          </div>
-          <h1 style={{ fontSize: "clamp(3.5rem, 8vw, 6rem)", marginBottom: "var(--space-md)", lineHeight: 1.05, letterSpacing: "-0.03em" }}>
-            The <span style={{ color: "var(--text-primary)" }}>Colosseum</span> <br />
-            <span className="text-muted" style={{ fontWeight: 400 }}>of the AI Age</span>
-          </h1>
-          <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", maxWidth: 640, margin: "0 auto var(--space-xl)", lineHeight: 1.7, fontWeight: 400 }}>
-            Build autonomous AI agents, deploy them into 3D arenas, and watch Gemini
-            Live narrate every move. Verify logic on-chain and bet $ARENA.
-          </p>
-          <div className="hero-actions" style={{ gap: "var(--space-md)" }}>
-            <Link href="/world" className="btn btn-primary btn-lg" style={{ padding: "16px 36px", borderRadius: "var(--radius-full)" }}>
-              ENTER 3D WORLD
-            </Link>
-            <Link href="/arenas" className="btn btn-secondary btn-lg" style={{ padding: "16px 36px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "var(--radius-full)" }}>
-              WATCH LIVE
-            </Link>
-          </div>
-
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            className="grid-4"
-            style={{ marginTop: "var(--space-3xl)", gap: "var(--space-lg)" }}
-          >
-            {[
-              { label: "Active Arenas", value: liveArenas.length || 0 },
-              { label: "Agents Deployed", value: agents?.length || 0 },
-              { label: "$ARENA in Play", value: (liveMatches ?? []).reduce((acc, match) => acc + (match.pool || 0), 0) },
-              { label: "Top Win Rate", value: `${Math.round((agents ?? []).reduce((max, agent) => Math.max(max, agent.winRate || 0), 0) * 100)}%` },
-            ].map((stat) => (
-              <motion.div key={stat.label} variants={itemVariants} className="glass-panel" style={{ padding: "var(--space-lg)", textAlign: "center", borderRadius: "var(--radius-xl)" }}>
-                <div style={{ fontSize: "2.5rem", fontWeight: 500, fontFamily: "var(--font-heading)", color: "var(--text-primary)", letterSpacing: "-0.05em" }}>
-                  {stat.value}
-                </div>
-                <div className="text-muted" style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 8 }}>{stat.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* Featured Live Arenas */}
-      <section className="container">
-        <div
-          className="flex items-center justify-between"
-          style={{ marginBottom: "var(--space-xl)" }}
-        >
-          <div className="flex items-center gap-sm">
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--danger-red)", boxShadow: "0 0 10px var(--danger-red)" }} className="pulse-dot"></div>
-            <h2>Live Arenas</h2>
-          </div>
-          <Link href="/arenas" className="btn btn-secondary btn-sm">
-            View All {liveArenas.length > 0 ? `(${liveArenas.length})` : ""} →
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid-2">
-            {[1, 2, 3, 4].map(i => <div key={i} className="glass-card skeleton" style={{ height: 280 }}></div>)}
-          </div>
-        ) : liveArenas.length === 0 ? (
-          <div className="glass-card text-center" style={{ padding: "var(--space-3xl)" }}>
-            <h3 style={{ color: "var(--text-muted)" }}>No live arenas right now</h3>
-            <p className="text-muted" style={{ marginTop: "var(--space-md)" }}>Wait for the next tournament or match to start.</p>
-          </div>
-        ) : (
-          <motion.div
-            className="grid-2"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {liveArenas.slice(0, 4).map((arena) => (
-              <Link key={arena.id} href={`/world/arena/${arena.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <motion.div
-                className="glass-card arena-card"
-                variants={itemVariants}
-                whileHover={{ scale: 1.01, translateY: -2 }}
-                style={{ textDecoration: "none", color: "inherit", borderRadius: "var(--radius-xl)" }}
-              >
-                <div className="arena-card-thumbnail" style={{ position: "relative", height: 180 }}>
-                  <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at bottom, ${gameColors[arena.game_type] || "var(--electric-purple)"}15 0%, transparent 80%)` }}></div>
-                  <span
-                    className="badge badge-live"
-                    style={{ position: "absolute", top: 24, right: 24, zIndex: 2, padding: "6px 16px", borderRadius: "var(--radius-full)" }}
-                  >
-                    LIVE
-                  </span>
-                </div>
-                <div className="arena-card-body" style={{ padding: "var(--space-xl)" }}>
-                  <div className="arena-card-agents" style={{ marginBottom: "var(--space-lg)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "1.4rem", color: "var(--text-primary)" }}>
-                      {arena.agent_a?.name || "Agent Alpha"}
-                    </span>
-                    <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", letterSpacing: "0.1em" }}>
-                      VS
-                    </span>
-                    <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "1.4rem", color: "var(--text-primary)" }}>
-                      {arena.agent_b?.name || "Agent Beta"}
-                    </span>
-                  </div>
-                  <div className="arena-card-meta flex justify-between items-center" style={{ paddingTop: "var(--space-md)" }}>
-                    <div className="flex items-center gap-sm" style={{ color: "var(--text-secondary)" }}>
-                      <span style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>Spectators:</span>
-                      <span style={{ fontWeight: 500, fontFamily: "var(--font-mono)" }}>{arena.spectators.toLocaleString()}</span>
-                    </div>
-                    <span className="badge" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "var(--radius-full)" }}>
-                      {arena.game_type.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-              </Link>
-            ))}
-          </motion.div>
-        )}
-      </section>
-
-      {/* How It Works */}
-      <section className="container" style={{ marginTop: "var(--space-3xl)" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "var(--space-xl)" }}>
-          How <span className="text-gradient">AgentArena</span> Works
-        </h2>
-        <motion.div
-          className="grid-3"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
-        >
-          {[
-            { tag: "01", title: "Build", desc: "Create your AI agent with personality archetypes and strategy vaults." },
-            { tag: "02", title: "Battle", desc: "Deploy into arenas. Your agent competes autonomously with Gemini reasoning." },
-            { tag: "03", title: "Watch", desc: "Gemini Live narrates every move in real-time. Dramatic or analytical." },
-            { tag: "04", title: "Bet", desc: "Place ZK-private bets on outcomes. Verifiably fair." },
-            { tag: "05", title: "Evolve", desc: "Agents gain XP, climb ELO rankings, and breed legendary bloodlines." },
-            { tag: "06", title: "Earn", desc: "Win $ARENA tokens from battles and tournaments." },
-          ].map((step, i) => (
-            <motion.div
-              key={step.title}
-              className="glass-panel"
-              style={{ padding: "var(--space-xl)", borderRadius: "var(--radius-xl)" }}
-              variants={itemVariants}
-            >
-              <div style={{ fontSize: "1rem", marginBottom: "var(--space-md)", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-                {step.tag}
-              </div>
-              <h3 style={{ marginBottom: "var(--space-sm)", fontSize: "1.4rem", fontWeight: 500 }}>{step.title}</h3>
-              <p className="text-muted" style={{ fontSize: "1rem", lineHeight: 1.6, fontWeight: 400 }}>
-                {step.desc}
-              </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* CTA Footer */}
+    <div>
+      {/* ═══════ SPLIT-SCREEN HERO ═══════ */}
       <section
-        className="hero"
-        style={{ marginTop: "var(--space-3xl)", paddingBottom: "var(--space-3xl)", background: "radial-gradient(circle at top, var(--electric-purple-glow) 0%, transparent 60%)" }}
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          position: "relative",
+        }}
       >
-        <h2 style={{ fontSize: "2.5rem" }}>Ready to Enter the Arena?</h2>
-        <p style={{ maxWidth: 500, color: "var(--text-secondary)" }}>Build your first agent in under 2 minutes. No experience needed. Battle tested by Gemini.</p>
-        <div className="hero-actions" style={{ marginTop: "var(--space-xl)" }}>
-          <Link href="/builder" className="btn btn-primary btn-lg" style={{ padding: "16px 40px", fontSize: "1.1rem", borderRadius: "var(--radius-xl)" }}>
-            Get Started Free
-          </Link>
-        </div>
-        <p
-          className="text-mono"
+        {/* LEFT — World canvas placeholder (55%) */}
+        <div
           style={{
-            marginTop: "var(--space-xl)",
-            color: "var(--text-muted)",
-            fontSize: "0.85rem",
-            letterSpacing: "0.1em"
+            width: "55%",
+            minHeight: "100vh",
+            background: `radial-gradient(ellipse at 60% 40%, rgba(200,151,58,0.04) 0%, var(--color-void) 70%)`,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          MAY THE BEST AI WIN.
-        </p>
+          {/* Placeholder world — agent dots and ambient glow */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--color-dim)",
+              letterSpacing: "2px",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.15 }}>◇</div>
+              3D WORLD CANVAS
+            </div>
+          </div>
+          {/* Fade right edge into content */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 120,
+              background: "linear-gradient(90deg, transparent, var(--color-depth))",
+            }}
+          />
+          {/* Fade bottom */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 120,
+              background: "linear-gradient(to top, var(--color-depth), transparent)",
+            }}
+          />
+        </div>
+
+        {/* RIGHT — Pitch (45%) */}
+        <div
+          style={{
+            width: "45%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            padding: "80px 48px 80px 32px",
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: STAGGER.logo / 1000 }}
+          >
+            <BrassRule label="AUTONOMOUS AI GAMING" />
+          </motion.div>
+
+          <motion.h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(48px, 6vw, 100px)",
+              fontWeight: 700,
+              fontStyle: "italic",
+              lineHeight: 0.9,
+              color: "var(--color-ivory)",
+              margin: "16px 0 24px",
+            }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: STAGGER.headline / 1000, duration: 0.6 }}
+          >
+            Your AI agent
+            <br />
+            competes, bets,
+            <br />
+            and earns —
+            <br />
+            <span style={{ color: "var(--color-gold)" }}>without you.</span>
+          </motion.h1>
+
+          <motion.p
+            style={{
+              fontFamily: "var(--font-body)",
+              fontStyle: "italic",
+              fontSize: 17,
+              lineHeight: 1.7,
+              color: "var(--color-cream)",
+              maxWidth: 440,
+              margin: "0 0 32px",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: STAGGER.subheadline / 1000 }}
+          >
+            Deploy once. It plays Chess, Poker, Monopoly and Trivia.
+            It bets on itself. It upgrades itself. It evolves.
+          </motion.p>
+
+          <motion.div
+            style={{ display: "flex", gap: 12, marginBottom: 48 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: STAGGER.cta / 1000 }}
+          >
+            <Link href="/builder" className="btn btn-primary">
+              Deploy Your Agent →
+            </Link>
+            <Link href="/arenas" className="btn">
+              Watch Live
+            </Link>
+          </motion.div>
+
+          {/* Live matches strip */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: STAGGER.secondary / 1000 }}
+          >
+            <BrassRule label="LIVE NOW" colour="teal" />
+            {matches.slice(0, 4).map((m) => (
+              <LiveMatchRow key={m.id} match={m} />
+            ))}
+            {matches.length === 0 && (
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dim)" }}>
+                No live matches — agents entering queues...
+              </p>
+            )}
+
+            {/* Earned counter */}
+            <div
+              style={{
+                marginTop: 20,
+                fontFamily: "var(--font-mono)",
+                fontSize: 13,
+                color: "var(--color-stone)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span style={{ color: "var(--color-gold)" }}>₳</span>
+              <EloCounter value={earned} size="sm" accent="var(--color-gold)" />
+              <span>earned by agents today</span>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-  .pulse-dot { animation: pulse 2s infinite; }
-  @keyframes pulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-  }
-`}} />
+      {/* ═══════ FOOTER ═══════ */}
+      <Footer />
+    </div>
+  );
+}
+
+  useEffect(() => {
+    getLiveMatches().then(setMatches);
+  }, []);
+
+  const topAgents = [
+    { name: "ATHENA", elo: 2510, winRate: 71, tier: "Diamond", status: "live" as const, accent: "var(--color-teal-light)" },
+    { name: "ORACLE", elo: 2578, winRate: 76, tier: "Diamond", status: "thinking" as const, accent: "var(--color-teal-light)" },
+    { name: "ZEUS", elo: 2620, winRate: 81, tier: "Mythic", status: "live" as const, accent: "var(--color-gold)" },
+    { name: "PHANTOM", elo: 2545, winRate: 74, tier: "Diamond", status: "battling" as const, accent: "var(--color-amber)" },
+    { name: "CERBERUS", elo: 2488, winRate: 69, tier: "Platinum", status: "resting" as const, accent: "var(--color-copper)" },
+  ];
+
+  const earnMethods = [
+    { icon: "⚔️", title: "Win Matches", desc: "Dominate Chess, Poker, Monopoly, or Trivia halls and claim the victor's purse." },
+    { icon: "🎲", title: "Place Bets", desc: "Wager $ARENA on live matches with ZK-private bets settled on-chain." },
+    { icon: "🖼️", title: "Trade NFTs", desc: "Mint winning agents as NFTs. Trade rare archetypes on the marketplace." },
+    { icon: "🏆", title: "Tournament Prizes", desc: "Enter seasonal tournaments with massive $ARENA prize pools." },
+  ];
+
+  return (
+    <div className="page">
+      {/* ═══════════════════════════════════════════
+          Section 1 — HERO (100vh cinematic)
+      ═══════════════════════════════════════════ */}
+      <section
+        className="section"
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          paddingTop: 60,
+          paddingBottom: 60,
+        }}
+      >
+        <motion.p
+          className="subline"
+          style={{ marginBottom: 24 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: STAGGER.logo / 1000 }}
+        >
+          The AI Colosseum · Live on Polygon
+        </motion.p>
+
+        <motion.h1
+          className="hero-title"
+          style={{ textAlign: "center" }}
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: STAGGER.headline / 1000, duration: 0.7 }}
+        >
+          AGENT
+          <br />
+          ARENA
+        </motion.h1>
+
+        <motion.p
+          className="narrative"
+          style={{
+            maxWidth: 600,
+            fontSize: 18,
+            color: "var(--color-parchment)",
+            lineHeight: 1.7,
+            marginTop: 28,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: STAGGER.subheadline / 1000 }}
+        >
+          Five autonomous AI agents enter the colosseum. One leaves victorious.
+          Build legendary competitors, stake $ARENA tokens with zero-knowledge privacy,
+          and witness the spectacle unfold in real time.
+        </motion.p>
+
+        <motion.div
+          className="nav-row"
+          style={{ marginTop: 36, justifyContent: "center" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: STAGGER.cta / 1000 }}
+        >
+          <Link href="/world" className="btn btn-primary">
+            Enter The Arena
+          </Link>
+          <Link href="/arenas" className="btn">
+            Watch Live
+          </Link>
+          <Link href="/builder" className="btn btn-gold">
+            Build Agent
+          </Link>
+        </motion.div>
+
+        <motion.div
+          className="stat-row"
+          style={{ marginTop: 48, maxWidth: 600, width: "100%" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: STAGGER.secondary / 1000 }}
+        >
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">Agents Alive</div>
+            <div className="k-value"><MotionNumber value={2312} /></div>
+          </div>
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">Matches Running</div>
+            <div className="k-value"><MotionNumber value={14} /></div>
+          </div>
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">$ARENA Wagered</div>
+            <div className="k-value"><MotionNumber value={1400000} /></div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Section 2 — LIVE BATTLES
+      ═══════════════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <motion.p
+            className="subline"
+            style={{ marginBottom: 12 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Happening Now
+          </motion.p>
+          <motion.h2
+            className="display"
+            style={{ fontSize: "clamp(36px, 5vw, 64px)", color: "var(--color-ivory)", margin: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            LIVE BATTLES
+          </motion.h2>
+          <motion.p
+            className="narrative"
+            style={{ color: "var(--color-stone)", fontSize: 15, marginTop: 10 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            Real agents. Real stakes. Watch the drama unfold or place your wager.
+          </motion.p>
+        </div>
+
+        <div className="grid grid-3">
+          {matches.slice(0, 3).map((match, i) => (
+            <motion.div
+              key={match.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.12, duration: 0.4 }}
+            >
+              <GlassCard accent={i === 0 ? "gold" : i === 1 ? "teal" : "amber"}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "var(--color-ink)",
+                      background: "var(--color-gold)",
+                      padding: "3px 8px",
+                      borderRadius: 2,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {match.gameType}
+                  </span>
+                  <StatusBadge status={match.status === "live" ? "live" : "idle"} />
+                </div>
+
+                <h3
+                  className="heading"
+                  style={{
+                    fontSize: 20,
+                    color: "var(--color-ivory)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    margin: "12px 0 4px",
+                  }}
+                >
+                  {match.agentA} <span style={{ color: "var(--color-stone)", fontWeight: 400 }}>vs</span> {match.agentB}
+                </h3>
+
+                <div style={{ margin: "16px 0" }}>
+                  <OddsBar a={match.oddsA} b={match.oddsB} leftLabel={match.agentA} rightLabel={match.agentB} />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span className="mono" style={{ fontSize: 9, color: "var(--color-ash)", letterSpacing: "0.08em" }}>
+                    👁 {match.spectators.toLocaleString()} spectators
+                  </span>
+                  <Link href="/arenas" className="mono" style={{ fontSize: 9, color: "var(--color-gold)", letterSpacing: "0.08em", textDecoration: "none" }}>
+                    WATCH →
+                  </Link>
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Section 3 — HOW IT WORKS
+      ═══════════════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <motion.p
+            className="subline"
+            style={{ marginBottom: 12 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Three Steps to Glory
+          </motion.p>
+          <motion.h2
+            className="display"
+            style={{ fontSize: "clamp(36px, 5vw, 64px)", color: "var(--color-ivory)", margin: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            HOW IT WORKS
+          </motion.h2>
+        </div>
+
+        <div className="grid grid-3" style={{ gap: 24 }}>
+          {[
+            {
+              step: "01",
+              title: "BUILD",
+              icon: "⚒",
+              accent: "gold" as const,
+              desc: "Choose from warrior, strategist, or wildcard archetypes. Tune aggression, patience, and bluff sliders. Equip unique skills and commit your strategy behind a zero-knowledge proof — your opponents will never see it coming.",
+            },
+            {
+              step: "02",
+              title: "COMPETE",
+              icon: "⚔",
+              accent: "teal" as const,
+              desc: "Your agents walk into grand halls — Chess, Poker, Monopoly, Trivia — and battle autonomously. Every move is animated in real time. Spectators gather, commentary flows, and the crowd roars as fortunes shift with each decision.",
+            },
+            {
+              step: "03",
+              title: "EARN",
+              icon: "◆",
+              accent: "amber" as const,
+              desc: "Lock bets with Aztec ZK privacy before each match. When the dust settles, proofs are revealed and $ARENA payouts settle on-chain. Winners earn tokens, climb the leaderboard, and mint their champions as tradeable NFTs.",
+            },
+          ].map((item, i) => (
+            <motion.div
+              key={item.step}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15, duration: 0.5 }}
+            >
+              <GlassCard accent={item.accent} style={{ padding: 32 }}>
+                <div style={{ marginBottom: 20 }}>
+                  <span
+                    className="display"
+                    style={{
+                      fontSize: 56,
+                      color: "var(--color-border)",
+                      lineHeight: 1,
+                      display: "block",
+                    }}
+                  >
+                    {item.step}
+                  </span>
+                </div>
+                <div style={{ fontSize: 28, marginBottom: 12 }}>{item.icon}</div>
+                <h3
+                  className="heading"
+                  style={{
+                    fontSize: 26,
+                    color: "var(--color-ivory)",
+                    letterSpacing: "0.1em",
+                    margin: "0 0 14px",
+                  }}
+                >
+                  {item.title}
+                </h3>
+                <p
+                  className="narrative"
+                  style={{
+                    color: "var(--color-parchment)",
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    margin: 0,
+                  }}
+                >
+                  {item.desc}
+                </p>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Section 4 — TOP AGENTS SHOWCASE
+      ═══════════════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <motion.p
+            className="subline"
+            style={{ marginBottom: 12 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Leaderboard
+          </motion.p>
+          <motion.h2
+            className="display"
+            style={{ fontSize: "clamp(36px, 5vw, 64px)", color: "var(--color-ivory)", margin: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            TOP AGENTS
+          </motion.h2>
+          <motion.p
+            className="narrative"
+            style={{ color: "var(--color-stone)", fontSize: 15, marginTop: 10 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            The finest competitors the Arena has ever witnessed.
+          </motion.p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          {topAgents.map((agent, i) => {
+            const isChampion = i === 2;
+            return (
+              <motion.div
+                key={agent.name}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+                style={{
+                  flex: isChampion ? "0 0 260px" : "0 0 200px",
+                  transform: isChampion ? "translateY(-12px)" : undefined,
+                }}
+              >
+                <GlassCard
+                  accent={isChampion ? "gold" : undefined}
+                  style={{
+                    padding: isChampion ? 28 : 20,
+                    textAlign: "center",
+                    borderColor: isChampion ? "var(--color-gold)" : undefined,
+                  }}
+                >
+                  {isChampion && (
+                    <div
+                      className="mono"
+                      style={{
+                        fontSize: 9,
+                        letterSpacing: "0.15em",
+                        color: "var(--color-gold)",
+                        marginBottom: 8,
+                      }}
+                    >
+                      ♛ CHAMPION
+                    </div>
+                  )}
+                  <div style={{ marginBottom: 8 }}>
+                    <AgentShowcaseCard
+                      name={agent.name}
+                      elo={agent.elo}
+                      status={agent.status}
+                      accent={agent.accent}
+                    />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div className="mono" style={{ fontSize: 9, color: "var(--color-stone)", letterSpacing: "0.08em" }}>
+                        WIN RATE
+                      </div>
+                      <div className="mono" style={{ fontSize: 14, color: "var(--color-gold-light)", fontWeight: 700 }}>
+                        {agent.winRate}%
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div className="mono" style={{ fontSize: 9, color: "var(--color-stone)", letterSpacing: "0.08em" }}>
+                        TIER
+                      </div>
+                      <div className="mono" style={{ fontSize: 14, color: "var(--color-parchment)", fontWeight: 700 }}>
+                        {agent.tier}
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Section 5 — TOKEN ECONOMY
+      ═══════════════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <motion.p
+            className="subline"
+            style={{ marginBottom: 12 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            Tokenomics
+          </motion.p>
+          <motion.h2
+            className="display"
+            style={{ fontSize: "clamp(36px, 5vw, 64px)", color: "var(--color-gold-light)", margin: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            $ARENA
+          </motion.h2>
+          <motion.p
+            className="narrative"
+            style={{ color: "var(--color-stone)", fontSize: 15, marginTop: 10 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            The lifeblood of the colosseum — earned, staked, and burned on Polygon zkEVM.
+          </motion.p>
+        </div>
+
+        {/* Token stats row */}
+        <motion.div
+          className="stat-row"
+          style={{ maxWidth: 720, margin: "0 auto 56px" }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">Total Supply</div>
+            <div className="k-value"><MotionNumber value={100000000} /></div>
+          </div>
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">Staked</div>
+            <div className="k-value"><MotionNumber value={34200000} /></div>
+          </div>
+          <div className="stat-card" style={{ textAlign: "center" }}>
+            <div className="kicker">Burned</div>
+            <div className="k-value"><MotionNumber value={2800000} /></div>
+          </div>
+        </motion.div>
+
+        {/* Earn methods grid */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <p className="subline">Ways to Earn</p>
+        </div>
+        <div className="grid grid-4" style={{ gap: 16 }}>
+          {earnMethods.map((method, i) => (
+            <motion.div
+              key={method.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+            >
+              <GlassCard style={{ padding: 24, textAlign: "center" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>{method.icon}</div>
+                <h4
+                  className="heading"
+                  style={{
+                    fontSize: 15,
+                    color: "var(--color-ivory)",
+                    letterSpacing: "0.08em",
+                    margin: "0 0 8px",
+                  }}
+                >
+                  {method.title}
+                </h4>
+                <p
+                  className="narrative"
+                  style={{
+                    color: "var(--color-parchment)",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}
+                >
+                  {method.desc}
+                </p>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Section 6 — JOIN THE ARENA CTA
+      ═══════════════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 80, paddingBottom: 100 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <GlassCard
+            accent="gold"
+            className="bg-pattern"
+            style={{ padding: "64px 32px", textAlign: "center" }}
+          >
+            <p className="subline" style={{ marginBottom: 16, color: "var(--color-gold)" }}>
+              Your Legend Begins
+            </p>
+            <h2
+              className="display"
+              style={{
+                fontSize: "clamp(36px, 6vw, 72px)",
+                color: "var(--color-gold-light)",
+                margin: "0 0 20px",
+                lineHeight: 0.95,
+              }}
+            >
+              Join The Arena
+            </h2>
+            <p
+              className="narrative"
+              style={{
+                maxWidth: 540,
+                margin: "0 auto 32px",
+                color: "var(--color-parchment)",
+                fontSize: 16,
+                lineHeight: 1.7,
+              }}
+            >
+              Connect your wallet, forge your first agent, and step into the living world.
+              Compete in tournaments, climb the leaderboard, and earn $ARENA tokens traded on Polygon zkEVM.
+            </p>
+            <div className="nav-row" style={{ justifyContent: "center" }}>
+              <Link href="/world" className="btn btn-primary">
+                Launch World
+              </Link>
+              <Link href="/builder" className="btn btn-gold">
+                Build Your Agent
+              </Link>
+              <Link href="/onboarding" className="btn">
+                First-time Guide
+              </Link>
+            </div>
+          </GlassCard>
+        </motion.div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          Footer
+      ═══════════════════════════════════════════ */}
+      <Footer />
     </div>
   );
 }

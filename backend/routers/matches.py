@@ -11,11 +11,16 @@ import uuid
 
 from auth.service import get_current_user
 from betting.odds_engine import odds_engine
+from agents.orchestrator import AgentOrchestrator
+from agents.market_agent import market_agent
 
 router = APIRouter(prefix="/matches", tags=["Matches"])
 
 # ─── In-Memory Match Store (replace with Firestore in production) ─────
 matches_db: dict = {}
+
+# Shared orchestrator for agent bets during matches
+_match_orchestrator = AgentOrchestrator()
 
 
 class StartMatchRequest(BaseModel):
@@ -62,6 +67,47 @@ async def start_match(req: StartMatchRequest, background_tasks: BackgroundTasks,
     # For MVP: mark as live
     matches_db[match_id]["status"] = "live"
 
+    # Create AI spectator bettors and have them place bets
+    agent_bet_results = []
+    if req.spectator_bet_enabled:
+        import random as _rnd
+        archetypes = ["aggressive", "conservative", "chaos", "adaptive"]
+        num_bettors = _rnd.randint(2, 4)
+        spectator_agents = []
+        for i in range(num_bettors):
+            arch = archetypes[i % len(archetypes)]
+            agent = _match_orchestrator.create_agent(
+                name=f"Spectator_{arch.title()}_{i}",
+                archetype=arch,
+            )
+            spectator_agents.append(agent)
+
+        odds_state = odds_engine.get_current_state(match_id)
+        agent_bet_results = await market_agent.process_agent_bets(
+            match_id, spectator_agents, odds_state, _match_orchestrator
+        )
+
+        # Store in betting router's agent_bets_db for later settlement
+        from routers.betting import agent_bets_db
+        import time as _time
+        if match_id not in agent_bets_db:
+            agent_bets_db[match_id] = []
+        for agent in spectator_agents:
+            for b in agent.bet_history:
+                if b["match_id"] == match_id:
+                    agent_bets_db[match_id].append({
+                        "agent_id": agent.agent_id,
+                        "agent_name": agent.name,
+                        "commitment": b["commitment"],
+                        "amount": b["amount"],
+                        "position": b["position"],
+                        "secret": b["secret"],
+                        "revealed": False,
+                        "bankroll": agent.bankroll,
+                        "personality": agent.personality.archetype,
+                        "timestamp": _time.time(),
+                    })
+
     return {
         "match_id": match_id,
         "hall_id": hall_id,
@@ -69,6 +115,7 @@ async def start_match(req: StartMatchRequest, background_tasks: BackgroundTasks,
         "stream_url": f"/arenas/{hall_id}/stream",
         "watch_url": f"/world/arena/{hall_id}",
         "initial_odds": odds_engine.get_current_state(match_id),
+        "agent_bets": agent_bet_results,
     }
 
 
@@ -140,10 +187,36 @@ async def end_match(match_id: str, winner_id: str, wallet: str = Depends(get_cur
     match["winner_id"] = winner_id
     duration = match["ended_at"] - match["started_at"]
 
+    # Settle agent bets
+    agent_settlement = []
+    from routers.betting import agent_bets_db
+    if match_id in agent_bets_db:
+        # Determine winner_position: 0 if agent_a won, 1 if agent_b
+        winner_position = 0 if winner_id == match.get("agent_a_id") else 1
+        for bet in agent_bets_db[match_id]:
+            if bet["revealed"]:
+                continue
+            bet["revealed"] = True
+            won = bet["position"] == winner_position
+            payout = bet["amount"] * 2 if won else 0
+            bet["payout"] = payout
+            new_bankroll = bet["bankroll"] - bet["amount"] + payout
+            bet["bankroll"] = new_bankroll
+            agent_settlement.append({
+                "agent_id": bet["agent_id"],
+                "agent_name": bet["agent_name"],
+                "amount": bet["amount"],
+                "position": bet["position"],
+                "won": won,
+                "payout": payout,
+                "new_bankroll": new_bankroll,
+            })
+
     return {
         "match_id": match_id,
         "winner_id": winner_id,
         "duration_seconds": round(duration),
         "final_odds": odds_engine.get_current_state(match_id),
         "status": "completed",
+        "agent_bet_settlements": agent_settlement,
     }

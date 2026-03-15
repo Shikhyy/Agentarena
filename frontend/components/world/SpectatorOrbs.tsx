@@ -3,6 +3,7 @@
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { COLORS } from "@/lib/theme";
 
 /* ── Instanced spectator orbs ────────────────────────────── */
 interface SpectatorOrbsProps {
@@ -50,9 +51,9 @@ export function SpectatorOrbs({
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
             <sphereGeometry args={[1, 8, 8]} />
             <meshStandardMaterial
-                color="#8B5CF6"
-                emissive="#8B5CF6"
-                emissiveIntensity={0.8}
+                color={COLORS.textMuted}
+                emissive={COLORS.textMuted}
+                emissiveIntensity={0.1}
                 transparent
                 opacity={0.6}
             />
@@ -71,7 +72,7 @@ interface EnvironmentParticlesProps {
 export function EnvironmentParticles({
     count = 300,
     area = 40,
-    color = "#6C3AED",
+    color = COLORS.textMuted,
     speed = 0.05,
 }: EnvironmentParticlesProps) {
     const ref = useRef<THREE.Points>(null);
@@ -127,7 +128,7 @@ interface VictoryParticlesProps {
 export function VictoryParticles({
     position = [0, 0, 0],
     active = false,
-    color = "#F59E0B",
+    color = COLORS.gold,
 }: VictoryParticlesProps) {
     const ref = useRef<THREE.Points>(null);
     const count = 200;
@@ -207,7 +208,7 @@ export function TokenRain({
             <bufferGeometry>
                 <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             </bufferGeometry>
-            <pointsMaterial size={0.1} color="#F59E0B" transparent opacity={0.9} sizeAttenuation />
+            <pointsMaterial size={0.1} color={COLORS.gold} transparent opacity={0.9} sizeAttenuation />
         </points>
     );
 }

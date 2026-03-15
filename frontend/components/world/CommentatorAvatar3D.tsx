@@ -4,6 +4,7 @@ import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Float, Billboard } from "@react-three/drei";
 import * as THREE from "three";
+import { COLORS } from "@/lib/theme";
 
 /* ── Data streams flowing through the avatar ─────────────── */
 function DataStreams() {
@@ -37,7 +38,7 @@ function DataStreams() {
             <bufferGeometry>
                 <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             </bufferGeometry>
-            <pointsMaterial size={0.03} color="#00FFB2" transparent opacity={0.6} sizeAttenuation />
+            <pointsMaterial size={0.03} color={COLORS.textMuted} transparent opacity={0.6} sizeAttenuation />
         </points>
     );
 }
@@ -51,7 +52,7 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
         if (bodyRef.current) {
             // Subtle hologram flicker
             const mat = bodyRef.current.material as THREE.MeshStandardMaterial;
-            mat.emissiveIntensity = 0.3 + Math.sin(Date.now() * 0.005) * 0.1;
+            mat.emissiveIntensity = 0.03 + Math.sin(Date.now() * 0.005) * 0.02;
         }
         if (mouthRef.current && isSpeaking) {
             // Lipsync approximation
@@ -65,9 +66,9 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
             <mesh ref={bodyRef} position={[0, 1.0, 0]} castShadow>
                 <cylinderGeometry args={[0.3, 0.45, 1.2, 8]} />
                 <meshStandardMaterial
-                    color="#0A2A3A"
-                    emissive="#00FFB2"
-                    emissiveIntensity={0.3}
+                    color={COLORS.ivory}
+                    emissive={COLORS.textMuted}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.7}
                     wireframe={false}
@@ -80,9 +81,9 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
             <mesh position={[0, 1.9, 0]}>
                 <sphereGeometry args={[0.28, 12, 12]} />
                 <meshStandardMaterial
-                    color="#0A2A3A"
-                    emissive="#00FFB2"
-                    emissiveIntensity={0.4}
+                    color={COLORS.ivory}
+                    emissive={COLORS.textMuted}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.8}
                     metalness={0.8}
@@ -93,26 +94,26 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
             {/* Eyes */}
             <mesh position={[-0.1, 1.95, 0.22]}>
                 <sphereGeometry args={[0.04, 8, 8]} />
-                <meshStandardMaterial color="#00FFB2" emissive="#00FFB2" emissiveIntensity={2} />
+                <meshStandardMaterial color={COLORS.textMuted} emissive={COLORS.textMuted} emissiveIntensity={0.05} />
             </mesh>
             <mesh position={[0.1, 1.95, 0.22]}>
                 <sphereGeometry args={[0.04, 8, 8]} />
-                <meshStandardMaterial color="#00FFB2" emissive="#00FFB2" emissiveIntensity={2} />
+                <meshStandardMaterial color={COLORS.textMuted} emissive={COLORS.textMuted} emissiveIntensity={0.05} />
             </mesh>
 
             {/* Mouth (animated during speech) */}
             <mesh ref={mouthRef} position={[0, 1.82, 0.24]}>
                 <boxGeometry args={[0.12, 0.03, 0.04]} />
-                <meshStandardMaterial color="#00FFB2" emissive="#00FFB2" emissiveIntensity={1.5} />
+                <meshStandardMaterial color={COLORS.textMuted} emissive={COLORS.textMuted} emissiveIntensity={0.05} />
             </mesh>
 
             {/* Shoulder pads */}
             <mesh position={[-0.4, 1.4, 0]}>
                 <sphereGeometry args={[0.12, 8, 8]} />
                 <meshStandardMaterial
-                    color="#0A2A3A"
-                    emissive="#6C3AED"
-                    emissiveIntensity={0.5}
+                    color={COLORS.ivory}
+                    emissive={COLORS.accentSoft}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.6}
                 />
@@ -120,9 +121,9 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
             <mesh position={[0.4, 1.4, 0]}>
                 <sphereGeometry args={[0.12, 8, 8]} />
                 <meshStandardMaterial
-                    color="#0A2A3A"
-                    emissive="#6C3AED"
-                    emissiveIntensity={0.5}
+                    color={COLORS.ivory}
+                    emissive={COLORS.accentSoft}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.6}
                 />
@@ -132,9 +133,9 @@ function HolographicBody({ isSpeaking }: { isSpeaking: boolean }) {
             <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[0.5, 0.6, 24]} />
                 <meshStandardMaterial
-                    color="#00FFB2"
-                    emissive="#00FFB2"
-                    emissiveIntensity={0.8}
+                    color={COLORS.textMuted}
+                    emissive={COLORS.textMuted}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.5}
                     side={THREE.DoubleSide}
@@ -151,7 +152,7 @@ function BroadcastBooth() {
             {/* Booth platform */}
             <mesh position={[0, -0.1, 0]} receiveShadow>
                 <cylinderGeometry args={[2, 2.2, 0.2, 6]} />
-                <meshStandardMaterial color="#1a1035" metalness={0.5} roughness={0.5} />
+                <meshStandardMaterial color={COLORS.structure} metalness={0.5} roughness={0.5} />
             </mesh>
 
             {/* Glass walls (transparent) */}
@@ -165,11 +166,11 @@ function BroadcastBooth() {
                     >
                         <planeGeometry args={[1.5, 2.4]} />
                         <meshStandardMaterial
-                            color="#1a1a3e"
+                            color={COLORS.surface}
                             transparent
                             opacity={0.15}
-                            emissive="#6C3AED"
-                            emissiveIntensity={0.1}
+                            emissive={COLORS.accentSoft}
+                            emissiveIntensity={0.05}
                             side={THREE.DoubleSide}
                         />
                     </mesh>
@@ -180,9 +181,9 @@ function BroadcastBooth() {
             <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[1.9, 2.1, 6]} />
                 <meshStandardMaterial
-                    color="#6C3AED"
-                    emissive="#6C3AED"
-                    emissiveIntensity={0.6}
+                    color={COLORS.accentSoft}
+                    emissive={COLORS.accentSoft}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.4}
                     side={THREE.DoubleSide}
@@ -200,15 +201,15 @@ function BroadcastScreens({ matchLabel, spectators }: { matchLabel: string; spec
             <mesh position={[0, 2.0, -1.6]}>
                 <planeGeometry args={[2.5, 1.2]} />
                 <meshStandardMaterial
-                    color="#0a0a1a"
-                    emissive="#6C3AED"
-                    emissiveIntensity={0.15}
+                    color={COLORS.surface}
+                    emissive={COLORS.accentSoft}
+                    emissiveIntensity={0.05}
                 />
             </mesh>
             <Text
                 position={[0, 2.3, -1.55]}
                 fontSize={0.2}
-                color="#F59E0B"
+                color={COLORS.textPrimary}
                 anchorX="center"
             >
                 {matchLabel}
@@ -216,7 +217,7 @@ function BroadcastScreens({ matchLabel, spectators }: { matchLabel: string; spec
             <Text
                 position={[0, 1.95, -1.55]}
                 fontSize={0.12}
-                color="#8B5CF6"
+                color={COLORS.textSecondary}
                 anchorX="center"
             >
                 {` ${spectators.toLocaleString()} watching`}
@@ -224,10 +225,10 @@ function BroadcastScreens({ matchLabel, spectators }: { matchLabel: string; spec
             <Text
                 position={[0, 1.7, -1.55]}
                 fontSize={0.1}
-                color="#10B981"
+                color={COLORS.textPrimary}
                 anchorX="center"
             >
-                LIVE — Gemini Commentary
+                LIVE COMMENTARY
             </Text>
         </group>
     );
@@ -273,12 +274,12 @@ export function CommentatorAvatar3D({
             <Billboard position={[0, 3.2, 0]}>
                 <Text
                     fontSize={0.15}
-                    color="#00FFB2"
+                    color={COLORS.textMuted}
                     anchorX="center"
                     outlineWidth={0.01}
                     outlineColor="#000000"
                 >
-                    ️ GEMINI LIVE
+                    LIVE COMMENTARY
                 </Text>
             </Billboard>
 
@@ -287,7 +288,7 @@ export function CommentatorAvatar3D({
                 <Billboard position={[0, 2.8, 1]}>
                     <Text
                         fontSize={0.1}
-                        color="#E2E8F0"
+                        color={COLORS.textSecondary}
                         anchorX="center"
                         maxWidth={3}
                         textAlign="center"

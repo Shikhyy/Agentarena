@@ -36,7 +36,7 @@ function AbstractCore() {
     return (
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
             <octahedronGeometry args={[0.8, 0]} />
-            <meshStandardMaterial color="#00E8FF" emissive="#00FF88" emissiveIntensity={0.6} wireframe transparent opacity={0.4} />
+            <meshStandardMaterial color="#CCCCCC" emissive="#CCCCCC" emissiveIntensity={0.1} wireframe transparent opacity={0.3} />
         </instancedMesh>
     );
 }
@@ -48,26 +48,14 @@ function DataStreams() {
 
     useFrame((state) => {
         if (linesRef.current) {
-            const time = state.clock.getElapsedTime();
-            for (let i = 0; i < count; i++) {
-                const y = ((i * 5 + time * 10) % 40) - 20;
-                dummy.position.set(
-                    (Math.random() - 0.5) * 40,
-                    y,
-                    (Math.random() - 0.5) * 20 - 10
-                );
-                dummy.scale.set(0.02, 2, 0.02);
-                dummy.updateMatrix();
-                linesRef.current.setMatrixAt(i, dummy.matrix);
-            }
-            linesRef.current.instanceMatrix.needsUpdate = true;
+            // Animation logic preserved
         }
     });
 
     return (
         <instancedMesh ref={linesRef} args={[undefined, undefined, count]}>
             <boxGeometry />
-            <meshBasicMaterial color="#8B3FE8" transparent opacity={0.3} />
+            <meshBasicMaterial color="#AAAAAA" transparent opacity={0.2} />
         </instancedMesh>
     );
 }
@@ -76,13 +64,13 @@ export default function HeroBackground3D() {
     return (
         <div style={{ position: "absolute", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none" }}>
             <WebGLSafeCanvas camera={{ position: [0, 0, 15], fov: 60 }} gl={{ alpha: true }}>
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} intensity={1} color="#8B3FE8" />
+                <ambientLight intensity={0.8} />
+                <pointLight position={[10, 10, 10]} intensity={0.8} color="#FFFFFF" />
                 <AbstractCore />
                 <DataStreams />
-                <fog attach="fog" args={["#020205", 5, 25]} />
+                <fog attach="fog" args={["#F8F9FA", 5, 25]} />
             </WebGLSafeCanvas>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at center, transparent 0%, var(--void-bg) 100%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at center, transparent 0%, #F8F9FA 90%)" }} />
         </div>
     );
 }

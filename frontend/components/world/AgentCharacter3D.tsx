@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { Text, Float, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { type WorldAgent } from "@/lib/worldStore";
+import { COLORS, getPersonalityColor, getLevelColor } from "@/lib/theme";
 
 function seededUnit(seed: number) {
     const value = Math.sin(seed * 12.9898) * 43758.5453;
@@ -86,8 +87,7 @@ function AgentBody({ personality, color }: { personality: WorldAgent["personalit
                 <meshStandardMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={1.5}
-                    toneMapped={false}
+                    emissiveIntensity={0.3}
                 />
             </mesh>
 
@@ -95,9 +95,9 @@ function AgentBody({ personality, color }: { personality: WorldAgent["personalit
             <mesh ref={shellRef} castShadow receiveShadow>
                 {ShellGeometry}
                 <meshPhysicalMaterial
-                    color="#0C0C28"
+                    color={COLORS.ivory}
                     emissive={color}
-                    emissiveIntensity={0.2}
+                    emissiveIntensity={0.05}
                     metalness={0.9}
                     roughness={0.1}
                     transmission={0.95} /* Glass effect */
@@ -199,14 +199,7 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
     const walkPhase = useRef(0);
 
     // Color per personality
-    const primaryColor = useMemo(() => {
-        switch (agent.personality) {
-            case "aggressive": return "#EF4444";
-            case "conservative": return "#3B82F6";
-            case "chaotic": return "#A855F7";
-            case "adaptive": return "#10B981";
-        }
-    }, [agent.personality]);
+    const primaryColor = useMemo(() => getPersonalityColor(agent.personality), [agent.personality]);
 
     // Walk animation
     useFrame((_, delta) => {
@@ -226,7 +219,7 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
         }
     });
 
-    const levelBadgeColor = agent.level >= 20 ? "#F59E0B" : agent.level >= 10 ? "#8B5CF6" : "#64748B";
+    const levelBadgeColor = getLevelColor(agent.level);
 
     return (
         <group position={agent.position} onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
@@ -278,7 +271,7 @@ export function AgentCharacter3D({ agent, onClick, showLabel = true }: AgentChar
                                 <Text
                                     position={[0, -0.4, 0]}
                                     fontSize={0.09}
-                                    color="#10B981"
+                                    color={COLORS.textPrimary}
                                     anchorX="center"
                                 >
                                     IN MATCH

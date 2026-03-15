@@ -52,6 +52,7 @@ class MarketAgent:
         """
         Settle all bets for a completed match.
         Emits bet_settled for each user who wagered.
+        Supports both user bets (with wallet) and agent bets (with agent_id).
         In production: verifies Noir ZK proof, triggers smart contract payout.
         """
         settled = []
@@ -63,6 +64,7 @@ class MarketAgent:
             revealed_pos = bet.get("revealed_position")
             amount = bet.get("revealed_amount", 0)
             wallet = bet.get("wallet")
+            agent_id = bet.get("agent_id")
 
             # Simple payout: 2x on correct position (MVP)
             won = (revealed_pos == winner_position)
@@ -71,20 +73,48 @@ class MarketAgent:
             payload = {
                 "type": "bet_settled",
                 "matchId": arena_id,
-                "walletAddress": wallet,
                 "payout": payout,
                 "won": won,
                 "originalAmount": amount,
                 "timestamp": asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0,
             }
 
+            if agent_id:
+                payload["agentId"] = agent_id
+            else:
+                payload["walletAddress"] = wallet
+
             callback = self.broadcast_callbacks.get(arena_id)
-            if callback and wallet:
+            if callback and (wallet or agent_id):
                 await callback(arena_id, payload)
 
             settled.append({**bet, "payout": payout, "won": won})
 
         return settled
+
+    async def process_agent_bets(self, arena_id: str, agents: list, odds_state: dict, orchestrator) -> list:
+        """
+        Iterate over agents, place personality-driven bets, and broadcast events.
+        """
+        placed_bets = []
+        for agent in agents:
+            bet_result = await orchestrator.place_agent_bet(agent, arena_id, odds_state)
+            placed_bets.append(bet_result)
+
+            # Broadcast agent_bet_placed event
+            payload = {
+                "type": "agent_bet_placed",
+                "matchId": arena_id,
+                "agentId": bet_result["agent_id"],
+                "agentName": bet_result["agent_name"],
+                "commitment": bet_result["commitment"],
+                "personality": bet_result["personality"],
+            }
+            callback = self.broadcast_callbacks.get(arena_id)
+            if callback:
+                await callback(arena_id, payload)
+
+        return placed_bets
 
     async def emit_monopoly_negotiation(
         self,

@@ -19,29 +19,15 @@ function ArenaPillars({ color, count = 6, radius = 12, height = 8 }: {
                         {/* Pillar */}
                         <mesh position={[0, height / 2, 0]} castShadow>
                             <cylinderGeometry args={[0.3, 0.4, height, 8]} />
-                            <meshStandardMaterial color="#1a1035" metalness={0.6} roughness={0.4} />
+                            <meshStandardMaterial color="#F0F0F0" metalness={0.1} roughness={0.3} />
                         </mesh>
-                        {/* Top glow */}
+                        {/* Top orb */}
                         <mesh position={[0, height, 0]}>
                             <sphereGeometry args={[0.5, 8, 8]} />
                             <meshStandardMaterial
-                                color={color}
-                                emissive={color}
-                                emissiveIntensity={0.8}
-                                transparent
-                                opacity={0.6}
-                            />
-                        </mesh>
-                        {/* Base light ring */}
-                        <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                            <ringGeometry args={[0.4, 0.6, 16]} />
-                            <meshStandardMaterial
-                                color={color}
-                                emissive={color}
-                                emissiveIntensity={0.5}
-                                transparent
-                                opacity={0.4}
-                                side={THREE.DoubleSide}
+                                color="#FFFFFF"
+                                metalness={0.5}
+                                roughness={0.1}
                             />
                         </mesh>
                     </group>
@@ -73,9 +59,9 @@ function SpectatorStands({ spectatorCount, color }: { spectatorCount: number; co
                             >
                                 <boxGeometry args={[1.0, 0.15, 0.6]} />
                                 <meshStandardMaterial
-                                    color="#1E1B4B"
-                                    metalness={0.3}
-                                    roughness={0.7}
+                                    color="#E5E5E5"
+                                    metalness={0.1}
+                                    roughness={0.8}
                                 />
                             </mesh>
                         );
@@ -100,33 +86,19 @@ function ArenaFloor({ color, size = 28 }: { color: string; size?: number }) {
             {/* Main floor */}
             <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <circleGeometry args={[size / 2, 48]} />
-                <meshStandardMaterial color="#0a0815" metalness={0.2} roughness={0.8} />
+                <meshStandardMaterial color="#FFFFFF" metalness={0.1} roughness={0.2} />
             </mesh>
 
-            {/* Inner circle glow */}
+            {/* Inner ring */}
             <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[5, 5.15, 48]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={0.5}
-                    transparent
-                    opacity={0.4}
-                    side={THREE.DoubleSide}
-                />
+                <ringGeometry args={[5, 5.05, 48]} />
+                <meshBasicMaterial color="#CCCCCC" side={THREE.DoubleSide} />
             </mesh>
 
             {/* Outer ring */}
             <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[size / 2 - 0.3, size / 2, 48]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={0.3}
-                    transparent
-                    opacity={0.3}
-                    side={THREE.DoubleSide}
-                />
+                <ringGeometry args={[size / 2 - 0.1, size / 2, 48]} />
+                <meshBasicMaterial color="#DDDDDD" side={THREE.DoubleSide} />
             </mesh>
         </group>
     );
@@ -139,38 +111,24 @@ function EntranceGate({ color, label }: { color: string; label: string }) {
             {/* Left post */}
             <mesh position={[-2, 2.5, 0]} castShadow>
                 <boxGeometry args={[0.5, 5, 0.5]} />
-                <meshStandardMaterial color="#1a1035" metalness={0.5} roughness={0.5} />
+                <meshStandardMaterial color="#F0F0F0" metalness={0.1} roughness={0.3} />
             </mesh>
             {/* Right post */}
             <mesh position={[2, 2.5, 0]} castShadow>
                 <boxGeometry args={[0.5, 5, 0.5]} />
-                <meshStandardMaterial color="#1a1035" metalness={0.5} roughness={0.5} />
+                <meshStandardMaterial color="#F0F0F0" metalness={0.1} roughness={0.3} />
             </mesh>
             {/* Top beam */}
             <mesh position={[0, 5, 0]} castShadow>
                 <boxGeometry args={[5, 0.4, 0.5]} />
-                <meshStandardMaterial color="#1a1035" metalness={0.5} roughness={0.5} />
+                <meshStandardMaterial color="#F0F0F0" metalness={0.1} roughness={0.3} />
             </mesh>
-            {/* Glow arch */}
-            <mesh position={[0, 5.2, 0.3]}>
-                <planeGeometry args={[4.5, 0.1]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={1}
-                    transparent
-                    opacity={0.8}
-                    side={THREE.DoubleSide}
-                />
-            </mesh>
-            {/* Hall name */}
+            {/* Minimal Label */}
             <Text
-                position={[0, 5.8, 0.3]}
+                position={[0, 5.8, 0]}
                 fontSize={0.4}
-                color={color}
+                color="#333333"
                 anchorX="center"
-                outlineWidth={0.02}
-                outlineColor="#000"
             >
                 {label}
             </Text>
@@ -180,21 +138,18 @@ function EntranceGate({ color, label }: { color: string; label: string }) {
 
 /* ── Lighting rig (activates for popular matches) ────────── */
 function ArenaLighting({ color, spectatorCount }: { color: string; spectatorCount: number }) {
-    const intensity = spectatorCount > 500 ? 1.5 : spectatorCount > 100 ? 1.0 : 0.7;
+    const intensity = spectatorCount > 500 ? 1.2 : 1.0;
 
     return (
         <>
-            <ambientLight intensity={0.15} />
-            <directionalLight position={[5, 12, 5]} intensity={intensity} />
-            <pointLight position={[0, 8, 0]} intensity={0.8} color={color} distance={25} />
-            <pointLight position={[-8, 6, -8]} intensity={0.4} color="#6C3AED" distance={20} />
-            <pointLight position={[8, 6, 8]} intensity={0.4} color="#10B981" distance={20} />
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[5, 12, 5]} intensity={intensity} castShadow />
             {/* Spotlight on the game table */}
             <spotLight
                 position={[0, 10, 0]}
-                angle={0.3}
+                angle={0.4}
                 penumbra={0.5}
-                intensity={spectatorCount > 100 ? 2.0 : 1.0}
+                intensity={1.5}
                 color="#ffffff"
                 target-position={[0, 0, 0]}
             />

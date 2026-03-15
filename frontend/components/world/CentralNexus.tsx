@@ -12,73 +12,118 @@ import { EnvironmentParticles } from "./SpectatorOrbs";
 /* ── Central holographic display ─────────────────────────── */
 function HolographicDisplay() {
     const liveMatches = useWorldStore((s) => s.liveMatches);
-    const ref = useRef<THREE.Group>(null);
+    const coreRef = useRef<THREE.Mesh>(null);
+    const outerRef = useRef<THREE.Mesh>(null);
+    const ringRef = useRef<THREE.Mesh>(null);
 
-    useFrame(() => {
-        if (ref.current) ref.current.rotation.y += 0.002;
+    useFrame((state) => {
+        const t = state.clock.elapsedTime;
+        if (coreRef.current) {
+            coreRef.current.rotation.y = t * 0.3;
+            coreRef.current.rotation.x = Math.sin(t * 0.2) * 0.1;
+        }
+        if (outerRef.current) {
+            outerRef.current.rotation.y = -t * 0.15;
+            outerRef.current.rotation.z = Math.sin(t * 0.25) * 0.05;
+        }
+        if (ringRef.current) {
+            ringRef.current.rotation.z = t * 0.4;
+        }
     });
+
+    const liveCount = liveMatches.filter((m) => m.status === "live").length;
 
     return (
         <group position={[0, 6, 0]}>
-            {/* Dynamic Glass Core */}
-            <mesh position={[0, -0.5, 0]}>
-                <octahedronGeometry args={[1.2, 0]} />
+            {/* Outer rotating octahedron shell */}
+            <mesh ref={outerRef} position={[0, -0.5, 0]}>
+                <octahedronGeometry args={[1.6, 0]} />
                 <meshPhysicalMaterial
-                    color="#0C0C28"
-                    emissive="#8B3FE8"
-                    emissiveIntensity={0.2}
-                    metalness={0.9}
-                    roughness={0.1}
-                    transmission={0.9}
+                    color="#C8963C"
+                    emissive="#C8963C"
+                    emissiveIntensity={0.08}
+                    metalness={0.2}
+                    roughness={0.05}
+                    transmission={0.88}
                     thickness={0.5}
+                    wireframe
                 />
             </mesh>
 
-            {/* Inner pulsing core */}
+            {/* Inner glass core */}
+            <mesh ref={coreRef} position={[0, -0.5, 0]}>
+                <octahedronGeometry args={[1.0, 0]} />
+                <meshPhysicalMaterial
+                    color="#E8B86D"
+                    emissive="#C8963C"
+                    emissiveIntensity={0.15}
+                    metalness={0.3}
+                    roughness={0.05}
+                    transmission={0.85}
+                    thickness={0.4}
+                />
+            </mesh>
+
+            {/* Inner energy sphere */}
             <mesh position={[0, -0.5, 0]}>
-                <sphereGeometry args={[0.4, 32, 32]} />
-                <meshStandardMaterial color="#00E8FF" emissive="#00E8FF" emissiveIntensity={1.5} />
+                <sphereGeometry args={[0.35, 32, 32]} />
+                <meshStandardMaterial
+                    color="#C8963C"
+                    emissive="#E8B86D"
+                    emissiveIntensity={1.2}
+                    metalness={0.9}
+                    roughness={0.1}
+                />
+            </mesh>
+
+            {/* Orbiting ring */}
+            <mesh ref={ringRef} position={[0, -0.5, 0]} rotation={[Math.PI / 3, 0, 0]}>
+                <torusGeometry args={[1.3, 0.02, 8, 64]} />
+                <meshStandardMaterial color="#4A8C86" emissive="#4A8C86" emissiveIntensity={0.8} />
             </mesh>
 
             {/* Title */}
-            <Float speed={2} floatIntensity={0.5}>
+            <Float speed={1.5} floatIntensity={0.3}>
                 <Text
                     position={[0, 2.5, 0]}
-                    fontSize={0.6}
+                    fontSize={0.55}
                     font="/fonts/SpaceGrotesk-Bold.ttf"
-                    color="#ffffff"
+                    color="#C8963C"
                     anchorX="center"
-                    letterSpacing={0.05}
+                    letterSpacing={0.08}
+                    outlineWidth={0.015}
+                    outlineColor="#0A0907"
                 >
-                    AGENT ARENA V2
+                    AGENT ARENA
                 </Text>
-                <Text position={[0, 1.8, 0]} fontSize={0.2} color="#8B3FE8" anchorX="center" letterSpacing={0.1}>
-                    THE COLOSSEUM OF THE AI AGE
+                <Text position={[0, 1.85, 0]} fontSize={0.18} color="#8C7C68" anchorX="center" letterSpacing={0.15}>
+                    NEXUS PROTOCOL V2
                 </Text>
             </Float>
 
             {/* Live match count */}
-            <Text position={[0, -1.5, 0]} fontSize={0.2} color="#10B981" anchorX="center">
-                {`${liveMatches.filter((m) => m.status === "live").length} LIVE MATCHES`}
+            <Text position={[0, -1.6, 0]} fontSize={0.2} color="#4A8C86" anchorX="center" letterSpacing={0.05}>
+                {`${liveCount} LIVE MATCH${liveCount !== 1 ? "ES" : ""}`}
             </Text>
 
             {/* Price ticker */}
-            <Text position={[0, -2, 0]} fontSize={0.15} color="#F59E0B" anchorX="center">
+            <Text position={[0, -2.05, 0]} fontSize={0.14} color="#8C7C68" anchorX="center" letterSpacing={0.02}>
                 $ARENA: 0.847 USDC (+4.2%)
             </Text>
 
-            {/* Beam of light from ground to holograph */}
+            {/* Beam of light from ground */}
             <mesh position={[0, -3, 0]}>
-                <cylinderGeometry args={[0.1, 0.3, 6, 8, 1, true]} />
+                <cylinderGeometry args={[0.05, 0.4, 6, 8, 1, true]} />
                 <meshStandardMaterial
-                    color="#00E8FF"
-                    emissive="#00E8FF"
-                    emissiveIntensity={0.4}
+                    color="#C8963C"
                     transparent
-                    opacity={0.2}
+                    opacity={0.08}
                     side={THREE.DoubleSide}
                 />
             </mesh>
+
+            {/* Point light at core */}
+            <pointLight position={[0, -0.5, 0]} intensity={1.5} distance={12} color="#E8B86D" />
         </group>
     );
 }
@@ -87,8 +132,10 @@ function HolographicDisplay() {
 function LeaderboardSpire({ position, rank, name, elo, color }: {
     position: [number, number, number]; rank: number; name: string; elo: number; color: string;
 }) {
-    const height = Math.max(0.1, 4 - rank * 0.8);
+    const height = Math.max(0.5, 5 - rank * 0.9);
     const [hovered, setHovered] = useState(false);
+
+    const rankLabels = ["I", "II", "III", "IV", "V"];
 
     return (
         <group
@@ -96,72 +143,118 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'crosshair'; }}
             onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
         >
+            {/* Base pedestal */}
+            <mesh position={[0, 0.15, 0]} castShadow>
+                <cylinderGeometry args={[0.6, 0.7, 0.3, 8]} />
+                <meshStandardMaterial color="#161310" metalness={0.6} roughness={0.4} />
+            </mesh>
+
+            {/* Rank number on base */}
+            <Text
+                position={[0, 0.32, 0.65]}
+                fontSize={0.22}
+                color={color}
+                anchorX="center"
+                letterSpacing={0.1}
+                outlineWidth={0.01}
+                outlineColor="#0A0907"
+            >
+                {rankLabels[rank - 1] ?? `${rank}`}
+            </Text>
+
             {/* Spire */}
-            <mesh position={[0, height / 2, 0]} castShadow>
-                <cylinderGeometry args={[0.2, 0.35, height, 6]} />
+            <mesh position={[0, 0.3 + height / 2, 0]} castShadow>
+                <cylinderGeometry args={[0.18, 0.32, height, 6]} />
                 <meshStandardMaterial
-                    color="#1a1035"
-                    metalness={0.7}
-                    roughness={0.3}
+                    color="#161310"
+                    metalness={0.8}
+                    roughness={0.25}
                     emissive={color}
-                    emissiveIntensity={hovered ? 0.8 : 0.15}
+                    emissiveIntensity={hovered ? 0.6 : 0.1}
                 />
+            </mesh>
+
+            {/* Gold accent line running up the spire */}
+            <mesh position={[0, 0.3 + height / 2, 0.2]} castShadow>
+                <boxGeometry args={[0.02, height, 0.02]} />
+                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
             </mesh>
 
             {/* Top crystal */}
-            <mesh position={[0, height + 0.3, 0]}>
-                <octahedronGeometry args={[0.25, 0]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={hovered ? 2 : 1}
-                    metalness={0.9}
-                    roughness={0.1}
-                />
-            </mesh>
+            <Float speed={hovered ? 4 : 1.2} floatIntensity={hovered ? 0.4 : 0.08}>
+                <mesh position={[0, 0.3 + height + 0.35, 0]}>
+                    <octahedronGeometry args={[0.3, 0]} />
+                    <meshStandardMaterial
+                        color={color}
+                        emissive={color}
+                        emissiveIntensity={hovered ? 2.5 : 1.2}
+                        metalness={0.9}
+                        roughness={0.05}
+                    />
+                </mesh>
+            </Float>
+
+            {/* Spire point light */}
+            <pointLight
+                position={[0, 0.3 + height + 0.4, 0]}
+                intensity={hovered ? 1.5 : 0.4}
+                distance={6}
+                color={color}
+            />
 
             {/* Label */}
-            <Float speed={hovered ? 5 : 1.5} floatIntensity={hovered ? 0.5 : 0.1}>
+            <Float speed={hovered ? 3 : 1} floatIntensity={hovered ? 0.3 : 0.05}>
                 <Text
-                    position={[0, height + 0.9, 0]}
-                    fontSize={0.15}
+                    position={[0, 0.3 + height + 1, 0]}
+                    fontSize={0.18}
                     color={color}
                     anchorX="center"
-                    outlineWidth={0.01}
-                    outlineColor="#000"
+                    outlineWidth={0.015}
+                    outlineColor="#0A0907"
+                    letterSpacing={0.06}
                 >
                     {`#${rank} ${name}`}
                 </Text>
-                <Text position={[0, height + 0.65, 0]} fontSize={0.1} color="#94A3B8" anchorX="center">
+                <Text position={[0, 0.3 + height + 0.72, 0]} fontSize={0.12} color="#8C7C68" anchorX="center" letterSpacing={0.04}>
                     {`ELO ${elo}`}
                 </Text>
             </Float>
 
             {/* Interactive HTML Popup */}
             {hovered && (
-                <Html position={[0, height + 1.5, 0]} center zIndexRange={[100, 0]}>
-                    <div className="bg-surface-bg/90 backdrop-blur-md border border-border-color p-4 rounded-xl shadow-[0_0_20px_rgba(0,232,255,0.2)] w-56 pointer-events-none select-none">
-                        <div className="text-primary-cyan font-mono text-xs mb-1 tracking-widest">[DATA_CORE_LINKED]</div>
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="font-bold text-white text-xl">{name}</span>
-                            <span className="text-premium-gold font-mono text-lg">#{rank}</span>
+                <Html position={[0, 0.3 + height + 1.8, 0]} center zIndexRange={[100, 0]}>
+                    <div style={{
+                        background: "rgba(10, 9, 7, 0.92)",
+                        backdropFilter: "blur(16px)",
+                        border: "1px solid rgba(200, 150, 60, 0.25)",
+                        padding: "16px",
+                        borderRadius: 12,
+                        boxShadow: `0 0 24px ${color}33`,
+                        width: 220,
+                        pointerEvents: "none",
+                        userSelect: "none",
+                        color: "#F0E8D8",
+                    }}>
+                        <div style={{ color: "#4A8C86", fontFamily: "monospace", fontSize: "0.65rem", marginBottom: 6, letterSpacing: "0.12em" }}>
+                            [DATA_CORE_LINKED]
                         </div>
-                        <div className="space-y-1">
-                            <div className="text-text-muted text-sm flex justify-between">
-                                <span>RATING (ELO)</span>
-                                <span className="text-white font-mono">{elo}</span>
-                            </div>
-                            <div className="text-text-muted text-sm flex justify-between">
-                                <span>WIN RATE</span>
-                                <span className="text-success-green font-mono">{(65 + Math.random() * 20).toFixed(1)}%</span>
-                            </div>
-                            <div className="text-text-muted text-sm flex justify-between">
-                                <span>TOTAL MATCHES</span>
-                                <span className="text-white font-mono">{Math.floor(Math.random() * 500) + 100}</span>
-                            </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                            <span style={{ fontWeight: 800, fontSize: "1.15rem" }}>{name}</span>
+                            <span style={{ color, fontFamily: "monospace", fontSize: "1.05rem", fontWeight: 700 }}>#{rank}</span>
                         </div>
-                        <div className="mt-4 text-xs text-center text-primary-cyan/70 font-mono animate-pulse">
-                            REASONING_ENGINE_ONLINE
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                                <span style={{ color: "#8C7C68" }}>RATING</span>
+                                <span style={{ fontFamily: "monospace" }}>{elo}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                                <span style={{ color: "#8C7C68" }}>WIN RATE</span>
+                                <span style={{ color: "#4A8C86", fontFamily: "monospace" }}>{(65 + Math.random() * 20).toFixed(1)}%</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                                <span style={{ color: "#8C7C68" }}>MATCHES</span>
+                                <span style={{ fontFamily: "monospace" }}>{Math.floor(Math.random() * 500) + 100}</span>
+                            </div>
                         </div>
                     </div>
                 </Html>
@@ -172,49 +265,60 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
 
 /* ── Ground plaza ────────────────────────────────────────── */
 function NexusPlaza() {
+    const ringRef = useRef<THREE.Group>(null);
+
+    useFrame((state) => {
+        if (ringRef.current) {
+            ringRef.current.rotation.y = state.clock.elapsedTime * 0.02;
+        }
+    });
+
     return (
         <group>
-            {/* Main ground */}
+            {/* Main ground - dark premium surface */}
             <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <circleGeometry args={[30, 64]} />
-                <meshStandardMaterial color="#0a0815" metalness={0.15} roughness={0.85} />
+                <meshStandardMaterial color="#0F0D0B" metalness={0.3} roughness={0.6} />
             </mesh>
 
-            {/* Decorative rings on the ground */}
-            {[8, 15, 22].map((r, i) => (
-                <mesh key={i} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[r - 0.05, r + 0.05, 64]} />
-                    <meshStandardMaterial
-                        color="#00E8FF"
-                        emissive="#00E8FF"
-                        emissiveIntensity={0.3}
-                        transparent
-                        opacity={0.2 - i * 0.05}
-                        side={THREE.DoubleSide}
-                    />
-                </mesh>
-            ))}
+            {/* Center emblem ring */}
+            <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[3.5, 3.7, 64]} />
+                <meshStandardMaterial color="#C8963C" emissive="#C8963C" emissiveIntensity={0.3} side={THREE.DoubleSide} />
+            </mesh>
 
-            {/* Path lines toward arena zones */}
-            {WORLD_ZONES.slice(1, 5).map((zone, i) => {
-                const dx = zone.position[0] * 0.4;
-                const dz = zone.position[2] * 0.4;
-                const len = Math.sqrt(dx * dx + dz * dz);
-                const angle = Math.atan2(dx, dz);
+            {/* Decorative rings - gold/teal alternating */}
+            <group ref={ringRef}>
+                {[8, 15, 22].map((r, i) => (
+                    <mesh key={i} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <ringGeometry args={[r - 0.04, r + 0.04, 64]} />
+                        <meshStandardMaterial
+                            color={i % 2 === 0 ? "#C8963C" : "#4A8C86"}
+                            emissive={i % 2 === 0 ? "#C8963C" : "#4A8C86"}
+                            emissiveIntensity={0.15}
+                            transparent
+                            opacity={0.35}
+                            side={THREE.DoubleSide}
+                        />
+                    </mesh>
+                ))}
+            </group>
 
+            {/* Radial path lines toward zones */}
+            {WORLD_ZONES.slice(1, 7).map((zone, i) => {
+                const dir = new THREE.Vector3(...zone.position).normalize();
+                const length = 26;
+                const mid = dir.clone().multiplyScalar(length / 2 + 4);
+                const angle = Math.atan2(dir.x, dir.z);
                 return (
-                    <mesh
-                        key={zone.id}
-                        position={[dx / 2, -0.03, dz / 2]}
-                        rotation={[-Math.PI / 2, 0, -angle]}
-                    >
-                        <planeGeometry args={[0.3, len]} />
+                    <mesh key={i} position={[mid.x, -0.03, mid.z]} rotation={[-Math.PI / 2, 0, -angle + Math.PI / 2]}>
+                        <planeGeometry args={[length, 0.06]} />
                         <meshStandardMaterial
                             color={zone.color}
                             emissive={zone.color}
-                            emissiveIntensity={0.3}
+                            emissiveIntensity={0.2}
                             transparent
-                            opacity={0.15}
+                            opacity={0.2}
                             side={THREE.DoubleSide}
                         />
                     </mesh>
@@ -228,9 +332,16 @@ function NexusPlaza() {
 function DirectionSign({ zone }: { zone: typeof WORLD_ZONES[0] }) {
     const router = useRouter();
     const [hovered, setHovered] = useState(false);
+    const glowRef = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>>(null);
 
     const dir = new THREE.Vector3(...zone.position).normalize().multiplyScalar(18);
     const angle = Math.atan2(dir.x, dir.z);
+
+    useFrame((state) => {
+        if (glowRef.current) {
+            glowRef.current.material.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 2) * 0.08;
+        }
+    });
 
     return (
         <group
@@ -239,43 +350,80 @@ function DirectionSign({ zone }: { zone: typeof WORLD_ZONES[0] }) {
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
             onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
         >
-            {/* Sign post / Gate Base */}
-            <mesh position={[0, 1.2, 0]} castShadow>
-                <cylinderGeometry args={[0.05, 0.05, 2.4, 6]} />
-                <meshStandardMaterial color={hovered ? zone.color : "#1a1035"} metalness={0.5} roughness={0.5} emissive={hovered ? zone.color : "#000"} emissiveIntensity={hovered ? 0.5 : 0} />
+            {/* Sign post */}
+            <mesh position={[0, 1.4, 0]} castShadow>
+                <cylinderGeometry args={[0.04, 0.04, 2.8, 6]} />
+                <meshStandardMaterial color="#2E2820" metalness={0.7} roughness={0.3} />
             </mesh>
 
-            {/* Sign board */}
-            <RoundedBox position={[0, 2.2, 0]} args={[2, 0.5, 0.08]} radius={0.04} rotation={[0, -angle, 0]}>
+            {/* Sign board - dark with accent border */}
+            <RoundedBox position={[0, 2.6, 0]} args={[2.4, 0.7, 0.1]} radius={0.06} rotation={[0, -angle, 0]}>
                 <meshStandardMaterial
-                    color="#1E1B4B"
+                    color="#161310"
+                    metalness={0.4}
+                    roughness={0.3}
                     emissive={zone.color}
-                    emissiveIntensity={hovered ? 0.8 : 0.1}
-                    metalness={0.3}
-                    roughness={0.6}
+                    emissiveIntensity={hovered ? 0.3 : 0.05}
                 />
             </RoundedBox>
 
+            {/* Accent strip on top of sign */}
+            <mesh position={[0, 2.94, 0]} rotation={[0, -angle, 0]}>
+                <boxGeometry args={[2.2, 0.03, 0.12]} />
+                <meshStandardMaterial color={zone.color} emissive={zone.color} emissiveIntensity={0.6} />
+            </mesh>
+
+            {/* Zone icon */}
             <Text
-                position={[0, 2.2, 0]}
+                position={[0, 2.7, 0.06]}
                 rotation={[0, -angle, 0]}
-                fontSize={0.15}
+                fontSize={0.22}
                 color={zone.color}
                 anchorX="center"
             >
-                {`${zone.icon} ${zone.label} ${hovered ? '>>>' : '→'}`}
+                {zone.icon}
             </Text>
 
-            {/* Holographic Warp Portal Text */}
-            {hovered && (
-                <Html position={[0, 3.5, 0]} center distanceFactor={15} zIndexRange={[100, 0]}>
-                    <div className="bg-void-bg/90 border border-primary-cyan/50 p-2 rounded-md text-center shadow-[0_0_15px_rgba(0,232,255,0.4)] pointer-events-none select-none">
-                        <div className="text-primary-cyan font-mono text-xs whitespace-nowrap tracking-wider">
-                            [INITIATE_WARP_{zone.id.toUpperCase()}]
-                        </div>
-                    </div>
-                </Html>
-            )}
+            {/* Zone label */}
+            <Text
+                position={[0, 2.45, 0.06]}
+                rotation={[0, -angle, 0]}
+                fontSize={0.14}
+                color="#F0E8D8"
+                anchorX="center"
+                letterSpacing={0.08}
+                outlineWidth={0.008}
+                outlineColor="#0A0907"
+            >
+                {zone.label.toUpperCase()}
+            </Text>
+
+            {/* Arrow indicator */}
+            <Text
+                position={[0.9, 2.45, 0.06]}
+                rotation={[0, -angle, 0]}
+                fontSize={0.16}
+                color={hovered ? zone.color : "#5A5248"}
+                anchorX="left"
+            >
+                →
+            </Text>
+
+            {/* Ground glow ring */}
+            <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+                <ringGeometry args={[1.2, 1.5, 32]} />
+                <meshStandardMaterial
+                    color={zone.color}
+                    emissive={zone.color}
+                    emissiveIntensity={0.4}
+                    transparent
+                    opacity={0.2}
+                    side={THREE.DoubleSide}
+                />
+            </mesh>
+
+            {/* Point light for sign illumination */}
+            <pointLight position={[0, 2.6, 0.5]} intensity={hovered ? 1.2 : 0.3} distance={5} color={zone.color} />
         </group>
     );
 }
@@ -290,6 +438,43 @@ function DirectionSigns() {
     );
 }
 
+/* ── Ambient floating particles (gold dust) ──────────────── */
+function GoldDustParticles({ count = 80 }: { count?: number }) {
+    const ref = useRef<THREE.Points>(null);
+
+    const particles = useMemo(() => {
+        const pos = new Float32Array(count * 3);
+        const sizes = new Float32Array(count);
+        for (let i = 0; i < count; i++) {
+            pos[i * 3] = (Math.random() - 0.5) * 50;
+            pos[i * 3 + 1] = Math.random() * 15 + 1;
+            pos[i * 3 + 2] = (Math.random() - 0.5) * 50;
+            sizes[i] = Math.random() * 0.08 + 0.02;
+        }
+        return { pos, sizes };
+    }, [count]);
+
+    useFrame((state) => {
+        if (!ref.current) return;
+        const positions = ref.current.geometry.attributes.position.array as Float32Array;
+        const t = state.clock.elapsedTime;
+        for (let i = 0; i < count; i++) {
+            positions[i * 3 + 1] += Math.sin(t * 0.3 + i) * 0.003;
+            positions[i * 3] += Math.cos(t * 0.2 + i * 0.7) * 0.002;
+        }
+        ref.current.geometry.attributes.position.needsUpdate = true;
+    });
+
+    return (
+        <points ref={ref}>
+            <bufferGeometry>
+                <bufferAttribute attach="attributes-position" args={[particles.pos, 3]} count={count} itemSize={3} />
+            </bufferGeometry>
+            <pointsMaterial color="#E8B86D" size={0.06} transparent opacity={0.4} sizeAttenuation />
+        </points>
+    );
+}
+
 /* ── Full Central Nexus ──────────────────────────────────── */
 export function CentralNexus() {
     const agents = useWorldStore((s) => s.agents);
@@ -298,12 +483,14 @@ export function CentralNexus() {
 
     return (
         <group>
-            {/* Premium Lighting */}
-            <ambientLight intensity={0.1} color="#0C0C28" />
-            <spotLight position={[0, 20, 0]} intensity={1.5} angle={Math.PI / 4} penumbra={1} color="#00E8FF" castShadow />
-            <spotLight position={[10, 10, 10]} intensity={1} angle={Math.PI / 6} penumbra={0.8} color="#8B3FE8" castShadow />
-            <spotLight position={[-10, 10, -10]} intensity={1} angle={Math.PI / 6} penumbra={0.8} color="#00FFB0" castShadow />
-            <pointLight position={[0, 5, 0]} intensity={0.5} distance={15} color="#ffffff" />
+            {/* Premium Lighting - gold/teal accent setup */}
+            <ambientLight intensity={0.25} color="#F0E8D8" />
+            <spotLight position={[0, 25, 0]} intensity={1.5} angle={Math.PI / 4} penumbra={1} color="#E8B86D" castShadow shadow-mapSize={[2048, 2048]} />
+            <pointLight position={[0, 5, 0]} intensity={0.8} distance={20} color="#C8963C" />
+            <pointLight position={[10, 3, 10]} intensity={0.4} distance={15} color="#4A8C86" />
+            <pointLight position={[-10, 3, -10]} intensity={0.4} distance={15} color="#4A8C86" />
+            <pointLight position={[12, 2, -8]} intensity={0.3} distance={12} color="#C8963C" />
+            <pointLight position={[-8, 2, 12]} intensity={0.3} distance={12} color="#E8B86D" />
 
             {/* Ground */}
             <NexusPlaza />
@@ -311,10 +498,10 @@ export function CentralNexus() {
             {/* Central holographic display */}
             <HolographicDisplay />
 
-            {/* Leaderboard spires */}
-            <LeaderboardSpire position={[-6, 0, -6]} rank={1} name="TITAN" elo={2600} color="#F59E0B" />
-            <LeaderboardSpire position={[-8, 0, -4]} rank={2} name="ORACLE" elo={2520} color="#C0C0C0" />
-            <LeaderboardSpire position={[-10, 0, -6]} rank={3} name="ZEUS" elo={2450} color="#CD7F32" />
+            {/* Leaderboard spires - ranked by prestige */}
+            <LeaderboardSpire position={[-6, 0, -6]} rank={1} name="TITAN" elo={2600} color="#C8963C" />
+            <LeaderboardSpire position={[-8, 0, -4]} rank={2} name="ORACLE" elo={2520} color="#C0B8A8" />
+            <LeaderboardSpire position={[-10, 0, -6]} rank={3} name="ZEUS" elo={2450} color="#A0522D" />
 
             {/* Direction signs */}
             <DirectionSigns />
@@ -328,8 +515,9 @@ export function CentralNexus() {
                 />
             ))}
 
-            {/* Ambient particles */}
-            <EnvironmentParticles count={200} area={50} color="#00E8FF" speed={0.03} />
+            {/* Ambient particles - warm gold dust */}
+            <GoldDustParticles count={80} />
+            <EnvironmentParticles count={40} area={50} color="#4A8C86" speed={0.008} />
         </group>
     );
 }

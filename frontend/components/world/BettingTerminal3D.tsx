@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, RoundedBox, Billboard, Html } from "@react-three/drei";
 import * as THREE from "three";
+import { COLORS } from "@/lib/theme";
 
 /* ── Betting Terminal 3D ─────────────────────────────────── */
 interface BettingTerminal3DProps {
@@ -34,7 +35,7 @@ export function BettingTerminal3D({
     useFrame((_, delta) => {
         if (glowRef.current) {
             const mat = glowRef.current.material as THREE.MeshStandardMaterial;
-            mat.emissiveIntensity = 0.3 + Math.sin(Date.now() * 0.003) * 0.15;
+            mat.emissiveIntensity = 0.03 + Math.sin(Date.now() * 0.003) * 0.02;
         }
 
         // Animate sealed envelope flying to vault
@@ -61,12 +62,12 @@ export function BettingTerminal3D({
             {/* Base stand */}
             <mesh position={[0, 0.5, 0]} castShadow>
                 <cylinderGeometry args={[0.3, 0.4, 1.0, 8]} />
-                <meshStandardMaterial color="#1a1035" metalness={0.6} roughness={0.4} />
+                <meshStandardMaterial color={COLORS.structure} metalness={0.6} roughness={0.4} />
             </mesh>
 
             {/* Terminal body */}
             <RoundedBox position={[0, 1.3, 0]} args={[0.8, 0.9, 0.3]} radius={0.04} smoothness={4} castShadow>
-                <meshStandardMaterial color="#1E1B4B" metalness={0.4} roughness={0.5} />
+                <meshStandardMaterial color={COLORS.ivory} metalness={0.4} roughness={0.5} />
             </RoundedBox>
 
             {/* Sub-interactive UI */}
@@ -80,7 +81,7 @@ export function BettingTerminal3D({
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(16, 185, 129, 0.2)', paddingBottom: '12px' }}>
                         <span style={{ fontSize: '1.2rem' }}></span>
-                        <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--neon-green)', fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>PLACE ZK BET</h4>
+                        <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--neon-green)', fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Place Bet</h4>
                     </div>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
@@ -114,7 +115,7 @@ export function BettingTerminal3D({
                             setIsInteracting(false);
                         }}
                     >
-                        LOCK CONFIDENTIAL BET
+                        Confirm Bet
                     </button>
                 </Html>
             )}
@@ -123,7 +124,7 @@ export function BettingTerminal3D({
             {sealedEnvelope.visible && (
                 <mesh position={[0, sealedEnvelope.y, 0]}>
                     <boxGeometry args={[0.4, 0.2, 0.05]} />
-                    <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.5} />
+                    <meshStandardMaterial color={COLORS.accentSoft} emissive={COLORS.accentSoft} emissiveIntensity={0.05} />
                 </mesh>
             )}
 
@@ -131,22 +132,22 @@ export function BettingTerminal3D({
             <mesh ref={screenRef} position={[0, 1.35, 0.16]}>
                 <planeGeometry args={[0.65, 0.7]} />
                 <meshStandardMaterial
-                    color="#0a0a1a"
-                    emissive={isActive ? "#6C3AED" : "#333333"}
-                    emissiveIntensity={0.2}
+                    color={COLORS.surface}
+                    emissive={isActive ? COLORS.accent : COLORS.textMuted}
+                    emissiveIntensity={0.05}
                 />
             </mesh>
 
             {/* Screen content */}
             <group position={[0, 0, 0.17]}>
                 {/* Match label */}
-                <Text position={[0, 1.6, 0]} fontSize={0.06} color="#F59E0B" anchorX="center">
+                <Text position={[0, 1.6, 0]} fontSize={0.06} color={COLORS.accentSoft} anchorX="center">
                     {matchLabel}
                 </Text>
 
                 {/* LIVE badge */}
                 {isActive && (
-                    <Text position={[0, 1.52, 0]} fontSize={0.04} color="#EF4444" anchorX="center">
+                    <Text position={[0, 1.52, 0]} fontSize={0.04} color={COLORS.textPrimary} anchorX="center">
                         ● LIVE
                     </Text>
                 )}
@@ -154,27 +155,27 @@ export function BettingTerminal3D({
                 {/* Odds bars */}
                 <mesh position={[-0.12, 1.38, 0]}>
                     <planeGeometry args={[Math.max(0.001, 0.25 * ((odds?.[0] || 50) / 100)), 0.05]} />
-                    <meshStandardMaterial color="#10B981" emissive="#10B981" emissiveIntensity={0.5} />
+                    <meshStandardMaterial color={COLORS.textPrimary} emissive={COLORS.textPrimary} emissiveIntensity={0.05} />
                 </mesh>
                 <mesh position={[0.12, 1.38, 0]}>
                     <planeGeometry args={[Math.max(0.001, 0.25 * ((odds?.[1] || 50) / 100)), 0.05]} />
-                    <meshStandardMaterial color="#8B5CF6" emissive="#8B5CF6" emissiveIntensity={0.5} />
+                    <meshStandardMaterial color={COLORS.textSecondary} emissive={COLORS.textSecondary} emissiveIntensity={0.05} />
                 </mesh>
 
-                <Text position={[-0.15, 1.3, 0]} fontSize={0.04} color="#10B981" anchorX="center">
+                <Text position={[-0.15, 1.3, 0]} fontSize={0.04} color={COLORS.textPrimary} anchorX="center">
                     {`${odds[0]}%`}
                 </Text>
-                <Text position={[0.15, 1.3, 0]} fontSize={0.04} color="#8B5CF6" anchorX="center">
+                <Text position={[0.15, 1.3, 0]} fontSize={0.04} color={COLORS.textSecondary} anchorX="center">
                     {`${odds[1]}%`}
                 </Text>
 
                 {/* Pool */}
-                <Text position={[0, 1.18, 0]} fontSize={0.05} color="#F59E0B" anchorX="center">
+                <Text position={[0, 1.18, 0]} fontSize={0.05} color={COLORS.accentSoft} anchorX="center">
                     {`Pool: $${pool.toLocaleString()}`}
                 </Text>
 
                 {/* Place bet prompt */}
-                <Text position={[0, 1.06, 0]} fontSize={0.04} color="#64748B" anchorX="center">
+                <Text position={[0, 1.06, 0]} fontSize={0.04} color={COLORS.textMuted} anchorX="center">
                     Click to Place Bet
                 </Text>
             </group>
@@ -183,9 +184,9 @@ export function BettingTerminal3D({
             <mesh ref={glowRef} position={[0, 1.3, 0.155]}>
                 <planeGeometry args={[0.72, 0.02]} />
                 <meshStandardMaterial
-                    color="#6C3AED"
-                    emissive="#6C3AED"
-                    emissiveIntensity={0.5}
+                    color={COLORS.accent}
+                    emissive={COLORS.accent}
+                    emissiveIntensity={0.05}
                     transparent
                     opacity={0.8}
                 />
@@ -195,16 +196,16 @@ export function BettingTerminal3D({
             <mesh position={[0, 1.85, 0]}>
                 <sphereGeometry args={[0.05, 8, 8]} />
                 <meshStandardMaterial
-                    color={isActive ? "#10B981" : "#EF4444"}
-                    emissive={isActive ? "#10B981" : "#EF4444"}
-                    emissiveIntensity={1.5}
+                    color={COLORS.textPrimary}
+                    emissive={COLORS.textPrimary}
+                    emissiveIntensity={0.05}
                 />
             </mesh>
 
             {/* Interactive label */}
             <Billboard position={[0, 2.1, 0]}>
-                <Text fontSize={0.08} color="#F59E0B" anchorX="center" outlineWidth={0.005} outlineColor="#000">
-                    BET TERMINAL
+                <Text fontSize={0.08} color={COLORS.accentSoft} anchorX="center" outlineWidth={0.005} outlineColor="#000">
+                    Terminal
                 </Text>
             </Billboard>
         </group>

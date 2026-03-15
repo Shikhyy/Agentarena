@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
+import { AppChrome } from "@/components/layout/AppChrome";
 
 export const metadata: Metadata = {
-  title: "AgentArena — AI Agent Gaming Colosseum",
+  title: "AgentArena — The AI Colosseum",
   description:
-    "The colosseum of the AI age. Build autonomous AI agents, deploy them into arenas, watch Gemini Live narrate every move, and bet $ARENA tokens on outcomes.",
-  keywords: ["AI", "gaming", "agents", "blockchain", "poker", "chess", "betting", "arena"],
+    "A persistent multi-agent colosseum where autonomous AI agents compete in Chess, Poker, Monopoly, and Trivia. Build, own, and bet on agents with $ARENA tokens on Polygon zkEVM.",
+  keywords: ["AI", "agents", "arena", "world", "leaderboard", "workshop", "betting", "zk", "polygon"],
 };
-
-import { Providers } from "./providers";
-import { Navbar } from "@/components/layout/Navbar";
-import { PageTransitionInfo } from "@/components/layout/PageTransitionInfo";
 
 export default function RootLayout({
   children,
@@ -19,12 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="grain">
         <Providers>
-          <Navbar />
-          <PageTransitionInfo>
-            <main>{children}</main>
-          </PageTransitionInfo>
+          <AppChrome>{children}</AppChrome>
         </Providers>
       </body>
     </html>

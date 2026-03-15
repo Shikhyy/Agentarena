@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useEffect, useState, useRef } from "react";
 import { CONTRACTS, getZKBettingPoolRead } from "@/lib/contracts";
 import { apiGet, wsUrl } from "@/lib/api";
@@ -36,7 +36,7 @@ function calculateKelly(prob: number, oddsFloat: number): number {
     // where b is the net fractional odds received on a win
     const q = 1 - prob;
     const b = oddsFloat <= 0 ? 0 : oddsFloat;
-    let f = b > 0 ? prob - (q / b) : 0;
+    const f = b > 0 ? prob - (q / b) : 0;
     // Cap at 10% to be responsible, Floor at 0.5%
     return Math.max(0.005, Math.min(0.1, f * 0.25)); // Quarter Kelly for safety
 }

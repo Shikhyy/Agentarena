@@ -7,6 +7,7 @@ from typing import Dict, Optional, List
 from dataclasses import dataclass, field
 import json
 import random
+import uuid
 
 
 @dataclass
@@ -39,6 +40,8 @@ class GameAgent:
     model: str = "gemini-2.0-flash"
     skills: List[str] = field(default_factory=list)
     memory: List[dict] = field(default_factory=list)
+    bankroll: float = 1000.0
+    bet_history: List[dict] = field(default_factory=list)
 
     def get_system_prompt(self, game_type: str) -> str:
         """Generate system prompt based on personality and game type."""
@@ -154,6 +157,97 @@ class AgentOrchestrator:
             "amount": amount,
             "agent_id": agent.agent_id,
             "reasoning": f"{agent.name} ({agent.personality.archetype}) decides to {action}",
+        }
+
+    async def place_agent_bet(self, agent: GameAgent, match_id: str, odds_state: dict) -> dict:
+        """Place a personality-driven bet for an AI agent using Kelly criterion."""
+        from routers.betting import compute_pedersen_mock
+        from betting.odds_engine import odds_engine
+
+        p = agent.personality
+        prob_a = odds_state.get("agent_a", {}).get("probability", 0.5)
+        prob_b = odds_state.get("agent_b", {}).get("probability", 0.5)
+
+        # Pick which side to bet on — biased by personality
+        if p.archetype == "chaos":
+            position = random.randint(0, 1)
+        elif p.aggression > 0.5:
+            # Aggressive agents bet on the underdog
+            position = 0 if prob_a < prob_b else 1
+        else:
+            # Conservative agents bet on the favorite
+            position = 0 if prob_a >= prob_b else 1
+
+        chosen_prob = prob_a if position == 0 else prob_b
+        decimal_odds = (1.0 / chosen_prob) if chosen_prob > 0 else 2.0
+        kelly_fraction = odds_engine.kelly_criterion(chosen_prob, decimal_odds)
+
+        # Scale kelly fraction by personality
+        if p.aggression >= 0.7:
+            scaled_fraction = kelly_fraction * p.aggression * 1.5
+        else:
+            scaled_fraction = kelly_fraction * ((1 - p.aggression) * 0.5 + 0.25)
+
+        # Chaotic agents add randomness
+        if p.archetype in ("chaos", "unpredictable"):
+            scaled_fraction += random.uniform(-0.05, 0.15)
+
+        scaled_fraction = max(0.01, min(scaled_fraction, 0.5))
+        bet_amount = max(1, int(agent.bankroll * scaled_fraction))
+        bet_amount = min(bet_amount, int(agent.bankroll))
+
+        secret = uuid.uuid4().hex[:16]
+        commitment = compute_pedersen_mock(bet_amount, position, secret)
+
+        bet_record = {
+            "match_id": match_id,
+            "agent_id": agent.agent_id,
+            "amount": bet_amount,
+            "position": position,
+            "secret": secret,
+            "commitment": commitment,
+            "revealed": False,
+            "payout": None,
+        }
+        agent.bet_history.append(bet_record)
+
+        return {
+            "agent_id": agent.agent_id,
+            "agent_name": agent.name,
+            "commitment": commitment,
+            "position": position,
+            "amount": bet_amount,
+            "personality": p.archetype,
+        }
+
+    async def reveal_agent_bet(self, agent: GameAgent, match_id: str, winner_position: int) -> dict:
+        """Reveal an agent's bet and update bankroll based on result."""
+        bet_record = None
+        for b in agent.bet_history:
+            if b["match_id"] == match_id and not b["revealed"]:
+                bet_record = b
+                break
+
+        if not bet_record:
+            return {"agent_id": agent.agent_id, "error": "No unrevealed bet found for this match"}
+
+        bet_record["revealed"] = True
+        won = bet_record["position"] == winner_position
+        payout = bet_record["amount"] * 2 if won else 0
+        bet_record["payout"] = payout
+
+        # Update bankroll
+        agent.bankroll -= bet_record["amount"]
+        agent.bankroll += payout
+
+        return {
+            "agent_id": agent.agent_id,
+            "agent_name": agent.name,
+            "amount": bet_record["amount"],
+            "position": bet_record["position"],
+            "won": won,
+            "payout": payout,
+            "new_bankroll": agent.bankroll,
         }
 
     def _select_poker_action(self, agent: GameAgent, hand_strength: float, pot: int, current_bet: int, chips: int) -> tuple:

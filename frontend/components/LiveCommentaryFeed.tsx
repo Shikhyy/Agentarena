@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 const BACKEND_WS = process.env.NEXT_PUBLIC_BACKEND_WS_URL || "ws://localhost:8000";
 
@@ -307,7 +307,7 @@ function StreamingCursor() {
                 display: "inline-block",
                 width: 2,
                 height: "1em",
-                background: "#8b3fe8",
+                background: "#4A8C86",
                 marginLeft: 2,
                 verticalAlign: "text-bottom",
                 borderRadius: 1,

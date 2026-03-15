@@ -10,6 +10,7 @@ import { apiGet, apiPost, wsUrl } from "@/lib/api";
 
 // Re-export the existing world store to avoid duplication
 export { useWorldStore } from "@/lib/worldStore";
+export { useUIStore } from "./uiStore";
 
 // ─── Arena Store ────────────────────────────────────────────────────────
 

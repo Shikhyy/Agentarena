@@ -22,17 +22,30 @@ import { GrandArenaZone, HallOfFameZone, MarketplaceZone } from "./OtherZones";
 /* ── Loading Spinner ────────────────────────────────── */
 function LoadingFallback() {
     const ref = useRef<THREE.Mesh>(null);
+    const ringRef = useRef<THREE.Mesh>(null);
     useFrame((_, delta) => {
         if (ref.current) {
-            ref.current.rotation.x += delta * 1.5;
-            ref.current.rotation.y += delta * 2;
+            ref.current.rotation.x += delta * 1.2;
+            ref.current.rotation.y += delta * 1.8;
+        }
+        if (ringRef.current) {
+            ringRef.current.rotation.z += delta * 2.5;
         }
     });
     return (
-        <mesh ref={ref} position={[0, 2, 0]}>
-            <icosahedronGeometry args={[0.6, 1]} />
-            <meshStandardMaterial color="#7B5CFA" emissive="#7B5CFA" emissiveIntensity={1} wireframe />
-        </mesh>
+        <group position={[0, 2, 0]}>
+            <mesh ref={ref}>
+                <icosahedronGeometry args={[0.5, 1]} />
+                <meshStandardMaterial color="#C8963C" emissive="#C8963C" emissiveIntensity={1.5} wireframe />
+            </mesh>
+            <mesh ref={ringRef}>
+                <torusGeometry args={[0.8, 0.02, 8, 32]} />
+                <meshStandardMaterial color="#4A8C86" emissive="#4A8C86" emissiveIntensity={1} />
+            </mesh>
+            <Text position={[0, -1.2, 0]} fontSize={0.2} color="#8C7C68" anchorX="center" letterSpacing={0.1}>
+                LOADING...
+            </Text>
+        </group>
     );
 }
 
@@ -40,24 +53,27 @@ function LoadingFallback() {
 function GridFloor() {
     return (
         <group>
-            {/* Main ground */}
+            {/* Main ground - dark premium surface */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[0, -0.1, 0]}
                 receiveShadow
             >
                 <planeGeometry args={[600, 600]} />
-                <meshStandardMaterial color="#04040E" metalness={0.3} roughness={0.8} />
+                <meshStandardMaterial color="#0F0D0B" metalness={0.15} roughness={0.7} />
             </mesh>
-            {/* Optimized Grid helper instead of massive plane geometry wireframe */}
-            <Grid 
-                position={[0, 0.05, 0]} 
-                args={[600, 600]} 
-                cellColor="#7B5CFA" 
-                sectionColor="#7B5CFA" 
-                sectionThickness={1} 
-                fadeDistance={200} 
-                cellThickness={0.5} 
+            {/* Subtle grid overlay */}
+            <Grid
+                position={[0, 0.02, 0]}
+                args={[600, 600]}
+                cellColor="#2E2820"
+                sectionColor="#3A3228"
+                sectionThickness={1}
+                fadeDistance={180}
+                cellThickness={0.3}
+                cellSize={4}
+                sectionSize={20}
+                fadeStrength={1.5}
             />
         </group>
     );
@@ -66,18 +82,19 @@ function GridFloor() {
 /* ── Pulsing Beacon ─────────────────────────────── */
 function ZoneBeacon({ position, color, label }: { position: [number, number, number]; color: string; label: string }) {
     const ref = useRef<THREE.Mesh>(null);
-    const ringRef = useRef<THREE.Mesh>(null);
+    const pulseRef = useRef<THREE.Mesh>(null);
+
     useFrame((state) => {
+        const t = state.clock.elapsedTime;
         if (ref.current) {
-            ref.current.position.y = position[1] + 6 + Math.sin(state.clock.elapsedTime * 1.5) * 0.5;
+            ref.current.position.y = position[1] + 6 + Math.sin(t * 0.8) * 0.4;
+            ref.current.rotation.y += 0.015;
         }
-        if (ringRef.current) {
-            const scale = 1 + (Math.sin(state.clock.elapsedTime * 2) * 0.5 + 0.5) * 1.5;
-            ringRef.current.scale.setScalar(scale);
-            const material = ringRef.current.material;
-            if (!Array.isArray(material)) {
-                material.opacity = 0.5 - scale * 0.1;
-            }
+        if (pulseRef.current) {
+            const scale = 1 + Math.sin(t * 1.5) * 0.15;
+            pulseRef.current.scale.set(scale, 1, scale);
+            (pulseRef.current.material as THREE.MeshStandardMaterial).opacity =
+                0.15 + Math.sin(t * 1.5) * 0.08;
         }
     });
 
@@ -86,27 +103,47 @@ function ZoneBeacon({ position, color, label }: { position: [number, number, num
             {/* Column beam */}
             <mesh position={[0, 3, 0]}>
                 <cylinderGeometry args={[0.02, 0.02, 6, 6]} />
-                <meshBasicMaterial color={color} transparent opacity={0.4} />
+                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} transparent opacity={0.25} />
             </mesh>
+
             {/* Diamond beacon */}
             <mesh ref={ref}>
-                <octahedronGeometry args={[0.4, 0]} />
-                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} />
+                <octahedronGeometry args={[0.45, 0]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={0.8}
+                    metalness={0.7}
+                    roughness={0.1}
+                />
             </mesh>
-            {/* Expanding ring */}
-            <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
-                <ringGeometry args={[1, 1.2, 32]} />
-                <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
+
+            {/* Pulsing ring marker */}
+            <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]}>
+                <ringGeometry args={[1.2, 1.35, 32]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={0.3}
+                    transparent
+                    opacity={0.2}
+                    side={THREE.DoubleSide}
+                />
             </mesh>
-            <Float speed={1.2} floatIntensity={0.25}>
+
+            {/* Point light at beacon */}
+            <pointLight position={[0, 6, 0]} intensity={0.6} distance={15} color={color} />
+
+            <Float speed={0.8} floatIntensity={0.15}>
                 <Text
-                    position={[0, 7.2, 0]}
-                    fontSize={0.45}
+                    position={[0, 7.5, 0]}
+                    fontSize={0.5}
                     color={color}
                     anchorX="center"
                     anchorY="middle"
+                    letterSpacing={0.06}
                     outlineWidth={0.02}
-                    outlineColor="#030308"
+                    outlineColor="#0A0907"
                 >
                     {label}
                 </Text>
@@ -126,11 +163,11 @@ function ChessZone() {
     return (
         <>
             <group position={[0, 0, -60]}>
-                <ArenaHall3D hallName="Chess Arena" hallColor="#7B5CFA" spectatorCount={chessMatch?.spectators ?? 0}>
+                <ArenaHall3D hallName="Chess Arena" hallColor="#4A8C86" spectatorCount={chessMatch?.spectators ?? 0}>
                     <group position={[0, 1, 0]}>
                         <mesh position={[0, 0.5, 0]} castShadow>
                             <boxGeometry args={[4.2, 0.12, 4.2]} />
-                            <meshStandardMaterial color="#1a1038" metalness={0.5} roughness={0.3} />
+                            <meshStandardMaterial color="#161310" metalness={0.5} roughness={0.3} />
                         </mesh>
                         {Array.from({ length: 64 }).map((_, i) => {
                             const row = Math.floor(i / 8);
@@ -140,11 +177,11 @@ function ChessZone() {
                                 <mesh key={i} position={[(col - 3.5) * 0.49, 0.58, (row - 3.5) * 0.49]}>
                                     <boxGeometry args={[0.47, 0.025, 0.47]} />
                                     <meshStandardMaterial
-                                        color={isLight ? "#c8b8f0" : "#2d1f6e"}
+                                        color={isLight ? "#C8B89A" : "#2E2820"}
                                         metalness={0.15}
                                         roughness={0.5}
-                                        emissive={isLight ? "#c8b8f0" : "#2d1f6e"}
-                                        emissiveIntensity={0.05}
+                                        emissive={isLight ? "#C8B89A" : "#2E2820"}
+                                        emissiveIntensity={0.03}
                                     />
                                 </mesh>
                             );
@@ -152,7 +189,7 @@ function ChessZone() {
                     </group>
                 </ArenaHall3D>
             </group>
-            <ZoneBeacon position={[0, 0, -60]} color="#7B5CFA" label="Chess" />
+            <ZoneBeacon position={[0, 0, -60]} color="#4A8C86" label="Chess" />
             {chessAgents.map(a => <AgentCharacter3D key={a.id} agent={a} onClick={() => selectAgent(a.id)} />)}
             {chessMatch && <CommentatorAvatar3D position={[8, 0, -60]} matchLabel={`${chessMatch.agentA.name} vs ${chessMatch.agentB.name}`} spectators={chessMatch.spectators} />}
             {chessMatch && <BettingTerminal3D position={[-8, 0, -55]} matchLabel={`${chessMatch.agentA.name} vs ${chessMatch.agentB.name}`} odds={chessMatch.odds} pool={chessMatch.pool} />}
@@ -172,24 +209,24 @@ function PokerZone() {
     return (
         <>
             <group position={[60, 0, 0]}>
-                <ArenaHall3D hallName="Poker Den" hallColor="#00D4FF" spectatorCount={pokerMatch?.spectators ?? 0}>
+                <ArenaHall3D hallName="Poker Den" hallColor="#C43030" spectatorCount={pokerMatch?.spectators ?? 0}>
                     <group position={[0, 1, 0]}>
                         <mesh position={[0, 0.5, 0]} castShadow>
                             <cylinderGeometry args={[2.7, 2.7, 0.18, 32]} />
-                            <meshStandardMaterial color="#052218" metalness={0.25} roughness={0.6} />
+                            <meshStandardMaterial color="#161310" metalness={0.25} roughness={0.6} />
                         </mesh>
                         <mesh position={[0, 0.6, 0]}>
                             <cylinderGeometry args={[2.5, 2.5, 0.01, 32]} />
-                            <meshStandardMaterial color="#036630" roughness={0.95} />
+                            <meshStandardMaterial color="#1A3028" roughness={0.95} />
                         </mesh>
                         <mesh position={[0, 0.55, 0]}>
                             <torusGeometry args={[2.6, 0.1, 8, 32]} />
-                            <meshStandardMaterial color="#00D4FF" emissive="#00D4FF" emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
+                            <meshStandardMaterial color="#C8963C" emissive="#C8963C" emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
                         </mesh>
                     </group>
                 </ArenaHall3D>
             </group>
-            <ZoneBeacon position={[60, 0, 0]} color="#00D4FF" label="Poker" />
+            <ZoneBeacon position={[60, 0, 0]} color="#C43030" label="Poker" />
             {pokerAgents.map(a => <AgentCharacter3D key={a.id} agent={a} onClick={() => selectAgent(a.id)} />)}
             {pokerMatch && <CommentatorAvatar3D position={[68, 0, 8]} matchLabel={`${pokerMatch.agentA.name} vs ${pokerMatch.agentB.name}`} spectators={pokerMatch.spectators} />}
             {pokerMatch && <BettingTerminal3D position={[55, 0, 8]} matchLabel={`${pokerMatch.agentA.name} vs ${pokerMatch.agentB.name}`} odds={pokerMatch.odds} pool={pokerMatch.pool} />}
@@ -204,21 +241,32 @@ function WorldScene() {
 
     return (
         <>
-            <fog attach="fog" args={["#030308", 80, 350]} />
-            <color attach="background" args={["#030308"]} />
+            <fog attach="fog" args={["#0A0907", 60, 300]} />
+            <color attach="background" args={["#0A0907"]} />
 
-            <PerspectiveCamera makeDefault position={[0, 80, 120]} fov={65} near={0.1} far={2000} />
+            <PerspectiveCamera makeDefault position={[0, 60, 100]} fov={60} near={0.1} far={2000} />
             <PlayerController />
 
-            {/* Stars */}
-            <Stars radius={250} depth={120} count={3000} factor={5} fade speed={0.3} />
+            {/* Ambient star field for atmosphere */}
+            <Stars radius={300} depth={100} count={1500} factor={3} saturation={0.1} fade speed={0.3} />
 
-            {/* Lighting */}
-            <ambientLight intensity={0.15} color="#1a0a40" />
-            <directionalLight position={[30, 80, 30]} intensity={2.5} color="#00D4FF" castShadow shadow-mapSize={[2048, 2048]} />
-            <directionalLight position={[-50, 30, -10]} intensity={1.5} color="#FF3B5C" />
-            <directionalLight position={[0, 50, -80]} intensity={2.5} color="#7B5CFA" />
-            <pointLight position={[0, 20, 0]} intensity={3} color="#7B5CFA" distance={60} />
+            {/* Lighting - warm premium setup */}
+            <ambientLight intensity={0.15} color="#F0E8D8" />
+            <directionalLight
+                position={[50, 80, 50]}
+                intensity={0.6}
+                color="#E8B86D"
+                castShadow
+                shadow-mapSize={[2048, 2048]}
+                shadow-camera-far={300}
+                shadow-camera-left={-100}
+                shadow-camera-right={100}
+                shadow-camera-top={100}
+                shadow-camera-bottom={-100}
+            />
+            <directionalLight position={[-30, 50, -30]} intensity={0.3} color="#4A8C86" />
+            {/* Subtle rim light */}
+            <directionalLight position={[0, 30, -80]} intensity={0.15} color="#C8963C" />
 
             {/* Ground + Grid */}
             <GridFloor />
@@ -244,10 +292,10 @@ function WorldScene() {
             <Suspense fallback={<LoadingFallback />}><HallOfFameZone /></Suspense>
             <Suspense fallback={<LoadingFallback />}><MarketplaceZone /></Suspense>
 
-            {/* Post-processing - lowered intensity to improve frame rate */}
+            {/* Post-processing - premium dark atmosphere */}
             <EffectComposer multisampling={0}>
-                <Bloom luminanceThreshold={0.7} luminanceSmoothing={0.9} intensity={0.4} mipmapBlur resolutionScale={0.5} />
-                <Vignette eskil={false} offset={0.15} darkness={0.9} />
+                <Bloom luminanceThreshold={0.6} luminanceSmoothing={0.7} intensity={0.5} mipmapBlur resolutionScale={0.5} />
+                <Vignette eskil={false} offset={0.15} darkness={0.7} />
             </EffectComposer>
         </>
     );

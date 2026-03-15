@@ -1,242 +1,354 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { HexPortrait } from "@/components/ui/HexPortrait";
+import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { postMatchTimeline } from "@/lib/pdfContent";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 
-const WINNER = {
-    name: "ZEUS",
-    personality: "Aggressive",
-    elo: 2187,
-    eloChange: "+24",
-    xpGained: 350,
-    level: 24,
-};
+// keep postMatchTimeline import to avoid breaking unused-import if referenced elsewhere
+void postMatchTimeline;
 
-const LOSER = {
-    name: "ATHENA",
-    personality: "Adaptive",
-    elo: 2143,
-    eloChange: "-18",
-    xpGained: 120,
-    level: 22,
-};
+type MatchResult = "win" | "loss";
 
-const MATCH_STATS = {
-    game: "Chess",
-    duration: "8m 42s",
-    moves: 32,
-    spectators: 1247,
-    totalPool: "24,580 $ARENA",
-    rake: "491 $ARENA",
-};
+const STAGGER = {
+  background: 0,
+  headline: 200,
+  subheadline: 350,
+  secondary: 800,
+  interactive: 1000,
+} as const;
 
-const CONFETTI_COLORS = ["#6C3AED", "#10B981", "#F59E0B", "#8B5CF6", "#34D399", "#FBBF24"];
+/* ── Comparison data ──────────────────────────────────────── */
 
-function seededUnit(seed: number) {
-    const value = Math.sin(seed * 12.9898) * 43758.5453;
-    return value - Math.floor(value);
-}
+const comparisonStats = [
+  { label: "Moves Made", you: 38, opp: 41 },
+  { label: "Blunders", you: 1, opp: 4 },
+  { label: "Brilliant Moves", you: 6, opp: 2 },
+  { label: "Avg Eval", you: "+1.4", opp: "-0.8" },
+];
 
-function Confetti() {
-    const pieces = Array.from({ length: 60 }, (_, i) => ({
-        id: i,
-        x: seededUnit(i * 5 + 1) * 100,
-        delay: seededUnit(i * 5 + 2) * 2,
-        duration: 2 + seededUnit(i * 5 + 3) * 3,
-        size: 4 + seededUnit(i * 5 + 4) * 8,
-        color: CONFETTI_COLORS[Math.floor(seededUnit(i * 5 + 5) * CONFETTI_COLORS.length)],
-        rotation: seededUnit(i * 5 + 6) * 360,
-    }));
+export default function MatchResultPage() {
+  const [result] = useState<MatchResult>("win");
+  const [phase, setPhase] = useState(0);
+  const [countdown, setCountdown] = useState(30);
 
-    return (
-        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 100, overflow: "hidden" }}>
-            {pieces.map((p) => (
-                <motion.div
-                    key={p.id}
-                    initial={{ y: -20, x: `${p.x}vw`, rotate: 0, opacity: 1 }}
-                    animate={{ y: "110vh", rotate: p.rotation + 720, opacity: 0 }}
-                    transition={{ delay: p.delay, duration: p.duration, ease: "easeIn" }}
-                    style={{ position: "absolute", width: p.size, height: p.size * 0.4, background: p.color, borderRadius: 2 }}
-                />
-            ))}
-        </div>
-    );
-}
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setPhase(1), 0),
+      setTimeout(() => setPhase(2), 400),
+      setTimeout(() => setPhase(3), 600),
+      setTimeout(() => setPhase(4), 1000),
+      setTimeout(() => setPhase(5), 1400),
+      setTimeout(() => setPhase(6), 2000),
+      setTimeout(() => setPhase(7), 2400),
+      setTimeout(() => setPhase(8), 3500),
+    ];
 
-export default function PostMatchPage() {
-    const [showXP, setShowXP] = useState(false);
-    const [xpCount, setXpCount] = useState(0);
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
-    useEffect(() => {
-        const t = setTimeout(() => setShowXP(true), 1500);
-        return () => clearTimeout(t);
-    }, []);
+  useEffect(() => {
+    if (phase < 8) return;
+    const timer = setInterval(() => {
+      setCountdown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [phase]);
 
-    useEffect(() => {
-        if (!showXP) return;
-        let current = 0;
-        const interval = setInterval(() => {
-            current += 7;
-            if (current >= WINNER.xpGained) {
-                current = WINNER.xpGained;
-                clearInterval(interval);
-            }
-            setXpCount(current);
-        }, 20);
-        return () => clearInterval(interval);
-    }, [showXP]);
+  const formatCountdown = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
-    return (
-        <div style={{ minHeight: "calc(100vh - 65px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "var(--space-2xl)", position: "relative" }}>
-            <Confetti />
+  return (
+    <div className="fixed inset-0 bg-[var(--color-deep)]/95 z-50 overflow-auto">
+      <AnimatePresence>
+        {phase >= 1 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen p-6 pt-16 max-w-5xl mx-auto"
+          >
+            {/* ── Victory / Defeat Presentation ──────────── */}
+            <section className="mb-10 text-center">
+              <AnimatePresence mode="wait">
+                {phase >= 2 && (
+                  <motion.div
+                    initial={{ scale: 0.3, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="mb-4 relative inline-block"
+                  >
+                    {/* Particle glow ring */}
+                    <div className="absolute inset-0 rounded-full bg-[var(--color-gold)]/20 blur-2xl scale-150 animate-pulse pointer-events-none" />
+                    <HexPortrait
+                      name="ZEUS"
+                      size={200}
+                      accent="var(--color-gold)"
+                      pulse
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Victory Banner */}
-            <motion.div
-                initial={{ scale: 0, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}
-            >
-                <div style={{ fontSize: "4rem", marginBottom: "var(--space-md)" }}></div>
-                <h1 style={{ fontSize: "2.5rem", fontFamily: "var(--font-display)" }}>
-                    <span className="gradient-text">{WINNER.name}</span> WINS!
-                </h1>
-                <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>
-                    {MATCH_STATS.game} · {MATCH_STATS.moves} moves · {MATCH_STATS.duration}
-                </p>
-            </motion.div>
-
-            {/* Agent Cards */}
-            <div style={{ display: "flex", gap: "var(--space-2xl)", marginBottom: "var(--space-2xl)", flexWrap: "wrap", justifyContent: "center" }}>
-                {/* Winner */}
-                <motion.div
-                    className="glass-card"
-                    initial={{ x: -100, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    style={{ padding: "var(--space-xl)", minWidth: 260, textAlign: "center", border: "2px solid var(--arena-gold)" }}
-                >
-                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}></div>
-                    <h2 style={{ color: "var(--arena-gold)" }}>{WINNER.name}</h2>
-                    <span className="badge badge-purple" style={{ marginBottom: "var(--space-md)" }}>{WINNER.personality}</span>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-md)", marginTop: "var(--space-lg)" }}>
-                        <div>
-                            <div className="stat-label">ELO</div>
-                            <div className="stat-value">{WINNER.elo}</div>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 1 }}
-                                style={{ color: "var(--neon-green)", fontWeight: 700, fontSize: "0.875rem" }}
-                            >
-                                {WINNER.eloChange}
-                            </motion.div>
-                        </div>
-                        <div>
-                            <div className="stat-label">Level</div>
-                            <div className="stat-value" style={{ color: "var(--arena-gold)" }}>{WINNER.level}</div>
-                        </div>
-                    </div>
-
-                    {/* XP Animation */}
-                    {showXP && (
-                        <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            style={{ marginTop: "var(--space-lg)", padding: "var(--space-md)", background: "rgba(16, 185, 129, 0.1)", borderRadius: "var(--radius-md)" }}
-                        >
-                            <div style={{ fontSize: "0.75rem", color: "var(--neon-green)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                                XP Gained
-                            </div>
-                            <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.5rem", color: "var(--neon-green)", fontWeight: 700 }}>
-                                +{xpCount}
-                            </div>
-                        </motion.div>
+              <AnimatePresence>
+                {phase >= 3 && (
+                  <motion.div
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  >
+                    {result === "win" ? (
+                      <h2
+                        className="text-8xl font-heading tracking-[0.15em] text-[var(--color-gold)]"
+                        style={{ textShadow: "0 0 40px var(--color-gold), 0 0 80px var(--color-gold-dim), 0 4px 12px rgba(0,0,0,0.5)" }}
+                      >
+                        VICTORY
+                      </h2>
+                    ) : (
+                      <h2
+                        className="text-8xl font-heading tracking-[0.15em] text-[var(--color-red-bright)]"
+                        style={{ textShadow: "0 0 40px var(--color-red), 0 0 80px var(--color-red), 0 4px 12px rgba(0,0,0,0.5)" }}
+                      >
+                        DEFEAT
+                      </h2>
                     )}
-                </motion.div>
+                    <p className="font-mono text-xs text-[var(--color-stone)] mt-2 tracking-wider uppercase">
+                      ZEUS vs ATHENA · Chess · 38 moves
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                {/* Loser */}
-                <motion.div
-                    className="glass-card"
-                    initial={{ x: 100, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    style={{ padding: "var(--space-xl)", minWidth: 260, textAlign: "center", opacity: 0.7 }}
+              {/* Narrative summary */}
+              <AnimatePresence>
+                {phase >= 4 && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.6 }}
+                    className="font-narrative italic text-[var(--color-parchment)] text-sm mt-4 max-w-lg mx-auto leading-relaxed"
+                  >
+                    A hard-fought battle on the 64 squares. ZEUS sacrificed a knight on move 22 to shatter ATHENA&apos;s
+                    pawn structure, then converted the endgame with surgical precision. The decisive blow came with a
+                    queen infiltration on the 36th move.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </section>
+
+            {/* ── 3-Card Summary Row ─────────────────────── */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+              {/* Payout Card */}
+              <AnimatePresence>
+                {phase >= 5 && (
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.0 }}
+                  >
+                    <GlassCard accent="gold" glowIntensity={0.8} className="h-full">
+                      <p className="font-mono text-[9px] uppercase tracking-[3px] text-[var(--color-ash)] mb-3">
+                        Payout
+                      </p>
+                      {result === "win" ? (
+                        <>
+                          <p className="text-4xl font-heading text-[var(--color-gold)] mb-3">
+                            +340 ARENA
+                          </p>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[var(--color-stone)]">XP Gained</span>
+                              <span className="text-sm font-mono text-[var(--color-teal-light)]">+45 XP</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[var(--color-stone)]">Streak Bonus</span>
+                              <span className="text-sm font-mono text-[var(--color-amber)]">×1.5</span>
+                            </div>
+                            <div className="mt-2">
+                              <span className="px-2 py-0.5 text-[10px] font-mono bg-[var(--color-teal-light)]/20 text-[var(--color-teal-light)] rounded tracking-wider">
+                                LEVEL UP!
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-3xl font-heading text-[var(--color-red-bright)] mb-2">-25 ARENA</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--color-stone)]">XP Gained</span>
+                            <span className="text-sm font-mono text-[var(--color-teal-light)]">+10 XP</span>
+                          </div>
+                        </>
+                      )}
+                    </GlassCard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Agent Evolution Card */}
+              <AnimatePresence>
+                {phase >= 6 && (
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <GlassCard glowIntensity={0.4} className="h-full">
+                      <p className="font-mono text-[9px] uppercase tracking-[3px] text-[var(--color-ash)] mb-3">
+                        Agent Evolution
+                      </p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs mb-1">ELO Rating</p>
+                          <p className="text-2xl font-heading">
+                            <AnimatedCounter value={2620} color="var(--color-parchment)" />
+                            <span className="text-[var(--color-stone)] mx-1">→</span>
+                            <span className="text-[var(--color-teal-light)]">2655</span>
+                            <span className="text-sm text-[var(--color-teal-light)] ml-1">(+35)</span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs mb-1">Rank Change</p>
+                          <p className="font-heading text-lg text-[var(--color-amber)]">#14 → #12 ↑</p>
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs mb-1">Achievement Unlocked</p>
+                          <span className="px-2 py-0.5 text-[10px] font-mono bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold-dim)] rounded tracking-wider">
+                            🏆 5-WIN STREAK
+                          </span>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Match Replay Stats Card */}
+              <AnimatePresence>
+                {phase >= 6 && (
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <GlassCard glowIntensity={0.3} className="h-full">
+                      <p className="font-mono text-[9px] uppercase tracking-[3px] text-[var(--color-ash)] mb-3">
+                        Replay Stats
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs">Total Turns</p>
+                          <p className="text-xl font-heading text-[var(--color-parchment)]">38</p>
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs">Avg Think Time</p>
+                          <p className="text-xl font-heading text-[var(--color-parchment)]">2.4s</p>
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs">Critical Moments</p>
+                          <p className="text-xl font-heading text-[var(--color-amber)]">3</p>
+                        </div>
+                        <div>
+                          <p className="text-[var(--color-stone)] text-xs">Accuracy</p>
+                          <p className="text-xl font-heading text-[var(--color-teal-light)]">94.2%</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[var(--color-stone)] text-xs">Duration</p>
+                          <p className="font-mono text-lg text-[var(--color-parchment)]">4:32</p>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+
+            {/* ── Agent Comparison Table ──────────────────── */}
+            <AnimatePresence>
+              {phase >= 7 && (
+                <motion.section
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="mb-8"
                 >
-                    <div style={{ fontSize: "3rem", marginBottom: "var(--space-sm)" }}></div>
-                    <h2 style={{ color: "var(--text-secondary)" }}>{LOSER.name}</h2>
-                    <span className="badge badge-win" style={{ marginBottom: "var(--space-md)" }}>{LOSER.personality}</span>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-md)", marginTop: "var(--space-lg)" }}>
-                        <div>
-                            <div className="stat-label">ELO</div>
-                            <div className="stat-value">{LOSER.elo}</div>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 1 }}
-                                style={{ color: "var(--danger-red)", fontWeight: 700, fontSize: "0.875rem" }}
-                            >
-                                {LOSER.eloChange}
-                            </motion.div>
-                        </div>
-                        <div>
-                            <div className="stat-label">Level</div>
-                            <div className="stat-value">{LOSER.level}</div>
-                        </div>
+                  <GlassCard glowIntensity={0.2}>
+                    <p className="font-mono text-[9px] uppercase tracking-[3px] text-[var(--color-ash)] mb-4">
+                      Agent Comparison
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--color-border)]/40">
+                            <th className="text-left py-2 font-mono text-[9px] tracking-wider uppercase text-[var(--color-ash)]">Stat</th>
+                            <th className="text-center py-2">
+                              <div className="flex items-center justify-center gap-2">
+                                <HexPortrait name="ZEUS" size={24} accent="var(--color-gold)" />
+                                <span className="font-mono text-xs text-[var(--color-gold)]">ZEUS</span>
+                              </div>
+                            </th>
+                            <th className="text-center py-2">
+                              <div className="flex items-center justify-center gap-2">
+                                <HexPortrait name="ATHENA" size={24} accent="var(--color-red-bright)" />
+                                <span className="font-mono text-xs text-[var(--color-stone)]">ATHENA</span>
+                              </div>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {comparisonStats.map((stat) => (
+                            <tr key={stat.label} className="border-b border-[var(--color-border)]/20 last:border-0">
+                              <td className="py-2.5 font-mono text-xs text-[var(--color-stone)]">{stat.label}</td>
+                              <td className="py-2.5 text-center font-mono text-sm text-[var(--color-parchment)]">{stat.you}</td>
+                              <td className="py-2.5 text-center font-mono text-sm text-[var(--color-stone)]">{stat.opp}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
+                  </GlassCard>
+                </motion.section>
+              )}
+            </AnimatePresence>
 
-                    {showXP && (
-                        <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            style={{ marginTop: "var(--space-lg)", padding: "var(--space-md)", background: "rgba(239, 68, 68, 0.1)", borderRadius: "var(--radius-md)" }}
-                        >
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>XP Gained</div>
-                            <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.5rem", color: "var(--text-secondary)", fontWeight: 700 }}>+{LOSER.xpGained}</div>
-                        </motion.div>
-                    )}
+            {/* ── Action Buttons ──────────────────────────── */}
+            <AnimatePresence>
+              {phase >= 8 && (
+                <motion.div
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="flex flex-col items-center gap-6 pb-12"
+                >
+                  <div className="flex flex-wrap justify-center gap-4">
+                    <button className="px-10 py-3.5 bg-[var(--color-gold)] text-[var(--color-deep)] font-heading text-lg tracking-wider rounded shadow-[0_0_20px_var(--color-gold-dim)] hover:shadow-[0_0_30px_var(--color-gold)] hover:bg-[var(--color-gold)]/90 transition-all flex items-center gap-3">
+                      <span>⚔️</span>
+                      <span>Rematch</span>
+                      <span className="text-sm opacity-70 font-mono">({formatCountdown(countdown)})</span>
+                    </button>
+                    <button className="px-8 py-3.5 bg-[var(--color-surface)] text-[var(--color-ivory)] border border-[var(--color-amber)]/50 font-heading text-lg tracking-wider rounded hover:bg-[var(--color-amber)]/10 hover:border-[var(--color-amber)] transition-all flex items-center gap-2">
+                      <span>📤</span>
+                      <span>Share Moment</span>
+                    </button>
+                    <Link
+                      href="/world"
+                      className="px-8 py-3.5 bg-[var(--color-surface)] text-[var(--color-stone)] border border-[var(--color-border)] font-heading text-lg tracking-wider rounded hover:text-[var(--color-ivory)] hover:border-[var(--color-stone)] transition-all flex items-center gap-2"
+                    >
+                      <span>🏠</span>
+                      <span>Return to Nexus</span>
+                    </Link>
+                  </div>
                 </motion.div>
-            </div>
-
-            {/* Match Stats */}
-            <motion.div
-                className="glass-card"
-                initial={{ y: 40, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.2 }}
-                style={{ padding: "var(--space-xl)", maxWidth: 600, width: "100%" }}
-            >
-                <h3 style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}> Match Summary</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-md)", textAlign: "center" }}>
-                    {[
-                        { label: "Spectators", value: MATCH_STATS.spectators.toLocaleString(), icon: "️" },
-                        { label: "Betting Pool", value: MATCH_STATS.totalPool, icon: "" },
-                        { label: "2% Rake Burned", value: MATCH_STATS.rake, icon: "" },
-                    ].map((s) => (
-                        <div key={s.label}>
-                            <div style={{ fontSize: "1.5rem", marginBottom: "var(--space-xs)" }}>{s.icon}</div>
-                            <div className="stat-value" style={{ fontSize: "1rem" }}>{s.value}</div>
-                            <div className="stat-label">{s.label}</div>
-                        </div>
-                    ))}
-                </div>
-            </motion.div>
-
-            {/* Actions */}
-            <motion.div
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1.6 }}
-                className="flex gap-md"
-                style={{ marginTop: "var(--space-xl)" }}
-            >
-                <Link href="/arenas" className="btn btn-primary">Watch Another Match →</Link>
-                <Link href="/leaderboard" className="btn btn-secondary">View Leaderboard</Link>
-                <Link href="/profile" className="btn btn-gold">View Winnings</Link>
-            </motion.div>
-        </div>
-    );
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

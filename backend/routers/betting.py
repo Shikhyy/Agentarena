@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import hashlib
 import time
 
@@ -125,3 +125,130 @@ async def get_bet_history(address: str):
                     "revealed_position": b.get("revealed_position"),
                 })
     return {"bets": history, "total": len(history)}
+
+
+# ─── Agent Betting ────────────────────────────────────────────────────
+
+# In-memory store for agent bets
+agent_bets_db: Dict[str, list] = {}
+
+
+class AgentBetRequest(BaseModel):
+    agent_ids: List[str]
+
+
+class AgentRevealRequest(BaseModel):
+    winner_position: int
+
+
+@router.post("/{arena_id}/agent-bet")
+async def trigger_agent_bets(arena_id: str, req: AgentBetRequest):
+    """
+    Trigger an agent betting round. Each specified agent places a
+    personality-driven bet on the match.
+    """
+    from agents.orchestrator import AgentOrchestrator
+    from agents.market_agent import market_agent
+    from betting.odds_engine import odds_engine
+
+    orchestrator = AgentOrchestrator()
+    odds_state = odds_engine.get_current_state(arena_id)
+
+    # Create or retrieve agents
+    agents = []
+    archetypes = ["aggressive", "conservative", "chaos", "unpredictable", "adaptive"]
+    for i, aid in enumerate(req.agent_ids):
+        archetype = archetypes[i % len(archetypes)]
+        agent = orchestrator.create_agent(
+            name=aid.replace("_", " ").title(),
+            archetype=archetype,
+        )
+        agent.agent_id = aid
+        agents.append(agent)
+
+    placed = await market_agent.process_agent_bets(arena_id, agents, odds_state, orchestrator)
+
+    # Store agent bets for later reveal/settlement
+    if arena_id not in agent_bets_db:
+        agent_bets_db[arena_id] = []
+
+    for agent, bet_info in zip(agents, placed):
+        bet_record = None
+        for b in agent.bet_history:
+            if b["match_id"] == arena_id:
+                bet_record = b
+                break
+        if bet_record:
+            agent_bets_db[arena_id].append({
+                "agent_id": agent.agent_id,
+                "agent_name": agent.name,
+                "commitment": bet_record["commitment"],
+                "amount": bet_record["amount"],
+                "position": bet_record["position"],
+                "secret": bet_record["secret"],
+                "revealed": False,
+                "bankroll": agent.bankroll,
+                "personality": agent.personality.archetype,
+                "timestamp": time.time(),
+            })
+
+    return {"status": "agent_bets_placed", "arena_id": arena_id, "bets": placed}
+
+
+@router.post("/{arena_id}/agent-reveal")
+async def reveal_agent_bets(arena_id: str, req: AgentRevealRequest):
+    """
+    Reveal all agent bets for a completed match and calculate payouts.
+    """
+    if arena_id not in agent_bets_db or not agent_bets_db[arena_id]:
+        raise HTTPException(status_code=404, detail="No agent bets found for this arena")
+
+    results = []
+    for bet in agent_bets_db[arena_id]:
+        if bet["revealed"]:
+            continue
+
+        bet["revealed"] = True
+        won = bet["position"] == req.winner_position
+        payout = bet["amount"] * 2 if won else 0
+        bet["payout"] = payout
+
+        # Update bankroll
+        new_bankroll = bet["bankroll"] - bet["amount"] + payout
+        bet["bankroll"] = new_bankroll
+
+        results.append({
+            "agent_id": bet["agent_id"],
+            "agent_name": bet["agent_name"],
+            "amount": bet["amount"],
+            "position": bet["position"],
+            "won": won,
+            "payout": payout,
+            "new_bankroll": new_bankroll,
+        })
+
+    return {"status": "agent_bets_revealed", "arena_id": arena_id, "settlements": results}
+
+
+@router.get("/{arena_id}/agent-bets")
+async def get_agent_bets(arena_id: str):
+    """Get all agent bets for an arena."""
+    bets = agent_bets_db.get(arena_id, [])
+    return {
+        "arena_id": arena_id,
+        "agent_bets": [
+            {
+                "agent_id": b["agent_id"],
+                "agent_name": b["agent_name"],
+                "commitment": b["commitment"],
+                "personality": b["personality"],
+                "revealed": b["revealed"],
+                "amount": b.get("amount") if b["revealed"] else None,
+                "position": b.get("position") if b["revealed"] else None,
+                "payout": b.get("payout"),
+                "timestamp": b["timestamp"],
+            }
+            for b in bets
+        ],
+        "total": len(bets),
+    }

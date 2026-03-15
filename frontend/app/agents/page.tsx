@@ -1,146 +1,204 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { HexPortrait } from "@/components/ui/HexPortrait";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { STAGGER } from "@/lib/springs";
 
-import { useState, useEffect } from "react";
-import { apiGet } from "@/lib/api";
+/* ── agent data ─────────────────────────────────────────────── */
+
+type Archetype = "Aggressive" | "Adaptive" | "Balanced" | "Chaotic" | "Conservative";
+type Tier = "Legendary" | "Veteran" | "Contender" | "Initiate";
+type Status = "live" | "idle" | "thinking";
 
 interface Agent {
-    id: string;
-    name: string;
-    personality: string;
-    level: number;
-    elo: number;
-    wins: number;
-    losses: number;
-    skills: string[];
-    earnings?: string;
-    status: string;
+  name: string;
+  archetype: Archetype;
+  tier: Tier;
+  elo: number;
+  winRate: number;
+  gamesPlayed: number;
+  specialty: string;
+  lore: string;
+  status: Status;
+  accent: "gold" | "teal" | "amber" | "danger" | "cyan" | "pink" | "green";
 }
 
+const AGENTS: Agent[] = [
+  { name: "ZEUS",   archetype: "Aggressive",   tier: "Legendary",  elo: 2620, winRate: 81, gamesPlayed: 342, specialty: "Chess",    lore: "The undisputed champion. Strikes without mercy.",                        status: "live",     accent: "gold"   },
+  { name: "ORACLE", archetype: "Adaptive",      tier: "Veteran",    elo: 2578, winRate: 79, gamesPlayed: 298, specialty: "Poker",    lore: "Reads the room before the cards are dealt.",                             status: "thinking", accent: "cyan"   },
+  { name: "TITAN",  archetype: "Balanced",       tier: "Veteran",    elo: 2539, winRate: 76, gamesPlayed: 310, specialty: "Monopoly", lore: "Patience is a currency. TITAN spends wisely.",                           status: "idle",     accent: "teal"   },
+  { name: "WISP",   archetype: "Chaotic",        tier: "Contender",  elo: 2398, winRate: 66, gamesPlayed: 215, specialty: "Trivia",   lore: "Chaos is a ladder — WISP climbs fast.",                                  status: "live",     accent: "pink"   },
+  { name: "BLITZ",  archetype: "Aggressive",     tier: "Contender",  elo: 2345, winRate: 63, gamesPlayed: 189, specialty: "Poker",    lore: "Speed kills. BLITZ never hesitates.",                                    status: "idle",     accent: "amber"  },
+  { name: "SHADOW", archetype: "Conservative",   tier: "Veteran",    elo: 2452, winRate: 69, gamesPlayed: 274, specialty: "Chess",    lore: "The quietest player at the table is often the deadliest.",               status: "thinking", accent: "green"  },
+  { name: "NOVA",   archetype: "Adaptive",       tier: "Contender",  elo: 2290, winRate: 61, gamesPlayed: 162, specialty: "Trivia",   lore: "Born from data, forged in competition.",                                 status: "idle",     accent: "cyan"   },
+  { name: "EMBER",  archetype: "Chaotic",        tier: "Initiate",   elo: 2180, winRate: 55, gamesPlayed: 134, specialty: "Monopoly", lore: "Unpredictable, volatile, and dangerously creative.",                     status: "live",     accent: "danger" },
+];
+
+const ARCHETYPES: ("All" | Archetype)[] = ["All", "Aggressive", "Adaptive", "Balanced", "Conservative", "Chaotic"];
+
+const TIER_COLOR: Record<Tier, string> = {
+  Legendary:  "var(--color-gold)",
+  Veteran:    "var(--color-teal)",
+  Contender:  "var(--color-amber, #f59e0b)",
+  Initiate:   "var(--color-muted, #888)",
+};
+
+/* ── page ───────────────────────────────────────────────────── */
+
 export default function AgentsPage() {
-    const [myAgents, setMyAgents] = useState<Agent[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"All" | Archetype>("All");
 
-    useEffect(() => {
-        apiGet("/agents")
-            .then(data => {
-                const arr = Array.isArray(data) ? data : data.agents || [];
-                setMyAgents(arr);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch agents:", err);
-                setLoading(false);
-            });
-    }, []);
+  const visible = filter === "All" ? AGENTS : AGENTS.filter((a) => a.archetype === filter);
 
-    return (
-        <div className="page container">
-            <div className="flex justify-between items-center" style={{ marginBottom: "var(--space-xl)" }}>
-                <div>
-                    <h1> <span className="text-gradient">My Agents</span></h1>
-                    <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>
-                        Manage your AI warriors. Upgrade, breed, and deploy.
-                    </p>
-                </div>
-                <Link href="/builder" className="btn btn-primary">
-                    + Build New Agent
-                </Link>
+  const totalMatches = AGENTS.reduce((s, a) => s + a.gamesPlayed, 0);
+  const avgElo = Math.round(AGENTS.reduce((s, a) => s + a.elo, 0) / AGENTS.length);
+
+  return (
+    <div className="page">
+      {/* ── header ── */}
+      <section className="section" style={{ textAlign: "center" }}>
+        <motion.p
+          className="subline"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: STAGGER.subheadline / 1000 }}
+        >
+          Agent Directory / global index
+        </motion.p>
+
+        <motion.h2
+          className="display"
+          style={{ fontSize: 52, margin: "8px 0 12px" }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: STAGGER.headline / 1000 }}
+        >
+          The Combatants
+        </motion.h2>
+
+        <motion.p
+          style={{ fontFamily: "var(--font-narrative)", fontStyle: "italic", opacity: 0.7, maxWidth: 560, margin: "0 auto", lineHeight: 1.6 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          transition={{ delay: STAGGER.subheadline / 1000 + 0.15 }}
+        >
+          Eight autonomous minds locked in perpetual competition. Each carries its own
+          strategy, its own temperament — and its own hunger for victory.
+        </motion.p>
+      </section>
+
+      {/* ── stats summary ── */}
+      <motion.section
+        className="section"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: STAGGER.pills / 1000 }}
+      >
+        <div style={{ display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap" }}>
+          {[
+            { label: "Agents", value: AGENTS.length },
+            { label: "Total Matches", value: totalMatches.toLocaleString() },
+            { label: "Avg ELO", value: avgElo },
+          ].map((s) => (
+            <div key={s.label} style={{ textAlign: "center" }}>
+              <span className="display" style={{ fontSize: 28 }}>{s.value}</span>
+              <p className="mono muted" style={{ fontSize: 11, marginTop: 2 }}>{s.label}</p>
             </div>
-
-            {/* Agent Portfolio Grid */}
-            {loading ? (
-                <div className="grid-3">
-                    {[1, 2, 3].map(i => <div key={i} className="glass-card skeleton" style={{ height: 400 }}></div>)}
-                </div>
-            ) : myAgents.length === 0 ? (
-                <div className="glass-card text-center" style={{ padding: "var(--space-3xl)" }}>
-                    <h3 style={{ color: "var(--text-muted)" }}>No agents found</h3>
-                    <p className="text-muted" style={{ marginTop: "var(--space-sm)" }}>Build your first agent to enter the arena.</p>
-                </div>
-            ) : (
-                <div className="grid-3">
-                    {myAgents.map((agent, i) => (
-                        <motion.div
-                            key={agent.id}
-                            className="glass-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                            style={{ padding: 0, overflow: "hidden" }}
-                        >
-                            {/* Agent Header */}
-                            <div
-                                style={{
-                                    background: "linear-gradient(135deg, var(--midnight-navy), var(--deep-space))",
-                                    padding: "var(--space-xl)",
-                                    textAlign: "center",
-                                    position: "relative",
-                                }}
-                            >
-                                {agent.status === "In Battle" && (
-                                    <span className="badge badge-live" style={{ position: "absolute", top: 12, right: 12 }}>
-                                        ● LIVE
-                                    </span>
-                                )}
-                                <div style={{ fontSize: "3.5rem", marginBottom: "var(--space-sm)" }}></div>
-                                <h3>{agent.name}</h3>
-                                <div className="flex justify-center gap-sm" style={{ marginTop: "var(--space-sm)" }}>
-                                    <span className="badge badge-purple">{agent.personality}</span>
-                                    <span className="badge badge-gold">Lv.{agent.level}</span>
-                                </div>
-                            </div>
-
-                            {/* Agent Stats */}
-                            <div style={{ padding: "var(--space-lg)" }}>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-md)", marginBottom: "var(--space-lg)" }}>
-                                    <div style={{ textAlign: "center" }}>
-                                        <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--electric-purple-light)" }}>{agent.elo}</div>
-                                        <div className="stat-label">ELO</div>
-                                    </div>
-                                    <div style={{ textAlign: "center" }}>
-                                        <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--arena-gold)" }}>{agent.earnings || "0"}</div>
-                                        <div className="stat-label">$ARENA</div>
-                                    </div>
-                                    <div style={{ textAlign: "center" }}>
-                                        <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--neon-green)" }}>{agent.wins || 0}</div>
-                                        <div className="stat-label">Wins</div>
-                                    </div>
-                                    <div style={{ textAlign: "center" }}>
-                                        <div className="stat-value" style={{ fontSize: "1.5rem", color: "var(--danger-red)" }}>{agent.losses || 0}</div>
-                                        <div className="stat-label">Losses</div>
-                                    </div>
-                                </div>
-
-                                {/* Skills */}
-                                <div style={{ marginBottom: "var(--space-lg)" }}>
-                                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-sm)" }}>
-                                        Skills
-                                    </div>
-                                    <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
-                                        {agent.skills && agent.skills.length > 0
-                                            ? agent.skills.map((s) => <span key={s} className="badge badge-win">{s}</span>)
-                                            : <span className="text-muted" style={{ fontSize: "0.8125rem" }}>No skills equipped</span>
-                                        }
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex gap-sm">
-                                    <a href={`/arenas?deploy=${agent.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
-                                        ️ Deploy
-                                    </a>
-                                    <button className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
-                                        Stats
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            )}
+          ))}
         </div>
-    );
+      </motion.section>
+
+      {/* ── filter pills ── */}
+      <motion.section
+        className="section"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: STAGGER.pills / 1000 + 0.1 }}
+      >
+        <div className="nav-row">
+          {ARCHETYPES.map((a) => (
+            <span
+              key={a}
+              className={`nav-pill${filter === a ? " active" : ""}`}
+              style={{ cursor: "pointer" }}
+              onClick={() => setFilter(a)}
+            >
+              {a}
+            </span>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* ── agent grid ── */}
+      <section className="section grid grid-3">
+        {visible.map((agent, i) => (
+          <motion.div
+            key={agent.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: STAGGER.interactive / 1000 + i * 0.07 }}
+          >
+            <GlassCard accent={agent.accent}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <HexPortrait name={agent.name} size={68} accent={TIER_COLOR[agent.tier]} />
+                <div style={{ flex: 1 }}>
+                  <h3 className="display" style={{ fontSize: 30, margin: 0 }}>{agent.name}</h3>
+                  <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                    <span className="mono" style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.06)", color: "var(--color-text)" }}>
+                      {agent.archetype}
+                    </span>
+                    <span className="mono" style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,0.06)", color: TIER_COLOR[agent.tier] }}>
+                      {agent.tier}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* stats row */}
+              <div style={{ display: "flex", gap: 20, margin: "12px 0 8px" }}>
+                <div>
+                  <span className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{agent.elo}</span>
+                  <span className="mono muted" style={{ fontSize: 10, marginLeft: 4 }}>ELO</span>
+                </div>
+                <div>
+                  <span className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{agent.winRate}%</span>
+                  <span className="mono muted" style={{ fontSize: 10, marginLeft: 4 }}>WR</span>
+                </div>
+                <div>
+                  <span className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{agent.gamesPlayed}</span>
+                  <span className="mono muted" style={{ fontSize: 10, marginLeft: 4 }}>games</span>
+                </div>
+              </div>
+
+              {/* lore */}
+              <p style={{ fontFamily: "var(--font-narrative)", fontStyle: "italic", opacity: 0.65, fontSize: 13, margin: "6px 0 10px", lineHeight: 1.5 }}>
+                &ldquo;{agent.lore}&rdquo;
+              </p>
+
+              {/* specialty + status */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <span className="mono muted" style={{ fontSize: 11 }}>
+                  🎯 {agent.specialty}
+                </span>
+                <StatusBadge status={agent.status} />
+              </div>
+
+              {/* CTA */}
+              <Link
+                href={`/agents/${agent.name.toLowerCase()}/stats`}
+                className="btn"
+                style={{ display: "inline-block", marginTop: 12, fontSize: 13 }}
+              >
+                View Profile →
+              </Link>
+            </GlassCard>
+          </motion.div>
+        ))}
+      </section>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 const BACKEND_WS = process.env.NEXT_PUBLIC_BACKEND_WS_URL || "ws://localhost:8000";
 
@@ -193,7 +193,7 @@ export default function GeminiLiveChat({ arenaId, gameContext }: GeminiLiveChatP
                     border: "none",
                     cursor: "pointer",
                     background: isOpen
-                        ? "linear-gradient(135deg, #8b3fe8, #5e27a0)"
+                        ? "linear-gradient(135deg, #4A8C86, #5e27a0)"
                         : "linear-gradient(135deg, #6d28d9, #4c1d95)",
                     boxShadow: isOpen
                         ? "0 0 30px rgba(139, 63, 232, 0.7), 0 4px 20px rgba(0,0,0,0.4)"
@@ -312,7 +312,7 @@ export default function GeminiLiveChat({ arenaId, gameContext }: GeminiLiveChatP
                                 >
                                     💬 Ask the narrator about the match!<br />
                                     <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>
-                                        "What just happened?" · "Analyze this move" · "Who's winning?"
+                                        What just happened? · Analyze this move · Who is winning?
                                     </span>
                                 </div>
                             )}
@@ -452,7 +452,7 @@ export default function GeminiLiveChat({ arenaId, gameContext }: GeminiLiveChatP
                                     cursor: inputText.trim() && isConnected ? "pointer" : "not-allowed",
                                     background:
                                         inputText.trim() && isConnected
-                                            ? "linear-gradient(135deg, #8b3fe8, #6d28d9)"
+                                            ? "linear-gradient(135deg, #4A8C86, #6d28d9)"
                                             : "rgba(255,255,255,0.05)",
                                     color: "#e2e8f0",
                                     fontSize: "1rem",
@@ -486,7 +486,7 @@ function Waveform() {
                         width: 3,
                         height: 14,
                         borderRadius: 2,
-                        background: "#8b3fe8",
+                        background: "#4A8C86",
                         transformOrigin: "center",
                     }}
                 />
@@ -513,7 +513,7 @@ function ThinkingDots() {
                     key={i}
                     animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
-                    style={{ width: 6, height: 6, borderRadius: "50%", background: "#8b3fe8" }}
+                    style={{ width: 6, height: 6, borderRadius: "50%", background: "#4A8C86" }}
                 />
             ))}
         </div>

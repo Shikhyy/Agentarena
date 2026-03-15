@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
+import { COLORS, SHADOWS } from "@/lib/theme";
 
 interface TriviaQuestion {
     question: string;
@@ -88,11 +89,11 @@ function TriviaBoardSession({
     };
 
     const categoryColors: Record<string, string> = {
-        science: "var(--neon-green)",
-        history: "var(--arena-gold)",
-        geography: "var(--electric-purple-light)",
-        crypto: "var(--danger-red)",
-        pop_culture: "#ff6eb4",
+        science: COLORS.tealLight,
+        history: COLORS.gold,
+        geography: COLORS.tealLight,
+        crypto: COLORS.red,
+        pop_culture: COLORS.redBright,
     };
 
     const difficultyLabel = ["", "Easy", "Medium", "Hard", "Expert"];
@@ -101,15 +102,16 @@ function TriviaBoardSession({
     return (
         <div
             style={{
-                background: "rgba(0,0,0,0.6)",
-                borderRadius: "var(--radius-lg)",
-                padding: "var(--space-xl)",
-                border: "1px solid var(--glass-border)",
+                background: `rgba(7, 7, 31, 0.85)`,
+                borderRadius: 16,
+                padding: 24,
+                border: `1px solid ${COLORS.border}`,
                 position: "relative",
                 overflow: "hidden",
+                backdropFilter: "blur(16px)",
             }}
         >
-            {/* Neon Game Show Background Glow */}
+            {/* Neon Game Show Top Accent Bar */}
             <div
                 style={{
                     position: "absolute",
@@ -117,15 +119,15 @@ function TriviaBoardSession({
                     left: 0,
                     right: 0,
                     height: 3,
-                    background: "linear-gradient(90deg, var(--electric-purple), var(--neon-green), var(--arena-gold), var(--electric-purple))",
+                    background: `linear-gradient(90deg, ${COLORS.tealLight}, ${COLORS.tealLight}, ${COLORS.gold}, ${COLORS.tealLight})`,
                     backgroundSize: "200% 100%",
                 }}
             />
 
             {/* Round + Category Header */}
-            <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-lg)" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
                 <div>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    <span style={{ fontSize: "0.75rem", color: COLORS.textMuted, fontFamily: "var(--font-data)" }}>
                         Round {currentRound} / {totalRounds}
                     </span>
                     {currentQuestion && (
@@ -134,14 +136,14 @@ function TriviaBoardSession({
                                 style={{
                                     fontSize: "0.6875rem",
                                     fontWeight: 700,
-                                    color: categoryColors[currentQuestion.category] || "var(--text-secondary)",
+                                    color: categoryColors[currentQuestion.category] || COLORS.textSecondary,
                                     textTransform: "uppercase",
                                     letterSpacing: "0.1em",
                                 }}
                             >
                                 {currentQuestion.category}
                             </span>
-                            <span style={{ fontSize: "0.6875rem", color: "var(--text-muted)", marginLeft: 8 }}>
+                            <span style={{ fontSize: "0.6875rem", color: COLORS.textMuted, marginLeft: 8 }}>
                                 {difficultyLabel[currentQuestion.difficulty]} •{" "}
                                 {currentQuestion.difficulty * 100} pts
                             </span>
@@ -153,18 +155,19 @@ function TriviaBoardSession({
                 {currentQuestion && (
                     <div style={{ textAlign: "right" }}>
                         <motion.div
-                            animate={{ color: timeLeft <= 5 ? "var(--danger-red)" : "var(--arena-gold)" }}
+                            animate={{ color: timeLeft <= 5 ? COLORS.red : COLORS.gold }}
                             style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 700, lineHeight: 1 }}
                         >
                             {timeLeft}s
                         </motion.div>
-                        <div style={{ marginTop: 4, width: 80, height: 4, background: "var(--glass-bg)", borderRadius: 2 }}>
+                        <div style={{ marginTop: 4, width: 80, height: 4, background: COLORS.raised, borderRadius: 2 }}>
                             <motion.div
                                 animate={{ width: `${timePercent}%` }}
                                 style={{
                                     height: "100%",
-                                    background: timeLeft <= 5 ? "var(--danger-red)" : "var(--arena-gold)",
+                                    background: timeLeft <= 5 ? COLORS.red : COLORS.gold,
                                     borderRadius: 2,
+                                    boxShadow: timeLeft <= 5 ? `0 0 8px ${COLORS.red}` : SHADOWS.gold,
                                     transition: "width 1s linear",
                                 }}
                             />
@@ -180,7 +183,7 @@ function TriviaBoardSession({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: "var(--space-xl)",
+                    marginBottom: 24,
                 }}
             >
                 <AnimatePresence mode="wait">
@@ -195,8 +198,8 @@ function TriviaBoardSession({
                                 fontFamily: "var(--font-display)",
                                 fontSize: "1.25rem",
                                 lineHeight: 1.5,
-                                color: "var(--text-primary)",
-                                padding: "0 var(--space-lg)",
+                                color: COLORS.textPrimary,
+                                padding: "0 20px",
                             }}
                         >
                             {currentQuestion.question}
@@ -205,13 +208,14 @@ function TriviaBoardSession({
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     style={{
-                                        marginTop: "var(--space-md)",
-                                        color: "var(--neon-green)",
+                                        marginTop: 12,
+                                        color: COLORS.tealLight,
                                         fontSize: "0.875rem",
                                         fontFamily: "var(--font-body)",
+                                        textShadow: `0 0 8px ${COLORS.tealLight}`,
                                     }}
                                 >
-                                     {currentQuestion.buzzed_by} buzzed in!
+                                    ⚡ {currentQuestion.buzzed_by} buzzed in!
                                 </motion.div>
                             )}
                         </motion.div>
@@ -220,16 +224,16 @@ function TriviaBoardSession({
                             key="waiting"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "1rem" }}
+                            style={{ textAlign: "center", color: COLORS.textMuted, fontSize: "1rem" }}
                         >
-                             Next question loading...
+                            ⏳ Next question loading...
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
 
             {/* Buzzer Button */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "var(--space-xl)" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
                 <motion.button
                     onClick={handleBuzz}
                     disabled={!buzzerActive}
@@ -241,15 +245,15 @@ function TriviaBoardSession({
                         height: 120,
                         borderRadius: "50%",
                         background: buzzerActive
-                            ? "radial-gradient(circle, var(--danger-red), #8b0000)"
-                            : "var(--glass-bg)",
-                        border: `4px solid ${buzzerActive ? "var(--danger-red)" : "var(--glass-border)"}`,
+                            ? `radial-gradient(circle, ${COLORS.red}, #5a0011)`
+                            : COLORS.raised,
+                        border: `4px solid ${buzzerActive ? COLORS.red : COLORS.border}`,
                         cursor: buzzerActive ? "pointer" : "not-allowed",
                         fontFamily: "var(--font-display)",
                         fontWeight: 700,
                         fontSize: "0.875rem",
-                        color: buzzerActive ? "white" : "var(--text-muted)",
-                        boxShadow: buzzerActive ? "0 0 30px rgba(255, 82, 82, 0.6)" : "none",
+                        color: buzzerActive ? COLORS.textPrimary : COLORS.textMuted,
+                        boxShadow: buzzerActive ? `0 0 30px ${COLORS.red}80, 0 0 60px ${COLORS.red}40` : "none",
                         transition: "all 0.2s ease",
                     }}
                 >
@@ -259,11 +263,11 @@ function TriviaBoardSession({
 
             {/* Score Board */}
             <div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "var(--space-sm)", textAlign: "center" }}>
+                <div style={{ fontSize: "0.75rem", color: COLORS.textMuted, marginBottom: 8, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     Scores
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(agents.length, 3)}, 1fr)`, gap: 8 }}>
-                    {agents.map((agentId, i) => {
+                    {agents.map((agentId) => {
                         const agentScore = scores[agentId] || 0;
                         const isThinking = thinkingAgentId === agentId;
                         const maxScore = Math.max(...Object.values(scores), 1);
@@ -273,29 +277,30 @@ function TriviaBoardSession({
                                 key={agentId}
                                 style={{
                                     textAlign: "center",
-                                    padding: "var(--space-sm)",
-                                    background: "var(--glass-bg)",
-                                    borderRadius: "var(--radius-sm)",
-                                    border: `1px solid ${isThinking ? "var(--neon-green)" : "transparent"}`,
-                                    transition: "border-color 0.2s",
+                                    padding: 10,
+                                    background: isThinking ? `rgba(0, 232, 255, 0.06)` : `rgba(12, 12, 40, 0.6)`,
+                                    borderRadius: 8,
+                                    border: `1px solid ${isThinking ? COLORS.gold : COLORS.border}`,
+                                    boxShadow: isThinking ? SHADOWS.gold : "none",
+                                    transition: "all 0.2s ease",
                                 }}
                             >
-                                <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", marginBottom: 4 }}>
+                                <div style={{ fontSize: "0.6875rem", color: COLORS.textMuted, marginBottom: 4, fontFamily: "var(--font-data)" }}>
                                     {agentId.replace("agent_", "").toUpperCase()}
                                 </div>
-                                <div style={{ fontFamily: "var(--font-display)", color: "var(--arena-gold)", fontWeight: 700, fontSize: "1.1rem" }}>
+                                <div style={{ fontFamily: "var(--font-display)", color: COLORS.gold, fontWeight: 700, fontSize: "1.1rem", textShadow: `0 0 8px ${COLORS.gold}40` }}>
                                     {agentScore}
                                 </div>
                                 {/* Score bar */}
-                                <div style={{ height: 3, background: "var(--glass-bg)", borderRadius: 2, marginTop: 4 }}>
+                                <div style={{ height: 3, background: COLORS.raised, borderRadius: 2, marginTop: 4 }}>
                                     <motion.div
                                         animate={{ width: `${(agentScore / maxScore) * 100}%` }}
-                                        style={{ height: "100%", background: "var(--electric-purple-light)", borderRadius: 2 }}
+                                        style={{ height: "100%", background: COLORS.tealLight, borderRadius: 2, boxShadow: `0 0 6px ${COLORS.tealLight}` }}
                                         transition={{ type: "spring" }}
                                     />
                                 </div>
                                 {isThinking && (
-                                    <div style={{ fontSize: "0.5rem", color: "var(--neon-green)", marginTop: 2 }}> ANSWERING</div>
+                                    <div style={{ fontSize: "0.5rem", color: COLORS.gold, marginTop: 2, textShadow: `0 0 4px ${COLORS.gold}` }}>🧠 ANSWERING</div>
                                 )}
                             </div>
                         );

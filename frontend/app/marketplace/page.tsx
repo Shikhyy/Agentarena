@@ -1,228 +1,358 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { useWallet } from "@/lib/wallet";
-import { apiGet } from "@/lib/api";
+import { useState } from "react";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { SkillOrb } from "@/components/ui/SkillOrb";
+import { HexPortrait } from "@/components/ui/HexPortrait";
+import { MotionNumber } from "@/components/ui/MotionNumber";
+import { motion } from "motion/react";
+import { STAGGER } from "@/lib/springs";
 
-// PRD Skill NFT Catalogue
-interface SkillNFT {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    rarity: string;
-    game: string;
-    icon: string;
-    last_price?: number;
-    change_24h_pct?: number;
-    volume_24h?: number;
-}
-
-const rarityColors: Record<string, string> = {
-    Uncommon: "var(--success-green)",
-    Rare: "var(--primary-cyan)",
-    Epic: "var(--premium-gold)",
-    Legendary: "var(--danger-red)",
+/* ── rarity palette ────────────────────────────────────── */
+const RARITY_COLOR: Record<string, string> = {
+  Legendary: "var(--color-gold)",
+  Epic: "var(--color-copper)",
+  Rare: "var(--color-teal-light)",
+  Common: "var(--color-stone)",
 };
 
-const FILTERS = ["All", "Chess", "Poker", "Monopoly", "Trivia"];
+const RARITY_GRADIENT: Record<string, string> = {
+  Legendary: "from-yellow-700/40 via-amber-900/30 to-yellow-950/20",
+  Epic: "from-orange-700/40 via-amber-950/30 to-stone-900/20",
+  Rare: "from-teal-600/40 via-cyan-900/30 to-slate-900/20",
+  Common: "from-stone-600/30 via-stone-800/20 to-stone-900/10",
+};
 
-interface ContractsConfig {
-    contracts: {
-        agent_nft?: string;
-        skill_nft?: string;
-        arena_token?: string;
-        zk_betting_pool?: string;
-    };
+/* ── category filter ───────────────────────────────────── */
+type Category = "All" | "Agent NFTs" | "Skill Orbs" | "Cosmetics" | "Trophies";
+const CATEGORIES: Category[] = ["All", "Agent NFTs", "Skill Orbs", "Cosmetics", "Trophies"];
+
+/* ── listings data ─────────────────────────────────────── */
+interface Listing {
+  id: number;
+  name: string;
+  collection: string;
+  category: Category;
+  rarity: "Legendary" | "Epic" | "Rare" | "Common";
+  price: number;
+  seller: string;
+  skillType?: string;
+  agentAccent?: string;
 }
 
+const LISTINGS: Listing[] = [
+  // Agent NFTs
+  { id: 1, name: "PHANTOM", collection: "AgentNFT", category: "Agent NFTs", rarity: "Legendary", price: 2400, seller: "0xA3f1…8b2C", agentAccent: "var(--color-gold)" },
+  { id: 2, name: "GHOSTLINE", collection: "AgentNFT", category: "Agent NFTs", rarity: "Epic", price: 1200, seller: "0x7De4…c91F", agentAccent: "var(--color-copper)" },
+  { id: 3, name: "DRIFT", collection: "AgentNFT", category: "Agent NFTs", rarity: "Rare", price: 680, seller: "0x1Bc8…47aD", agentAccent: "var(--color-teal-light)" },
+  // Skill Orbs
+  { id: 4, name: "Tempo Vision", collection: "SkillNFT", category: "Skill Orbs", rarity: "Epic", price: 240, seller: "0xF29a…0eB1", skillType: "tempo" },
+  { id: 5, name: "Bluff Engine", collection: "SkillNFT", category: "Skill Orbs", rarity: "Rare", price: 180, seller: "0x83dC…5f3A", skillType: "bluff" },
+  { id: 6, name: "Econ Mastery", collection: "SkillNFT", category: "Skill Orbs", rarity: "Epic", price: 320, seller: "0x4Ae7…b82D", skillType: "econ" },
+  { id: 7, name: "Risk Matrix", collection: "SkillNFT", category: "Skill Orbs", rarity: "Common", price: 90, seller: "0xD61b…3c4E", skillType: "risk" },
+  // Cosmetics
+  { id: 8, name: "Aura Shader Pack", collection: "Cosmetic", category: "Cosmetics", rarity: "Rare", price: 150, seller: "0x52fB…d19C" },
+  { id: 9, name: "Victory Trail", collection: "Cosmetic", category: "Cosmetics", rarity: "Common", price: 60, seller: "0xBa04…7e6F" },
+  { id: 10, name: "Custom Nameplate", collection: "Cosmetic", category: "Cosmetics", rarity: "Common", price: 45, seller: "0x90cE…a23B" },
+  // Trophies
+  { id: 11, name: "Grand Prix Alpha Trophy", collection: "Trophy", category: "Trophies", rarity: "Legendary", price: 5000, seller: "0x1fA8…e47D" },
+  { id: 12, name: "Season 1 Badge", collection: "Trophy", category: "Trophies", rarity: "Epic", price: 800, seller: "0xC73d…1b9A" },
+];
+
+/* ── recent sales feed ─────────────────────────────────── */
+const RECENT_SALES = [
+  { item: "PHANTOM", price: 2380, time: "2m ago" },
+  { item: "Tempo Vision", price: 235, time: "8m ago" },
+  { item: "Season 1 Badge", price: 790, time: "14m ago" },
+  { item: "Bluff Engine", price: 175, time: "21m ago" },
+  { item: "Aura Shader Pack", price: 148, time: "33m ago" },
+];
+
+/* ── component ─────────────────────────────────────────── */
 export default function MarketplacePage() {
-    const wallet = useWallet();
-    const [skills, setSkills] = useState<SkillNFT[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState("All");
-    const [search, setSearch] = useState("");
-    const [selectedSkill, setSelectedSkill] = useState<SkillNFT | null>(null);
-    const [contracts, setContracts] = useState<ContractsConfig | null>(null);
-    const [buying, setBuying] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<Category>("All");
 
-    useEffect(() => {
-        Promise.all([
-            apiGet("/agents/skills/market"),
-            apiGet("/config/contracts").catch(() => null),
-        ])
-            .then(([marketData, contractData]) => {
-                const incoming = marketData.skills || [];
-                setSkills(incoming);
-                if (incoming.length > 0) {
-                    setSelectedSkill(incoming[0]);
-                }
-                setContracts(contractData);
-                setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-            });
-    }, []);
+  const filtered =
+    activeCategory === "All"
+      ? LISTINGS
+      : LISTINGS.filter((l) => l.category === activeCategory);
 
-    const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        return skills
-            .filter((s) => filter === "All" || s.game === filter || s.game === "All")
-            .filter((s) => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
-    }, [skills, filter, search]);
+  return (
+    <div className="min-h-screen bg-[var(--color-deep)] p-6 pt-20 max-w-[1400px] mx-auto">
+      {/* ── cinematic header ─────────────────────────────── */}
+      <motion.section
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: STAGGER.headline / 1000, duration: 0.5 }}
+      >
+        <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-stone)] mb-2">
+          Market District
+        </p>
+        <h1 className="font-display text-6xl md:text-7xl text-[var(--color-ivory)] tracking-wide mb-3">
+          The Exchange
+        </h1>
+        <p className="font-narrative italic text-[var(--color-parchment)] max-w-2xl leading-relaxed">
+          A living bazaar where skill orbs change hands, legendary agents find new commanders,
+          and rare cosmetics surface from the depths of the Arena. Every trade shapes
+          the meta—choose wisely.
+        </p>
+      </motion.section>
 
-    const stats = useMemo(() => {
-        const listed = filtered.length;
-        const volume = filtered.reduce((acc, s) => acc + (s.volume_24h || 0), 0);
-        const avgChange = listed > 0
-            ? filtered.reduce((acc, s) => acc + (s.change_24h_pct || 0), 0) / listed
-            : 0;
-        return { listed, volume, avgChange };
-    }, [filtered]);
-
-    const contractReady = Boolean(
-        contracts?.contracts?.skill_nft &&
-        contracts?.contracts?.arena_token
-    );
-
-    const handleBuy = async () => {
-        if (!selectedSkill || buying) return;
-        setBuying(true);
-        await new Promise((resolve) => setTimeout(resolve, 700));
-        setBuying(false);
-    };
-
-    const balance = parseFloat(wallet.arenaBalance || "0");
-
-    const currentPrice = selectedSkill?.last_price ?? selectedSkill?.price ?? 0;
-
-    return (
-        <div style={{ paddingTop: 80, minHeight: "100vh" }}>
-            <div style={{ maxWidth: 1320, margin: "0 auto", padding: "40px 28px 72px" }}>
-                <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                    <div>
-                        <div className="section-label">Skill Marketplace</div>
-                        <h1 style={{ margin: 0, fontSize: "clamp(2rem,4.5vw,3rem)" }}>Trade Skill NFTs</h1>
-                        <p className="text-muted" style={{ marginTop: 8 }}>Live catalog from backend with synchronized contract configuration.</p>
-                    </div>
-                    <div className="glass-panel" style={{ padding: 12, minWidth: 280 }}>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>System Sync</div>
-                        <div style={{ fontSize: 13 }}>
-                            Contracts: <span style={{ color: contractReady ? "var(--success-green)" : "var(--danger-red)" }}>{contractReady ? "ready" : "missing env"}</span>
-                        </div>
-                        <div style={{ fontSize: 13 }}>
-                            Wallet: <span style={{ color: wallet.isConnected ? "var(--success-green)" : "var(--text-muted)" }}>{wallet.isConnected ? "connected" : "not connected"}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
-                    <div className="glass-panel" style={{ padding: 16 }}>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                            <input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search skill name or description"
-                                className="input"
-                                style={{ maxWidth: 360 }}
-                            />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                {FILTERS.map((f) => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setFilter(f)}
-                                        className="btn btn-sm"
-                                        style={{
-                                            background: filter === f ? "var(--electric-purple)" : "rgba(255,255,255,0.03)",
-                                            color: filter === f ? "#fff" : "var(--text-secondary)",
-                                        }}
-                                    >
-                                        {f}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-                            {loading && Array.from({ length: 6 }).map((_, idx) => (
-                                <div key={idx} className="skeleton" style={{ height: 150 }} />
-                            ))}
-
-                            {!loading && filtered.map((skill) => {
-                                const selected = selectedSkill?.id === skill.id;
-                                const change = skill.change_24h_pct || 0;
-                                return (
-                                    <button
-                                        key={skill.id}
-                                        onClick={() => setSelectedSkill(skill)}
-                                        style={{
-                                            textAlign: "left",
-                                            borderRadius: 12,
-                                            border: selected ? "1px solid var(--electric-purple)" : "1px solid rgba(255,255,255,0.08)",
-                                            background: selected ? "rgba(108,58,237,0.12)" : "rgba(255,255,255,0.02)",
-                                            padding: 12,
-                                            cursor: "pointer",
-                                        }}
-                                    >
-                                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                            <strong>{skill.name}</strong>
-                                            <span style={{ color: rarityColors[skill.rarity] || "var(--text-secondary)", fontSize: 12 }}>{skill.rarity}</span>
-                                        </div>
-                                        <div style={{ fontSize: 13, color: "var(--text-muted)", minHeight: 36 }}>{skill.description}</div>
-                                        <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                                            <span>{skill.last_price ?? skill.price} $ARENA</span>
-                                            <span style={{ color: change >= 0 ? "var(--success-green)" : "var(--danger-red)" }}>
-                                                {change >= 0 ? "+" : ""}{change}%
-                                            </span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="glass-panel" style={{ padding: 16 }}>
-                        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Details</h3>
-                        {selectedSkill ? (
-                            <>
-                                <div style={{ marginBottom: 8 }}><strong>{selectedSkill.name}</strong></div>
-                                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>{selectedSkill.description}</div>
-                                <div style={{ display: "grid", gap: 6, fontSize: 13, marginBottom: 12 }}>
-                                    <div>Game: {selectedSkill.game}</div>
-                                    <div>Rarity: <span style={{ color: rarityColors[selectedSkill.rarity] || "var(--text-secondary)" }}>{selectedSkill.rarity}</span></div>
-                                    <div>Price: {currentPrice} $ARENA</div>
-                                    <div>24h Vol: {selectedSkill.volume_24h || 0}</div>
-                                </div>
-
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleBuy}
-                                    disabled={buying || !wallet.isConnected || balance < currentPrice}
-                                    style={{ width: "100%" }}
-                                >
-                                    {buying ? "Processing..." : "Buy Skill"}
-                                </button>
-                                <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)" }}>
-                                    Balance: {balance.toFixed(2)} $ARENA
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-muted">Select a skill to inspect.</div>
-                        )}
-
-                        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.07)", display: "grid", gap: 6, fontSize: 13 }}>
-                            <div>Listed: {stats.listed}</div>
-                            <div>24h Volume: {stats.volume}</div>
-                            <div>
-                                Avg Change: <span style={{ color: stats.avgChange >= 0 ? "var(--success-green)" : "var(--danger-red)" }}>
-                                    {stats.avgChange >= 0 ? "+" : ""}{stats.avgChange.toFixed(1)}%
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      {/* ── market stats row ─────────────────────────────── */}
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: STAGGER.subheadline / 1000, duration: 0.5 }}
+      >
+        {[
+          { label: "Floor Price", value: 420, suffix: " ARENA", color: "var(--color-gold)" },
+          { label: "24h Volume", value: 98400, suffix: " ARENA", color: "var(--color-teal-light)" },
+          { label: "Total Listings", value: 247, suffix: "", color: "var(--color-copper)" },
+          { label: "Unique Traders", value: 1892, suffix: "", color: "var(--color-ivory)" },
+        ].map((stat) => (
+          <GlassCard key={stat.label} glowIntensity={0.15} noHover>
+            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-2">
+              {stat.label}
+            </p>
+            <div className="flex items-baseline gap-1">
+              <MotionNumber value={stat.value} color={stat.color} />
+              {stat.suffix && (
+                <span className="font-mono text-xs text-[var(--color-stone)]">{stat.suffix}</span>
+              )}
             </div>
+          </GlassCard>
+        ))}
+      </motion.div>
+
+      {/* ── category filter tabs ─────────────────────────── */}
+      <motion.div
+        className="flex flex-wrap gap-2 mb-8"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: STAGGER.pills / 1000, duration: 0.4 }}
+      >
+        {CATEGORIES.map((cat, i) => {
+          const active = activeCategory === cat;
+          return (
+            <motion.button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded font-mono text-[10px] tracking-[2px] uppercase border transition-colors ${
+                active
+                  ? "bg-[var(--color-gold)]/20 text-[var(--color-gold)] border-[var(--color-gold-dim)]"
+                  : "bg-[var(--color-surface)]/40 text-[var(--color-stone)] border-[var(--color-border)]/40 hover:text-[var(--color-parchment)] hover:border-[var(--color-border)]"
+              }`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: (STAGGER.pills + i * 50) / 1000, duration: 0.3 }}
+            >
+              {cat}
+            </motion.button>
+          );
+        })}
+      </motion.div>
+
+      {/* ── featured collection banner ───────────────────── */}
+      <motion.div
+        className="mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: STAGGER.secondary / 1000, duration: 0.5 }}
+      >
+        <GlassCard accent="gold" glowIntensity={0.5}>
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex-1">
+              <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-gold-dim)] mb-2">
+                Featured Collection
+              </p>
+              <h2 className="font-heading text-3xl md:text-4xl text-[var(--color-gold)] mb-2">
+                Legendary Agent Collection
+              </h2>
+              <p className="font-narrative italic text-sm text-[var(--color-parchment)] mb-4 max-w-md leading-relaxed">
+                Three apex-tier agents forged in the crucible of ranked combat. Each carries
+                unique tactical signatures that reshape any encounter.
+              </p>
+              <div className="flex gap-6 font-mono text-xs text-[var(--color-stone)]">
+                <span><span className="text-[var(--color-gold)]">3</span> Items</span>
+                <span><span className="text-[var(--color-gold)]">4,280</span> ARENA Floor</span>
+                <span><span className="text-[var(--color-gold)]">12.4K</span> Volume</span>
+              </div>
+            </div>
+            <div className="flex gap-4 items-center justify-center md:justify-end">
+              <HexPortrait name="PHANTOM" size={80} accent="var(--color-gold)" pulse />
+              <HexPortrait name="GHOSTLINE" size={80} accent="var(--color-copper)" />
+              <HexPortrait name="DRIFT" size={80} accent="var(--color-teal-light)" />
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* ── main content: listings grid + sidebar ────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* ── listings grid (3 cols on lg) ──────────────── */}
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((listing, i) => (
+            <motion.div
+              key={listing.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: (STAGGER.interactive + i * 60) / 1000, duration: 0.4 }}
+            >
+              <GlassCard glowIntensity={0.2} className="h-full flex flex-col">
+                {/* image area */}
+                <div
+                  className={`h-32 rounded mb-3 bg-gradient-to-br ${RARITY_GRADIENT[listing.rarity]} flex items-center justify-center`}
+                >
+                  {listing.skillType ? (
+                    <SkillOrb skillType={listing.skillType} equipped level={70} />
+                  ) : listing.agentAccent ? (
+                    <HexPortrait name={listing.name} size={64} accent={listing.agentAccent} />
+                  ) : (
+                    <span
+                      className="font-display text-3xl opacity-30"
+                      style={{ color: RARITY_COLOR[listing.rarity] }}
+                    >
+                      ✦
+                    </span>
+                  )}
+                </div>
+
+                {/* name */}
+                <h3 className="font-heading text-lg text-[var(--color-ivory)] mb-1">
+                  {listing.name}
+                </h3>
+
+                {/* collection badge + rarity tag */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase bg-[var(--color-surface)] text-[var(--color-ash)] border border-[var(--color-border)]/30">
+                    {listing.collection}
+                  </span>
+                  <span
+                    className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase border"
+                    style={{
+                      color: RARITY_COLOR[listing.rarity],
+                      borderColor: RARITY_COLOR[listing.rarity],
+                      backgroundColor: `color-mix(in srgb, ${RARITY_COLOR[listing.rarity]} 10%, transparent)`,
+                    }}
+                  >
+                    {listing.rarity}
+                  </span>
+                </div>
+
+                {/* price + seller */}
+                <div className="mt-auto">
+                  <p className="font-mono text-lg text-[var(--color-gold)] mb-1">
+                    {listing.price.toLocaleString()} <span className="text-xs">ARENA</span>
+                  </p>
+                  <p className="font-mono text-[10px] text-[var(--color-ash)] mb-3">
+                    Seller: {listing.seller}
+                  </p>
+                  <button className="w-full py-2 text-[10px] font-mono tracking-[2px] uppercase bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold-dim)] rounded hover:bg-[var(--color-gold)]/25 transition-colors">
+                    Buy Now
+                  </button>
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
         </div>
-    );
+
+        {/* ── sidebar ──────────────────────────────────── */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          {/* your holdings */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: STAGGER.interactive / 1000, duration: 0.5 }}
+          >
+            <GlassCard glowIntensity={0.15}>
+              <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">
+                Your Holdings
+              </p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="font-body text-[var(--color-parchment)]">Agents</span>
+                  <span className="font-mono text-[var(--color-ivory)]">2</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-body text-[var(--color-parchment)]">Skill Orbs</span>
+                  <span className="font-mono text-[var(--color-ivory)]">5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-body text-[var(--color-parchment)]">Cosmetics</span>
+                  <span className="font-mono text-[var(--color-ivory)]">3</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-body text-[var(--color-parchment)]">Trophies</span>
+                  <span className="font-mono text-[var(--color-ivory)]">1</span>
+                </div>
+                <div className="border-t border-[var(--color-border)]/30 pt-2 mt-2 flex justify-between">
+                  <span className="font-body text-[var(--color-parchment)]">Est. Value</span>
+                  <span className="font-mono text-[var(--color-gold)]">4,820 ARENA</span>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+
+          {/* recent sales */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: STAGGER.interactive / 1000 + 0.1, duration: 0.5 }}
+          >
+            <GlassCard glowIntensity={0.15}>
+              <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">
+                Recent Sales
+              </p>
+              <div className="space-y-3">
+                {RECENT_SALES.map((sale) => (
+                  <div key={sale.item + sale.time} className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-body text-[var(--color-parchment)]">{sale.item}</p>
+                      <p className="font-mono text-[9px] text-[var(--color-ash)]">{sale.time}</p>
+                    </div>
+                    <span className="font-mono text-[var(--color-gold)] text-xs">
+                      {sale.price} <span className="text-[var(--color-stone)]">ARENA</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </motion.div>
+
+          {/* price history */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: STAGGER.interactive / 1000 + 0.2, duration: 0.5 }}
+          >
+            <GlassCard glowIntensity={0.15}>
+              <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">
+                Price History · 7d
+              </p>
+              {/* sparkline bars */}
+              <div className="flex items-end gap-1 h-16">
+                {[38, 52, 45, 61, 55, 72, 68].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-sm bg-[var(--color-gold)]/25"
+                    style={{ height: `${h}%` }}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between mt-2 font-mono text-[9px] text-[var(--color-ash)]">
+                <span>Mon</span>
+                <span>Today</span>
+              </div>
+              <div className="mt-3 flex justify-between text-xs">
+                <span className="font-body text-[var(--color-parchment)]">Avg. Price</span>
+                <span className="font-mono text-[var(--color-gold)]">412 ARENA</span>
+              </div>
+            </GlassCard>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
 }

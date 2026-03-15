@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { apiGet, wsUrl } from "@/lib/api";
+import { getAuraColor as themeAuraColor, ZONE_COLORS } from "@/lib/theme";
 
 /* ── Zone definitions ────────────────────────────────────── */
 export type WorldZone =
@@ -21,14 +22,14 @@ export interface ZoneConfig {
 }
 
 export const WORLD_ZONES: ZoneConfig[] = [
-    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "🏛️", color: "#6C3AED" },
-    { id: "arena-chess", label: "Hall of Chess", position: [0, 0, -60], icon: "♟️", color: "#10B981" },
-    { id: "arena-poker", label: "Hall of Poker", position: [60, 0, 0], icon: "🃏", color: "#F59E0B" },
-    { id: "arena-monopoly", label: "Hall of Monopoly", position: [-60, 0, 0], icon: "🏠", color: "#EF4444" },
-    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "🔧", color: "#8B5CF6" },
-    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "🛒", color: "#FBBF24" },
-    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "🏆", color: "#F59E0B" },
-    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "⚔️", color: "#EF4444" },
+    { id: "central-nexus", label: "Central Nexus", position: [0, 0, 0], icon: "◉", color: ZONE_COLORS["central-nexus"] },
+    { id: "arena-chess", label: "Chess", position: [0, 0, -60], icon: "♟", color: ZONE_COLORS["arena-chess"] },
+    { id: "arena-poker", label: "Poker", position: [60, 0, 0], icon: "♠", color: ZONE_COLORS["arena-poker"] },
+    { id: "arena-monopoly", label: "Monopoly", position: [-60, 0, 0], icon: "▦", color: ZONE_COLORS["arena-monopoly"] },
+    { id: "workshop", label: "Workshop", position: [0, 0, 60], icon: "⚙", color: ZONE_COLORS["workshop"] },
+    { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "◈", color: ZONE_COLORS["marketplace"] },
+    { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "★", color: ZONE_COLORS["hall-of-fame"] },
+    { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "⬡", color: ZONE_COLORS["grand-arena"] },
 ];
 
 /* ── Agent in-world representation ───────────────────────── */
@@ -102,6 +103,7 @@ interface WorldState {
 
     // UI state
     hudVisible: boolean;
+    hudOpacity: number;
     chatOpen: boolean;
     minimapExpanded: boolean;
 
@@ -119,6 +121,7 @@ interface WorldState {
     selectAgent: (id: string | null) => void;
     setActiveMatch: (id: string | null) => void;
     setHudVisible: (v: boolean) => void;
+    setHUDOpacity: (opacity: number) => void;
     toggleChat: () => void;
     toggleMinimap: () => void;
     updateAgentPosition: (id: string, position: [number, number, number]) => void;
@@ -131,10 +134,7 @@ interface WorldState {
 }
 
 function getAuraColor(winRate: number): string {
-    if (winRate >= 0.8) return "#F59E0B"; // gold
-    if (winRate >= 0.6) return "#C0C0C0"; // silver
-    if (winRate >= 0.4) return "#3B82F6"; // blue
-    return "#6B7280"; // gray
+    return themeAuraColor(winRate);
 }
 
 // Generate initial mock agents
@@ -142,42 +142,42 @@ const MOCK_AGENTS: WorldAgent[] = [
     {
         id: "agent-zeus", name: "ZEUS", level: 24, elo: 2450,
         personality: "aggressive", position: [5, 0, 3], targetPosition: [5, 0, 3],
-        status: "idle", winRate: 0.82, auraColor: "#F59E0B", zone: "central-nexus",
+        status: "idle", winRate: 0.82, auraColor: getAuraColor(0.82), zone: "central-nexus",
     },
     {
         id: "agent-athena", name: "ATHENA", level: 21, elo: 2380,
         personality: "adaptive", position: [-3, 0, 7], targetPosition: [-3, 0, 7],
-        status: "idle", winRate: 0.75, auraColor: "#C0C0C0", zone: "central-nexus",
+        status: "idle", winRate: 0.75, auraColor: getAuraColor(0.75), zone: "central-nexus",
     },
     {
         id: "agent-blitz", name: "BLITZ", level: 18, elo: 2200,
         personality: "aggressive", position: [60, 0, 2], targetPosition: [60, 0, 2],
-        status: "competing", winRate: 0.68, auraColor: "#C0C0C0", zone: "arena-poker",
+        status: "competing", winRate: 0.68, auraColor: getAuraColor(0.68), zone: "arena-poker",
     },
     {
         id: "agent-shadow", name: "SHADOW", level: 16, elo: 2150,
         personality: "conservative", position: [62, 0, -2], targetPosition: [62, 0, -2],
-        status: "competing", winRate: 0.61, auraColor: "#C0C0C0", zone: "arena-poker",
+        status: "competing", winRate: 0.61, auraColor: getAuraColor(0.61), zone: "arena-poker",
     },
     {
         id: "agent-titan", name: "TITAN", level: 30, elo: 2600,
         personality: "conservative", position: [2, 0, -58], targetPosition: [2, 0, -58],
-        status: "competing", winRate: 0.88, auraColor: "#F59E0B", zone: "arena-chess",
+        status: "competing", winRate: 0.88, auraColor: getAuraColor(0.88), zone: "arena-chess",
     },
     {
         id: "agent-oracle", name: "ORACLE", level: 28, elo: 2520,
         personality: "adaptive", position: [-2, 0, -62], targetPosition: [-2, 0, -62],
-        status: "competing", winRate: 0.84, auraColor: "#F59E0B", zone: "arena-chess",
+        status: "competing", winRate: 0.84, auraColor: getAuraColor(0.84), zone: "arena-chess",
     },
     {
         id: "agent-phantom", name: "PHANTOM", level: 12, elo: 1900,
         personality: "chaotic", position: [8, 0, -5], targetPosition: [8, 0, -5],
-        status: "walking", winRate: 0.52, auraColor: "#3B82F6", zone: "central-nexus",
+        status: "walking", winRate: 0.52, auraColor: getAuraColor(0.52), zone: "central-nexus",
     },
     {
         id: "agent-viper", name: "VIPER", level: 15, elo: 2050,
         personality: "aggressive", position: [-8, 0, 2], targetPosition: [-8, 0, 2],
-        status: "idle", winRate: 0.59, auraColor: "#3B82F6", zone: "central-nexus",
+        status: "idle", winRate: 0.59, auraColor: getAuraColor(0.59), zone: "central-nexus",
     },
 ];
 
@@ -215,6 +215,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     spectatorCount: 2847,
 
     hudVisible: true,
+    hudOpacity: 1,
     chatOpen: false,
     minimapExpanded: false,
 
@@ -230,6 +231,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     selectAgent: (id) => set({ selectedAgentId: id }),
     setActiveMatch: (id) => set({ activeMatchId: id }),
     setHudVisible: (v) => set({ hudVisible: v }),
+    setHUDOpacity: (opacity) => set({ hudOpacity: Math.max(0, Math.min(1, opacity)) }),
     toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
     toggleMinimap: () => set((s) => ({ minimapExpanded: !s.minimapExpanded })),
 
@@ -254,12 +256,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     teleportToZone: (zone) => {
         const zoneConfig = WORLD_ZONES.find((z) => z.id === zone);
         if (zoneConfig) {
-            set({
-                currentZone: zone,
-                cameraTarget: zoneConfig.position,
-                playerPosition: [zoneConfig.position[0], 0, zoneConfig.position[2] + 5],
-                playerTarget: null
-            });
+            // Fade HUD out during zone transition for a cleaner world-jump effect.
+            set({ hudOpacity: 0 });
+
+            setTimeout(() => {
+                set({
+                    currentZone: zone,
+                    cameraTarget: zoneConfig.position,
+                    playerPosition: [zoneConfig.position[0], 0, zoneConfig.position[2] + 5],
+                    playerTarget: null,
+                });
+
+                setTimeout(() => {
+                    set({ hudOpacity: 1 });
+                }, 200);
+            }, 180);
         }
     },
 
