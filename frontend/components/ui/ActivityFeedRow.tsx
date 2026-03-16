@@ -21,6 +21,7 @@ export interface ActivityEvent {
   value?: string
   txHash?: string
   quality?: number
+  autonomous?: boolean
 }
 
 const EVENT_ICONS: Record<ActivityEventType, string> = {
@@ -80,6 +81,21 @@ export function ActivityFeedRow({ event, showTransactionLinks }: ActivityFeedRow
       <span style={{ color, fontSize: 12 }}>{icon}</span>
       <span style={{ color, fontStyle: isCommentary ? 'italic' : 'normal' }}>
         {event.message}
+        {event.autonomous && (
+          <span style={{
+            display: 'inline-block',
+            marginLeft: 6,
+            padding: '1px 4px',
+            fontSize: 8,
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.06em',
+            color: 'var(--color-teal)',
+            border: '1px solid var(--color-teal-dim)',
+            borderRadius: 2,
+            verticalAlign: 'middle',
+            lineHeight: 1.5,
+          }}>AI AUTO</span>
+        )}
       </span>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         {event.value && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { animate } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface AnimatedCounterProps {
   value: number;
@@ -16,7 +16,7 @@ export interface AnimatedCounterProps {
   className?: string;
 }
 
-export function AnimatedCounter({
+export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   value,
   prefix = "",
   suffix = "",
@@ -24,7 +24,7 @@ export function AnimatedCounter({
   duration = 0.6,
   decimals = 2,
   className,
-}: AnimatedCounterProps) {
+}) => {
   const [displayValue, setDisplayValue] = useState(value);
   const previousValue = useRef(value);
 

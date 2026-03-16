@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -12,8 +12,9 @@ function Particles({ count = 200 }: { count?: number }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const particles = useMemo(() => {
-    return Array.from({ length: count }, () => ({
+  const particlesRef = useRef<{ x: number; y: number; z: number; vx: number; vy: number; scale: number; colorIdx: number }[]>([]);
+  useEffect(() => {
+    particlesRef.current = Array.from({ length: count }, () => ({
       x: (Math.random() - 0.5) * 40,
       y: (Math.random() - 0.5) * 20,
       z: (Math.random() - 0.5) * 20,
@@ -36,8 +37,9 @@ function Particles({ count = 200 }: { count?: number }) {
   useFrame((_, delta) => {
     if (!meshRef.current) return;
     const d = Math.min(delta, 0.1);
+    if (particlesRef.current.length === 0) return;
     for (let i = 0; i < count; i++) {
-      const p = particles[i];
+      const p = particlesRef.current[i];
       p.x += p.vx + Math.sin(Date.now() * 0.0003 + i) * 0.001;
       p.y += p.vy + Math.cos(Date.now() * 0.0004 + i) * 0.0008;
 

@@ -1,15 +1,19 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useWorldStore, WORLD_ZONES } from "@/lib/worldStore";
 import { COLORS } from "@/lib/theme";
 
 const WALK_SPEED = 15;
+const ZOOM_MIN = 20;
+const ZOOM_MAX = 180;
+const ZOOM_SPEED = 8;
+const ORBIT_SPEED = 0.004;
 
 export function PlayerController() {
-    const { camera } = useThree();
+    const { camera, gl } = useThree();
     const playerPos = useWorldStore((s) => s.playerPosition);
     const setPlayerPosition = useWorldStore((s) => s.setPlayerPosition);
     const playerTarget = useWorldStore((s) => s.playerTarget);
@@ -24,13 +28,67 @@ export function PlayerController() {
     // Input state
     const keys = useRef({ w: false, a: false, s: false, d: false });
 
+    // Camera orbit state
+    const orbitAngle = useRef(0); // horizontal angle in radians
+    const orbitPitch = useRef(0.65); // vertical angle (0=horizontal, π/2=top-down)
+    const zoomDist = useRef(60); // distance from player
+    const isDragging = useRef(false);
+    const lastMouse = useRef({ x: 0, y: 0 });
+
     // Cinematics state
     const cinematicTime = useRef(0);
-    const cinematicStart = new THREE.Vector3(0, 200, 160);
+    const cinematicStart = new THREE.Vector3(0, 100, 80);
     const entryTarget = new THREE.Vector3(0, 0, 10);
 
-    // Orthographic camera offset (top-down isometric per PDF spec)
-    const cameraOffset = new THREE.Vector3(0, 120, 80);
+    // Scroll zoom
+    const handleWheel = useCallback((e: WheelEvent) => {
+        e.preventDefault();
+        zoomDist.current = THREE.MathUtils.clamp(
+            zoomDist.current + e.deltaY * 0.05 * ZOOM_SPEED,
+            ZOOM_MIN,
+            ZOOM_MAX,
+        );
+    }, []);
+
+    // Right-mouse orbit
+    const handlePointerDown = useCallback((e: PointerEvent) => {
+        if (e.button === 2) {
+            isDragging.current = true;
+            lastMouse.current = { x: e.clientX, y: e.clientY };
+        }
+    }, []);
+    const handlePointerMove = useCallback((e: PointerEvent) => {
+        if (!isDragging.current) return;
+        const dx = e.clientX - lastMouse.current.x;
+        const dy = e.clientY - lastMouse.current.y;
+        orbitAngle.current -= dx * ORBIT_SPEED;
+        orbitPitch.current = THREE.MathUtils.clamp(
+            orbitPitch.current + dy * ORBIT_SPEED,
+            0.15,
+            1.4,
+        );
+        lastMouse.current = { x: e.clientX, y: e.clientY };
+    }, []);
+    const handlePointerUp = useCallback((e: PointerEvent) => {
+        if (e.button === 2) isDragging.current = false;
+    }, []);
+    const handleContextMenu = useCallback((e: Event) => e.preventDefault(), []);
+
+    useEffect(() => {
+        const dom = gl.domElement;
+        dom.addEventListener("wheel", handleWheel, { passive: false });
+        dom.addEventListener("pointerdown", handlePointerDown);
+        dom.addEventListener("pointermove", handlePointerMove);
+        dom.addEventListener("pointerup", handlePointerUp);
+        dom.addEventListener("contextmenu", handleContextMenu);
+        return () => {
+            dom.removeEventListener("wheel", handleWheel);
+            dom.removeEventListener("pointerdown", handlePointerDown);
+            dom.removeEventListener("pointermove", handlePointerMove);
+            dom.removeEventListener("pointerup", handlePointerUp);
+            dom.removeEventListener("contextmenu", handleContextMenu);
+        };
+    }, [gl.domElement, handleWheel, handlePointerDown, handlePointerMove, handlePointerUp, handleContextMenu]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,7 +99,7 @@ export function PlayerController() {
             }
             if (e.key.toLowerCase() in keys.current) {
                 keys.current[e.key.toLowerCase() as keyof typeof keys.current] = true;
-                setPlayerTarget(null); // Cancel click-to-move if using WASD
+                setPlayerTarget(null);
             }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -64,15 +122,19 @@ export function PlayerController() {
 
     useFrame((_, delta) => {
         if (appState === "spawning") {
-            cinematicTime.current += delta * 0.4;
+            cinematicTime.current += delta * 0.5;
             const t = Math.min(cinematicTime.current, 1);
-            // Ease out cubic
             const ease = 1 - Math.pow(1 - t, 3);
 
-            // Cinematic: sweep from high angle down to player position (orthographic)
-            const startPos = cinematicStart;
-            const endPos = entryTarget.clone().add(cameraOffset);
-            camera.position.lerpVectors(startPos, endPos, ease);
+            // Compute the orbit-based end position
+            const dist = zoomDist.current;
+            const endPos = new THREE.Vector3(
+                entryTarget.x + Math.sin(orbitAngle.current) * Math.cos(orbitPitch.current) * dist,
+                entryTarget.y + Math.sin(orbitPitch.current) * dist,
+                entryTarget.z + Math.cos(orbitAngle.current) * Math.cos(orbitPitch.current) * dist,
+            );
+
+            camera.position.lerpVectors(cinematicStart, endPos, ease);
             camera.lookAt(entryTarget.x, 0, entryTarget.z);
 
             if (t >= 1) {
@@ -86,23 +148,26 @@ export function PlayerController() {
         if (appState === "roaming") {
             let moved = false;
 
-            // 1. WASD Movement
+            // WASD movement relative to camera facing direction
             const moveDir = new THREE.Vector3();
-            if (keys.current.w) moveDir.z -= 1;
-            if (keys.current.s) moveDir.z += 1;
-            if (keys.current.a) moveDir.x -= 1;
-            if (keys.current.d) moveDir.x += 1;
+            const forward = new THREE.Vector3(-Math.sin(orbitAngle.current), 0, -Math.cos(orbitAngle.current));
+            const right = new THREE.Vector3(forward.z, 0, -forward.x);
+
+            if (keys.current.w) moveDir.add(forward);
+            if (keys.current.s) moveDir.sub(forward);
+            if (keys.current.a) moveDir.sub(right);
+            if (keys.current.d) moveDir.add(right);
 
             if (moveDir.lengthSq() > 0) {
                 moveDir.normalize().multiplyScalar(WALK_SPEED * delta);
                 posVec.current.add(moveDir);
                 moved = true;
             }
-            // 2. Click-to-Move interpolation
+            // Click-to-Move interpolation
             else if (playerTarget) {
                 const targetVec = new THREE.Vector3(...playerTarget);
                 const dist = posVec.current.distanceTo(targetVec);
-                if (dist > 0.1) {
+                if (dist > 0.5) {
                     const dir = targetVec.clone().sub(posVec.current).normalize();
                     const step = Math.min(dist, WALK_SPEED * delta);
                     posVec.current.add(dir.multiplyScalar(step));
@@ -120,31 +185,26 @@ export function PlayerController() {
             if (moved) {
                 setPlayerPosition([posVec.current.x, posVec.current.y, posVec.current.z]);
 
-                // Determine current zone based on proximity
                 let closestZone = WORLD_ZONES[0].id;
                 let minDist = Infinity;
                 WORLD_ZONES.forEach(z => {
                     const dx = posVec.current.x - z.position[0];
                     const dz = posVec.current.z - z.position[2];
-                    const d = Math.sqrt(dx*dx + dz*dz);
-                    if (d < minDist) {
-                        minDist = d;
-                        closestZone = z.id;
-                    }
+                    const d = Math.sqrt(dx * dx + dz * dz);
+                    if (d < minDist) { minDist = d; closestZone = z.id; }
                 });
-
-                // If within reasonable radius, set it
-                if (minDist < 30) {
-                    setZone(closestZone);
-                } else {
-                    setZone("central-nexus"); // Fallback
-                }
+                setZone(minDist < 40 ? closestZone : "central-nexus");
             }
 
-            // Orthographic camera smoothly follows player
-            const idealCamPos = posVec.current.clone().add(cameraOffset);
-            camera.position.lerp(idealCamPos, 0.05);
-            camera.lookAt(posVec.current.clone().add(new THREE.Vector3(0, 0, 0)));
+            // Orbit camera follows player
+            const dist = zoomDist.current;
+            const idealCamPos = new THREE.Vector3(
+                posVec.current.x + Math.sin(orbitAngle.current) * Math.cos(orbitPitch.current) * dist,
+                posVec.current.y + Math.sin(orbitPitch.current) * dist,
+                posVec.current.z + Math.cos(orbitAngle.current) * Math.cos(orbitPitch.current) * dist,
+            );
+            camera.position.lerp(idealCamPos, 0.08);
+            camera.lookAt(posVec.current);
         }
     });
 
@@ -152,40 +212,19 @@ export function PlayerController() {
 
     return (
         <group ref={playerRef} position={playerPos}>
-            {/* Player orb — gold neon */}
             <mesh position={[0, 1, 0]}>
                 <sphereGeometry args={[0.4, 16, 16]} />
-                <meshStandardMaterial
-                    color={COLORS.gold}
-                    emissive={COLORS.gold}
-                    emissiveIntensity={2}
-                />
+                <meshStandardMaterial color={COLORS.gold} emissive={COLORS.gold} emissiveIntensity={2} />
             </mesh>
             <pointLight position={[0, 2, 0]} color={COLORS.gold} intensity={3} distance={10} />
-
-            {/* Ground ring */}
-            <mesh position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[0.5, 0.7, 32]} />
-                <meshStandardMaterial
-                    color={COLORS.gold}
-                    emissive={COLORS.gold}
-                    emissiveIntensity={1}
-                    transparent
-                    opacity={0.8}
-                />
+                <meshStandardMaterial color={COLORS.gold} emissive={COLORS.gold} emissiveIntensity={1} transparent opacity={0.8} />
             </mesh>
-
-            {/* If clicking to move, show neon indicator */}
             {playerTarget && (
-                <mesh position={[playerTarget[0] - posVec.current.x, 0.1, playerTarget[2] - posVec.current.z]} rotation={[-Math.PI/2, 0, 0]}>
+                <mesh position={[playerTarget[0] - playerPos[0], 0.1, playerTarget[2] - playerPos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[0.6, 0.8, 32]} />
-                    <meshStandardMaterial
-                        color={COLORS.tealLight}
-                        emissive={COLORS.tealLight}
-                        emissiveIntensity={1}
-                        transparent
-                        opacity={0.6}
-                    />
+                    <meshStandardMaterial color={COLORS.tealLight} emissive={COLORS.tealLight} emissiveIntensity={1} transparent opacity={0.6} />
                 </mesh>
             )}
         </group>

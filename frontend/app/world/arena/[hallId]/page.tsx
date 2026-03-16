@@ -8,7 +8,10 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { OddsBar } from "@/components/ui/OddsBar";
 import { BettingChip } from "@/components/ui/BettingChip";
 import { ZKLockIcon } from "@/components/ui/ZKLockIcon";
+import { PostMatchOverlay } from "@/components/ui/PostMatchOverlay";
 import { CommentaryRibbon } from "@/components/arena/CommentaryRibbon";
+import { AgentThinkingStream } from "@/components/arena/AgentThinkingStream";
+import { NegotiationPanel, type TradeOffer } from "@/components/arena/NegotiationPanel";
 import { hallSpecs } from "@/lib/pdfContent";
 import { apiGet, wsUrl } from "@/lib/api";
 import { COLORS } from "@/lib/theme";
@@ -44,6 +47,7 @@ interface MatchState {
   odds?: { a: number; b: number };
   spectators?: number;
   activeBets?: number;
+  timePerTurn?: number;
 }
 
 const HALL_NAMES: Record<string, string> = {
@@ -63,7 +67,23 @@ export default function HallPage() {
   const [match, setMatch] = useState<MatchState | null>(null);
   const [commentary, setCommentary] = useState<string[]>(["Waiting for action..."]);
   const [loading, setLoading] = useState(true);
+  const [lastMove, setLastMove] = useState<{ move: string; agentName: string; personality: string } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  /* ── Post-match overlay ── */
+  const [matchComplete, setMatchComplete] = useState<{
+    winner: string;
+    loser: string;
+    stats: Record<string, unknown>;
+  } | null>(null);
+
+  /* ── Turn timer ── */
+  const [turnTimer, setTurnTimer] = useState<number>(60);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timePerTurnRef = useRef<number>(60);
+
+  /* ── Negotiations (Monopoly) ── */
+  const [negotiations, setNegotiations] = useState<TradeOffer[]>([]);
 
   /* Fetch initial match data for this hall */
   useEffect(() => {
@@ -115,16 +135,62 @@ export default function HallPage() {
           const evt = JSON.parse(e.data);
           if (evt.type === "game_state_update") {
             setMatch((prev) => prev ? { ...prev, ...evt.payload } : prev);
+          } else if (evt.type === "agent_move") {
+            // Reset turn countdown on each new move
+            setTurnTimer(timePerTurnRef.current);
+            // Track last move for Gemini reasoning stream
+            setLastMove({
+              move: evt.payload?.move ?? evt.payload?.action ?? "unknown",
+              agentName: evt.payload?.agent_name ?? agents[0],
+              personality: evt.payload?.personality ?? "adaptive",
+            });
+            setMatch((prev) => prev ? { ...prev, ...evt.payload } : prev);
           } else if (evt.type === "commentary_chunk") {
             setCommentary((prev) => [...prev.slice(-19), evt.payload.text]);
           } else if (evt.type === "odds_update") {
             setMatch((prev) => prev ? { ...prev, odds: evt.payload } : prev);
+          } else if (evt.type === "match_complete") {
+            setMatchComplete({
+              winner: evt.payload?.winner ?? agents[0],
+              loser: evt.payload?.loser ?? agents[1],
+              stats: evt.payload ?? {},
+            });
+          } else if (evt.type === "negotiation_message") {
+            setNegotiations((prev) => {
+              const offer: TradeOffer = {
+                id: evt.payload?.id ?? `neg-${Date.now()}`,
+                from: evt.payload?.from ?? "Agent",
+                to: evt.payload?.to ?? "Agent",
+                offerProperties: evt.payload?.offer_properties ?? [],
+                offerCash: evt.payload?.offer_cash ?? 0,
+                requestProperties: evt.payload?.request_properties ?? [],
+                requestCash: evt.payload?.request_cash ?? 0,
+                message: evt.payload?.message ?? "",
+                timestamp: evt.payload?.timestamp ?? Date.now(),
+                status: evt.payload?.status ?? "pending",
+              };
+              return [...prev.slice(-9), offer];
+            });
           }
         } catch { /* ignore parse errors */ }
       };
     } catch { /* WS unavailable */ }
     return () => { ws?.close(); };
   }, [match?.matchId]);
+
+  /* ── Sync timePerTurn ref so WS handler always resets to the correct duration ── */
+  useEffect(() => {
+    timePerTurnRef.current = match?.timePerTurn ?? 60;
+  }, [match?.timePerTurn]);
+
+  /* ── Turn timer countdown (ticks every second; reset via setTurnTimer in WS handler) ── */
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTurnTimer((t) => Math.max(0, t - 1));
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
 
   /* ── Betting ── */
   const [selectedChip, setSelectedChip] = useState(10);
@@ -168,6 +234,25 @@ export default function HallPage() {
             </span>
             <span className="mono" style={{ fontSize: 11, color: COLORS.gold }}>
               🎯 {match?.activeBets ?? 318} bets
+            </span>
+          </div>
+          {/* Turn Timer */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "4px 12px",
+            border: `1px solid ${turnTimer < 30 ? COLORS.redBright ?? "#C43030" : COLORS.border}`,
+            borderRadius: 4,
+            background: turnTimer < 30 ? "rgba(139,32,32,0.18)" : "transparent",
+            transition: "border-color 0.3s, background 0.3s",
+            animation: turnTimer < 10 ? "pulse 0.8s ease-in-out infinite" : "none",
+          }}>
+            <span style={{ fontSize: 10, color: COLORS.stone, fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}>TURN</span>
+            <span className="mono" style={{
+              fontSize: 15, fontWeight: 700,
+              color: turnTimer < 30 ? (COLORS.redBright ?? "#C43030") : COLORS.gold,
+              minWidth: 28, textAlign: "right",
+            }}>
+              {turnTimer}s
             </span>
           </div>
         </div>
@@ -276,8 +361,54 @@ export default function HallPage() {
               View Last Result
             </Link>
           </div>
+
+          {/* Gemini Agent Reasoning — live move explanations */}
+          <div style={{ marginTop: 16 }}>
+            <AgentThinkingStream
+              agentName={lastMove?.agentName ?? agents[0]}
+              personality={lastMove?.personality ?? "adaptive"}
+              gameType={hallId}
+              move={lastMove?.move ?? null}
+              opponentName={agents[1]}
+              gameState={match ? { fen: match.fen, round: match.round } : {}}
+            />
+          </div>
+
+          {/* Monopoly Negotiation Panel */}
+          {hallId === "monopoly" && (
+            <div style={{ marginTop: 16 }}>
+              <NegotiationPanel
+                negotiations={negotiations}
+                myAgentId={agents[0]}
+              />
+            </div>
+          )}
         </aside>
       </div>
+
+      {/* ── Post-Match Overlay ── */}
+      {matchComplete && (
+        <PostMatchOverlay
+          visible={true}
+          result={{
+            winner: (matchComplete.stats?.winner_side as "a" | "b") ?? "a",
+            agentName: matchComplete.winner,
+            gameType: hallId,
+            round: round,
+            method: (matchComplete.stats?.method as string) ?? "Decisive",
+            eloBefore: (matchComplete.stats?.elo_before as number) ?? 1200,
+            eloAfter: (matchComplete.stats?.elo_after as number) ?? 1224,
+            winRateBefore: (matchComplete.stats?.win_rate_before as number) ?? 0.5,
+            winRateAfter: (matchComplete.stats?.win_rate_after as number) ?? 0.52,
+            winsBefore: (matchComplete.stats?.wins_before as number) ?? 0,
+            winsAfter: (matchComplete.stats?.wins_after as number) ?? 1,
+            matchBonus: (matchComplete.stats?.match_bonus as number) ?? 50,
+            betPayout: (matchComplete.stats?.bet_payout as number) ?? 0,
+            walletAddress: matchComplete.stats?.wallet_address as string | undefined,
+          }}
+          onClose={() => setMatchComplete(null)}
+        />
+      )}
     </div>
   );
 }

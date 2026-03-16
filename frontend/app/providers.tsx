@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { wagmiConfig } from "@/lib/wagmi";
 import { getQueryClient } from "@/lib/queryClient";
+import { WagmiSync } from "@/lib/WagmiSync";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
@@ -12,6 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
+        <WagmiSync />
         {children}
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

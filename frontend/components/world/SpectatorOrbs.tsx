@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COLORS } from "@/lib/theme";
@@ -21,8 +21,9 @@ export function SpectatorOrbs({
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    const offsets = useMemo(() => {
-        return Array.from({ length: count }, () => ({
+    const offsetsRef = useRef<{ angle: number; height: number; r: number; speed: number; phase: number }[]>([]);
+    useEffect(() => {
+        offsetsRef.current = Array.from({ length: count }, () => ({
             angle: Math.random() * Math.PI * 2,
             height: 3 + Math.random() * 3,
             r: radius * 0.4 + Math.random() * radius * 0.6,
@@ -32,9 +33,9 @@ export function SpectatorOrbs({
     }, [count, radius]);
 
     useFrame((_, delta) => {
-        if (!meshRef.current) return;
+        if (!meshRef.current || offsetsRef.current.length === 0) return;
         for (let i = 0; i < count; i++) {
-            const o = offsets[i];
+            const o = offsetsRef.current[i];
             o.angle += delta * o.speed * 0.1;
             const x = center[0] + Math.cos(o.angle) * o.r;
             const y = center[1] + o.height + Math.sin(Date.now() * 0.001 + o.phase) * 0.3;
@@ -76,15 +77,16 @@ export function EnvironmentParticles({
     speed = 0.05,
 }: EnvironmentParticlesProps) {
     const ref = useRef<THREE.Points>(null);
+    const [positions, setPositions] = useState(() => new Float32Array(count * 3));
 
-    const positions = useMemo(() => {
+    useEffect(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
             pos[i * 3] = (Math.random() - 0.5) * area;
             pos[i * 3 + 1] = Math.random() * 15;
             pos[i * 3 + 2] = (Math.random() - 0.5) * area;
         }
-        return pos;
+        setPositions(pos);
     }, [count, area]);
 
     useFrame((_, delta) => {
@@ -178,15 +180,16 @@ export function TokenRain({
 }: TokenRainProps) {
     const ref = useRef<THREE.Points>(null);
     const count = Math.min(amount, 200);
+    const [positions, setPositions] = useState(() => new Float32Array(count * 3));
 
-    const positions = useMemo(() => {
+    useEffect(() => {
         const pos = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
             pos[i * 3] = position[0] + (Math.random() - 0.5) * 2;
             pos[i * 3 + 1] = position[1] + Math.random() * 3;
             pos[i * 3 + 2] = position[2] + (Math.random() - 0.5) * 2;
         }
-        return pos;
+        setPositions(pos);
     }, [count, position]);
 
     useFrame((_, delta) => {

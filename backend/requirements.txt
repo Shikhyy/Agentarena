@@ -20,7 +20,8 @@ pydantic==2.10.0
 python-dotenv==1.0.1
 httpx>=0.28.1
 
-# Phase 2 dependencies (uncomment when needed)
-# firebase-admin==6.4.0
-# redis==5.2.0
-# web3==7.5.0
+# Blockchain reads (on-chain contract state)
+web3>=7.5.0
+
+# Production dependencies
+gunicorn>=22.0.0

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -36,9 +36,10 @@ export function IsometricBuilding({
   const windowRefs = useRef<THREE.Mesh[]>([]);
 
   // Pre-compute random phase offsets for each window
-  const phases = useMemo(() => {
+  const phasesRef = useRef<number[]>([]);
+  useEffect(() => {
     const total = windowRows * windowCols * 2; // front + side
-    return Array.from({ length: total }, () => Math.random() * Math.PI * 2);
+    phasesRef.current = Array.from({ length: total }, () => Math.random() * Math.PI * 2);
   }, [windowRows, windowCols]);
 
   // Front face brightness = 1.0, side = 0.75, roof = 0.6
@@ -52,7 +53,7 @@ export function IsometricBuilding({
       if (!mesh) return;
       const mat = mesh.material as THREE.MeshStandardMaterial;
       // ~2% chance per second to flicker; use sine wave for smooth variation
-      const flicker = Math.sin(t * 1.5 + phases[i]) > 0.97 - flickerRate ? 0.3 : 1.0;
+      const flicker = Math.sin(t * 1.5 + (phasesRef.current[i] ?? 0)) > 0.97 - flickerRate ? 0.3 : 1.0;
       mat.emissiveIntensity = 0.6 * flicker;
     });
   });

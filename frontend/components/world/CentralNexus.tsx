@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState } from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Float, RoundedBox, Html } from "@react-three/drei";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,131 @@ import * as THREE from "three";
 import { useWorldStore, WORLD_ZONES } from "@/lib/worldStore";
 import { AgentCharacter3D } from "./AgentCharacter3D";
 import { EnvironmentParticles } from "./SpectatorOrbs";
+
+/* ── Broadcast Arch with live CanvasTexture screen ─────────── */
+function BroadcastArch() {
+    const agents = useWorldStore((s) => s.agents);
+    const liveMatches = useWorldStore((s) => s.liveMatches);
+
+    const { canvas, texture } = useMemo(() => {
+        const c = document.createElement("canvas");
+        c.width = 1024;
+        c.height = 410;
+        const t = new THREE.CanvasTexture(c);
+        return { canvas: c, texture: t };
+    }, []);
+
+    useEffect(() => {
+        function draw() {
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            // Background + border
+            ctx.fillStyle = "#0A0907";
+            ctx.fillRect(0, 0, 1024, 410);
+            ctx.strokeStyle = "#C8963C";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(8, 8, 1008, 394);
+
+            // $ARENA title
+            ctx.fillStyle = "#C8963C";
+            ctx.font = "bold 60px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("$ARENA", 512, 76);
+
+            // Price (mock — increments slightly each redraw for visual liveliness)
+            const price = (2.0 + Math.random() * 0.5).toFixed(4);
+            ctx.fillStyle = "#E8B86D";
+            ctx.font = "bold 48px monospace";
+            ctx.fillText(`$${price}`, 512, 140);
+
+            // Divider
+            ctx.strokeStyle = "#3A3228";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 162);
+            ctx.lineTo(984, 162);
+            ctx.stroke();
+
+            // Top 3 agents header
+            ctx.fillStyle = "#5A5248";
+            ctx.font = "22px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("TOP AGENTS", 512, 200);
+
+            const medals = ["#C8963C", "#C0B8A8", "#A0522D"];
+            const top3 = [...agents].sort((a, b) => b.elo - a.elo).slice(0, 3);
+            top3.forEach((agent, i) => {
+                const y = 248 + i * 44;
+                ctx.fillStyle = medals[i];
+                ctx.font = "bold 28px monospace";
+                ctx.textAlign = "left";
+                ctx.fillText(`${i + 1}. ${agent.name}`, 80, y);
+                ctx.textAlign = "right";
+                ctx.fillText(`ELO ${agent.elo}`, 940, y);
+            });
+            // Fallback rows if no agents
+            if (top3.length === 0) {
+                ctx.fillStyle = "#3A3228";
+                ctx.textAlign = "center";
+                ctx.fillText("— awaiting agents —", 512, 270);
+            }
+
+            // Divider
+            ctx.strokeStyle = "#3A3228";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 390);
+            ctx.lineTo(984, 390);
+            ctx.stroke();
+
+            // Live matches count
+            const liveCount = liveMatches.filter((m) => m.status === "live").length;
+            ctx.fillStyle = "#C43030";
+            ctx.font = "bold 28px monospace";
+            ctx.textAlign = "left";
+            ctx.fillText(`● LIVE MATCHES: ${liveCount}`, 80, 406);
+
+            texture.needsUpdate = true;
+        }
+
+        draw();
+        const id = setInterval(draw, 5000);
+        return () => clearInterval(id);
+    }, [canvas, texture, agents, liveMatches]);
+
+    return (
+        <group position={[0, 12, -60]}>
+            {/* Left pillar */}
+            <mesh position={[-16, -6, 0]} castShadow>
+                <boxGeometry args={[2.2, 20, 2.2]} />
+                <meshStandardMaterial color="#1C1915" metalness={0.85} roughness={0.3} emissive="#C8963C" emissiveIntensity={0.04} />
+            </mesh>
+            {/* Right pillar */}
+            <mesh position={[16, -6, 0]} castShadow>
+                <boxGeometry args={[2.2, 20, 2.2]} />
+                <meshStandardMaterial color="#1C1915" metalness={0.85} roughness={0.3} emissive="#C8963C" emissiveIntensity={0.04} />
+            </mesh>
+            {/* Arch top — half-torus connecting pillar tops, in XY plane facing +Z */}
+            <mesh position={[0, 4, 0]}>
+                <torusGeometry args={[16, 1.1, 8, 48, Math.PI]} />
+                <meshStandardMaterial color="#C8963C" emissive="#C8963C" emissiveIntensity={0.45} metalness={0.9} roughness={0.2} />
+            </mesh>
+            {/* Screen plane with CanvasTexture */}
+            <mesh position={[0, -1, 0.2]}>
+                <planeGeometry args={[30, 12]} />
+                <meshBasicMaterial map={texture} />
+            </mesh>
+            {/* Subtle backing frame */}
+            <mesh position={[0, -1, 0]}>
+                <planeGeometry args={[31, 13]} />
+                <meshStandardMaterial color="#0A0907" metalness={0.5} roughness={0.8} />
+            </mesh>
+            {/* Ambient glow behind screen */}
+            <pointLight position={[0, -1, 6]} intensity={0.9} distance={28} color="#C8963C" />
+        </group>
+    );
+}
 
 /* ── Central holographic display ─────────────────────────── */
 function HolographicDisplay() {
@@ -134,6 +259,8 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
 }) {
     const height = Math.max(0.5, 5 - rank * 0.9);
     const [hovered, setHovered] = useState(false);
+    const [winRate] = useState(() => (65 + Math.random() * 20).toFixed(1));
+    const [matchCount] = useState(() => Math.floor(Math.random() * 500) + 100);
 
     const rankLabels = ["I", "II", "III", "IV", "V"];
 
@@ -249,11 +376,11 @@ function LeaderboardSpire({ position, rank, name, elo, color }: {
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
                                 <span style={{ color: "#8C7C68" }}>WIN RATE</span>
-                                <span style={{ color: "#4A8C86", fontFamily: "monospace" }}>{(65 + Math.random() * 20).toFixed(1)}%</span>
+                                <span style={{ color: "#4A8C86", fontFamily: "monospace" }}>{winRate}%</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
                                 <span style={{ color: "#8C7C68" }}>MATCHES</span>
-                                <span style={{ fontFamily: "monospace" }}>{Math.floor(Math.random() * 500) + 100}</span>
+                                <span style={{ fontFamily: "monospace" }}>{matchCount}</span>
                             </div>
                         </div>
                     </div>
@@ -441,17 +568,16 @@ function DirectionSigns() {
 /* ── Ambient floating particles (gold dust) ──────────────── */
 function GoldDustParticles({ count = 80 }: { count?: number }) {
     const ref = useRef<THREE.Points>(null);
+    const [pos, setPos] = useState(() => new Float32Array(count * 3));
 
-    const particles = useMemo(() => {
-        const pos = new Float32Array(count * 3);
-        const sizes = new Float32Array(count);
+    useEffect(() => {
+        const p = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            pos[i * 3] = (Math.random() - 0.5) * 50;
-            pos[i * 3 + 1] = Math.random() * 15 + 1;
-            pos[i * 3 + 2] = (Math.random() - 0.5) * 50;
-            sizes[i] = Math.random() * 0.08 + 0.02;
+            p[i * 3] = (Math.random() - 0.5) * 50;
+            p[i * 3 + 1] = Math.random() * 15 + 1;
+            p[i * 3 + 2] = (Math.random() - 0.5) * 50;
         }
-        return { pos, sizes };
+        setPos(p);
     }, [count]);
 
     useFrame((state) => {
@@ -468,7 +594,7 @@ function GoldDustParticles({ count = 80 }: { count?: number }) {
     return (
         <points ref={ref}>
             <bufferGeometry>
-                <bufferAttribute attach="attributes-position" args={[particles.pos, 3]} count={count} itemSize={3} />
+                <bufferAttribute attach="attributes-position" args={[pos, 3]} count={count} itemSize={3} />
             </bufferGeometry>
             <pointsMaterial color="#E8B86D" size={0.06} transparent opacity={0.4} sizeAttenuation />
         </points>
@@ -497,6 +623,9 @@ export function CentralNexus() {
 
             {/* Central holographic display */}
             <HolographicDisplay />
+
+            {/* Broadcast Arch — live CanvasTexture screen */}
+            <BroadcastArch />
 
             {/* Leaderboard spires - ranked by prestige */}
             <LeaderboardSpire position={[-6, 0, -6]} rank={1} name="TITAN" elo={2600} color="#C8963C" />

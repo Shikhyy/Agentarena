@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 export interface MotionNumberProps {
@@ -12,12 +12,12 @@ export interface MotionNumberProps {
   className?: string;
 }
 
-export function MotionNumber({
+export const MotionNumber: React.FC<MotionNumberProps> = ({
   value,
   cellWidth = 16,
   color,
   className,
-}: MotionNumberProps) {
+}) => {
   const chars = useMemo(() => String(value).split(""), [value]);
   const prevChars = useRef(chars);
 

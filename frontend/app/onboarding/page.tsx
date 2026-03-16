@@ -4,6 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { motion, AnimatePresence } from "motion/react";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useStarterPackStatus } from "@/lib/useContracts";
+import { CONTRACTS, ARENA_TOKEN_ABI } from "@/lib/contracts";
+import type { Address } from "viem";
 
 /* ── Data ──────────────────────────────────────────────────── */
 
@@ -91,6 +95,21 @@ const faqs = [
 
 export default function OnboardingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { address, isConnected } = useAccount();
+  const { hasClaimed, isLoading: checkingClaim } = useStarterPackStatus();
+
+  const { data: txHash, writeContract, isPending: isClaiming, error: claimError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const handleClaim = () => {
+    writeContract({
+      address: CONTRACTS.ARENA_TOKEN as Address,
+      abi: ARENA_TOKEN_ABI,
+      functionName: "claimStarterPack",
+    });
+  };
+
+  const claimed = hasClaimed || isConfirmed;
 
   return (
     <div className="min-h-screen bg-[var(--color-deep)] p-6 pt-20 max-w-[1200px] mx-auto">
@@ -171,7 +190,9 @@ export default function OnboardingPage() {
       >
         <GlassCard accent="gold" glowIntensity={0.4}>
           <div className="text-center mb-6">
-            <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-gold-dim)] mb-2">Claim on connect</p>
+            <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-gold-dim)] mb-2">
+              {claimed ? "✓ Claimed" : "Claim on connect"}
+            </p>
             <h2 className="font-heading text-2xl text-[var(--color-gold)]">Starter Pack</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -188,6 +209,39 @@ export default function OnboardingPage() {
                 <p className="font-mono text-[10px] text-[var(--color-stone)] leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
+          </div>
+
+          {/* ── Claim Button ── */}
+          <div className="mt-6 text-center">
+            {!isConnected ? (
+              <p className="font-mono text-xs text-[var(--color-stone)]">
+                Connect your wallet above to claim 200 $ARENA
+              </p>
+            ) : claimed ? (
+              <p className="font-mono text-xs text-[var(--color-sage-light)]">
+                ✓ Starter pack claimed — 200 ARENA in your wallet
+              </p>
+            ) : (
+              <>
+                <motion.button
+                  onClick={handleClaim}
+                  disabled={isClaiming || isConfirming || checkingClaim}
+                  className="px-8 py-3 font-heading text-base text-[var(--color-deep)] bg-[var(--color-gold)] rounded-lg border-2 border-[var(--color-gold-light)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ boxShadow: "0 0 20px rgba(200,150,60,0.25)" }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {isClaiming ? "Confirm in Wallet…" : isConfirming ? "Confirming…" : "Claim 200 ARENA"}
+                </motion.button>
+                {claimError && (
+                  <p className="font-mono text-xs text-[var(--color-red-bright)] mt-2">
+                    {claimError.message.includes("StarterAlreadyClaimed")
+                      ? "Already claimed!"
+                      : "Claim failed — please try again"}
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </GlassCard>
       </motion.section>

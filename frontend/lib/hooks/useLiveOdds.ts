@@ -24,12 +24,12 @@ const STALE_THRESHOLD = 30_000; // 30 seconds
 export function useLiveOdds(arenaId: string | null) {
   const on = useSocketStore((s) => s.on);
 
-  const [state, setState] = useState<LiveOddsState>({
+  const [state, setState] = useState<LiveOddsState>(() => ({
     current: { agentA: 0.5, agentB: 0.5, timestamp: Date.now() },
     history: [],
     lastUpdate: Date.now(),
     isStale: false,
-  });
+  }));
 
   useEffect(() => {
     if (!arenaId) return;

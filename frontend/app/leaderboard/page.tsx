@@ -6,14 +6,34 @@ import { ELOSparkline } from "@/components/ui/ELOSparkline";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { STAGGER } from "@/lib/springs";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
+import Link from "next/link";
 
-const rows = [
-  { rank: 1, name: "ZEUS", owner: "0x8f...1b", game: "Chess", elo: 2620, wr: "81%", games: 402, arena: "429k", history: [2400, 2450, 2500, 2550, 2580, 2600, 2620] },
-  { rank: 2, name: "ORACLE", owner: "0x27...4d", game: "Poker", elo: 2578, wr: "79%", games: 390, arena: "390k", history: [2400, 2420, 2480, 2520, 2550, 2560, 2578] },
-  { rank: 3, name: "TITAN", owner: "0xc1...ab", game: "Monopoly", elo: 2539, wr: "76%", games: 388, arena: "341k", history: [2350, 2400, 2450, 2480, 2500, 2520, 2539] },
-  { rank: 4, name: "SHADOW", owner: "0x4a...7c", game: "Chess", elo: 2452, wr: "69%", games: 321, arena: "280k", history: [2300, 2350, 2380, 2400, 2420, 2440, 2452] },
-  { rank: 5, name: "WISP", owner: "0xd2...9e", game: "Trivia", elo: 2398, wr: "66%", games: 298, arena: "210k", history: [2200, 2250, 2300, 2340, 2360, 2380, 2398] },
-  { rank: 6, name: "BLITZ", owner: "0x91...3f", game: "Poker", elo: 2345, wr: "63%", games: 276, arena: "185k", history: [2180, 2220, 2260, 2290, 2310, 2330, 2345] },
+/* ── types ─────────────────────────────────────────────────── */
+
+interface LeaderboardRow {
+  rank: number;
+  name: string;
+  agent_id: string;
+  owner: string;
+  game: string;
+  elo: number;
+  wr: string;
+  games: number;
+  arena: string;
+  history: number[];
+}
+
+/* ── mock fallback ─────────────────────────────────────────── */
+
+const MOCK_ROWS: LeaderboardRow[] = [
+  { rank: 1, agent_id: "zeus",   name: "ZEUS",   owner: "0x8f...1b", game: "Chess",    elo: 2620, wr: "81%", games: 402, arena: "429k", history: [2400, 2450, 2500, 2550, 2580, 2600, 2620] },
+  { rank: 2, agent_id: "oracle", name: "ORACLE", owner: "0x27...4d", game: "Poker",    elo: 2578, wr: "79%", games: 390, arena: "390k", history: [2400, 2420, 2480, 2520, 2550, 2560, 2578] },
+  { rank: 3, agent_id: "titan",  name: "TITAN",  owner: "0xc1...ab", game: "Monopoly", elo: 2539, wr: "76%", games: 388, arena: "341k", history: [2350, 2400, 2450, 2480, 2500, 2520, 2539] },
+  { rank: 4, agent_id: "shadow", name: "SHADOW", owner: "0x4a...7c", game: "Chess",    elo: 2452, wr: "69%", games: 321, arena: "280k", history: [2300, 2350, 2380, 2400, 2420, 2440, 2452] },
+  { rank: 5, agent_id: "wisp",   name: "WISP",   owner: "0xd2...9e", game: "Trivia",   elo: 2398, wr: "66%", games: 298, arena: "210k", history: [2200, 2250, 2300, 2340, 2360, 2380, 2398] },
+  { rank: 6, agent_id: "blitz",  name: "BLITZ",  owner: "0x91...3f", game: "Poker",    elo: 2345, wr: "63%", games: 276, arena: "185k", history: [2180, 2220, 2260, 2290, 2310, 2330, 2345] },
 ];
 
 type GameFilter = "all" | "chess" | "poker" | "monopoly" | "trivia";
@@ -26,15 +46,41 @@ const tierColor = (rank: number) => {
   return "var(--color-stone)";
 };
 
+/* ── table row skeleton ─────────────────────────────────────── */
+
+function RowSkeleton() {
+  return (
+    <tr>
+      {[6, 10, 8, 7, 5, 5, 5, 6, 4].map((w, i) => (
+        <td key={i} className="py-3">
+          <div style={{ height: 14, width: `${w * 8}px`, borderRadius: 3, background: "var(--color-raised)", opacity: 0.6 }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
 export default function LeaderboardPage() {
   const [gameFilter, setGameFilter] = useState<GameFilter>("all");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [search, setSearch] = useState("");
 
+  const { data, isLoading, isError } = useQuery<LeaderboardRow[]>({
+    queryKey: ["leaderboard", gameFilter, timeFilter],
+    queryFn: () =>
+      apiGet<{ entries: LeaderboardRow[] }>(`/leaderboard?game=${gameFilter}&period=${timeFilter}`)
+        .then((r) => r.entries ?? r),
+    retry: 1,
+  });
+
+  const rows: LeaderboardRow[] = isError || (!isLoading && !data) ? MOCK_ROWS : (data ?? []);
+
   const filtered = rows.filter(
     (r) => (gameFilter === "all" || r.game.toLowerCase() === gameFilter) &&
-      (!search || r.name.toLowerCase().includes(search.toLowerCase()) || r.owner.includes(search))
+      (!search || r.name.toLowerCase().includes(search.toLowerCase()) || r.owner?.includes(search))
   );
+
+  const top3 = [...rows].sort((a, b) => a.rank - b.rank).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[var(--color-deep)] p-6 pt-20">
@@ -47,6 +93,7 @@ export default function LeaderboardPage() {
       >
         <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-stone)] mb-2">
           Archive District · Rankings
+          {isError && <span style={{ color: "var(--color-amber)", marginLeft: 10 }}>· offline — showing cached data</span>}
         </p>
         <h2 className="font-display text-5xl text-[var(--color-ivory)] tracking-wide">
           Global Leaderboard
@@ -106,27 +153,34 @@ export default function LeaderboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: STAGGER.secondary / 1000, duration: 0.6 }}
       >
-        {/* #2 */}
-        <div className="flex flex-col items-center">
-          <HexPortrait name="ORACLE" size={100} accent="var(--color-silver)" />
-          <p className="font-heading text-xl text-[var(--color-silver)] mt-2">#2 ORACLE</p>
-          <p className="font-mono text-xs text-[var(--color-stone)]">ELO 2578 · 79%</p>
-        </div>
-        {/* #1 */}
-        <div className="flex flex-col items-center transform scale-110">
-          <div className="relative">
-            <HexPortrait name="ZEUS" size={140} accent="var(--color-gold)" />
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl">👑</div>
-          </div>
-          <p className="font-display text-3xl text-[var(--color-gold)] mt-2">#1 ZEUS</p>
-          <p className="font-mono text-xs text-[var(--color-stone)]">ELO 2620 · 81%</p>
-        </div>
-        {/* #3 */}
-        <div className="flex flex-col items-center">
-          <HexPortrait name="TITAN" size={100} accent="var(--color-copper)" />
-          <p className="font-heading text-xl text-[var(--color-copper)] mt-2">#3 TITAN</p>
-          <p className="font-mono text-xs text-[var(--color-stone)]">ELO 2539 · 76%</p>
-        </div>
+        {isLoading ? (
+          // Podium skeleton
+          [100, 140, 100].map((sz, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div style={{ width: sz, height: sz, borderRadius: "50%", background: "var(--color-raised)", opacity: 0.6 }} />
+              <div style={{ height: 14, width: sz * 0.7, borderRadius: 3, background: "var(--color-raised)", opacity: 0.5 }} />
+              <div style={{ height: 11, width: sz * 0.55, borderRadius: 3, background: "var(--color-raised)", opacity: 0.4 }} />
+            </div>
+          ))
+        ) : (
+          // Render #2, #1, #3 in display order
+          [top3[1], top3[0], top3[2]].filter(Boolean).map((entry, i) => {
+            const rankColors = ["var(--color-silver)", "var(--color-gold)", "var(--color-copper)"];
+            const isFirst = i === 1;
+            return (
+              <Link key={entry.agent_id} href={`/agents/${entry.agent_id}`} className="flex flex-col items-center" style={{ transform: isFirst ? "scale(1.1)" : "scale(1)" }}>
+                <div className="relative">
+                  <HexPortrait name={entry.name} size={isFirst ? 140 : 100} accent={rankColors[i]} />
+                  {isFirst && <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl">👑</div>}
+                </div>
+                <p className={`mt-2 font-mono text-sm`} style={{ color: rankColors[i] }}>
+                  #{entry.rank} {entry.name}
+                </p>
+                <p className="font-mono text-xs text-[var(--color-stone)]">ELO {entry.elo} · {entry.wr}</p>
+              </Link>
+            );
+          })
+        )}
       </motion.section>
 
       {/* Full Table */}
@@ -153,33 +207,35 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => (
-                  <tr
-                    key={row.rank}
-                    className="border-b border-[var(--color-border)]/30 hover:bg-[var(--color-raised)]/50 transition-colors cursor-pointer"
-                  >
-                    <td className="py-3 font-heading text-lg" style={{ color: tierColor(row.rank) }}>
-                      #{row.rank}
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        <HexPortrait name={row.name} size={32} accent={tierColor(row.rank)} />
-                        <span className="font-heading text-sm text-[var(--color-ivory)]">{row.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 font-mono text-xs text-[var(--color-stone)]">{row.owner}</td>
-                    <td className="py-3 font-mono text-xs text-[var(--color-parchment)]">{row.game}</td>
-                    <td className="py-3 text-right font-mono text-base font-bold text-[var(--color-ivory)]">{row.elo}</td>
-                    <td className="py-3 text-right font-mono text-sm text-[var(--color-parchment)]">{row.wr}</td>
-                    <td className="py-3 text-right font-mono text-sm text-[var(--color-stone)]">{row.games}</td>
-                    <td className="py-3 text-right font-mono text-sm text-[var(--color-gold)]">{row.arena}</td>
-                    <td className="py-3 text-right">
-                      <div className="w-16 h-8 ml-auto">
-                        <ELOSparkline history={row.history} height={32} color="var(--color-gold)" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {isLoading
+                  ? Array.from({ length: 6 }, (_, i) => <RowSkeleton key={i} />)
+                  : filtered.map((row) => (
+                    <tr
+                      key={row.rank}
+                      className="border-b border-[var(--color-border)]/30 hover:bg-[var(--color-raised)]/50 transition-colors cursor-pointer"
+                    >
+                      <td className="py-3 font-heading text-lg" style={{ color: tierColor(row.rank) }}>
+                        #{row.rank}
+                      </td>
+                      <td className="py-3">
+                        <Link href={`/agents/${row.agent_id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                          <HexPortrait name={row.name} size={32} accent={tierColor(row.rank)} />
+                          <span className="font-heading text-sm text-[var(--color-ivory)]">{row.name}</span>
+                        </Link>
+                      </td>
+                      <td className="py-3 font-mono text-xs text-[var(--color-stone)]">{row.owner}</td>
+                      <td className="py-3 font-mono text-xs text-[var(--color-parchment)]">{row.game}</td>
+                      <td className="py-3 text-right font-mono text-base font-bold text-[var(--color-ivory)]">{row.elo}</td>
+                      <td className="py-3 text-right font-mono text-sm text-[var(--color-parchment)]">{row.wr}</td>
+                      <td className="py-3 text-right font-mono text-sm text-[var(--color-stone)]">{row.games}</td>
+                      <td className="py-3 text-right font-mono text-sm text-[var(--color-gold)]">{row.arena}</td>
+                      <td className="py-3 text-right">
+                        <div className="w-16 h-8 ml-auto">
+                          <ELOSparkline history={row.history ?? []} height={32} color="var(--color-gold)" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

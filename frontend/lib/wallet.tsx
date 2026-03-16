@@ -112,8 +112,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             });
             const balanceEth = (parseInt(balanceHex, 16) / 1e18).toFixed(4);
 
-            // Fetch real $ARENA balance from contract (falls back to "0" if not deployed)
-            const arenaBalanceStr = await fetchArenaBalance(address);
+            // Fetch real $ARENA balance — try on-chain first, then backend fallback
+            let arenaBalanceStr = await fetchArenaBalance(address);
+            if (arenaBalanceStr === "0") {
+                // Fallback: ask backend for on-chain balance (backend uses web3.py)
+                try {
+                    const res = await fetch(`${BACKEND_URL}/blockchain/wallet/${address}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.arena_token_balance > 0) {
+                            arenaBalanceStr = String(Number(data.arena_token_balance).toFixed(2));
+                        }
+                    }
+                } catch { /* ignore backend errors */ }
+            }
 
             setState({
                 address,

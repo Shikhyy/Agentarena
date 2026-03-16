@@ -17,7 +17,7 @@ import { AgentCharacter3D } from "./AgentCharacter3D";
 import { PlayerController } from "./PlayerController";
 import { WorkshopZone } from "./Workshop3D";
 import { MonopolyZone } from "./MonopolyZone";
-import { GrandArenaZone, HallOfFameZone, MarketplaceZone } from "./OtherZones";
+import { GrandArenaZone, HallOfFameZone, MarketplaceZone, ArchiveZone, SkyDeckZone } from "./OtherZones";
 import { RoadSystem } from "./RoadSystem";
 import { FloatingVault } from "./FloatingVault";
 import { NPCAgents } from "./NPCAgents";
@@ -57,18 +57,14 @@ function LoadingFallback() {
 function GridFloor() {
     return (
         <group>
-            {/* Main ground - dark premium surface */}
-            <mesh
-                rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, -0.1, 0]}
-                receiveShadow
-            >
+            {/* Main ground */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
                 <planeGeometry args={[600, 600]} />
                 <meshStandardMaterial color="#0F0D0B" metalness={0.15} roughness={0.7} />
             </mesh>
             {/* Subtle grid overlay */}
             <Grid
-                position={[0, 0.02, 0]}
+                position={[0, 0, 0]}
                 args={[600, 600]}
                 cellColor="#2E2820"
                 sectionColor="#3A3228"
@@ -83,10 +79,11 @@ function GridFloor() {
     );
 }
 
-/* ── Pulsing Beacon ─────────────────────────────── */
-function ZoneBeacon({ position, color, label }: { position: [number, number, number]; color: string; label: string }) {
+/* ── Pulsing Beacon (clickable — teleports to zone) ── */
+function ZoneBeacon({ position, color, label, zoneId }: { position: [number, number, number]; color: string; label: string; zoneId?: string }) {
     const ref = useRef<THREE.Mesh>(null);
     const pulseRef = useRef<THREE.Mesh>(null);
+    const teleportToZone = useWorldStore(s => s.teleportToZone);
 
     useFrame((state) => {
         const t = state.clock.elapsedTime;
@@ -102,40 +99,31 @@ function ZoneBeacon({ position, color, label }: { position: [number, number, num
         }
     });
 
+    const handleClick = (e: THREE.Event) => {
+        (e as any).stopPropagation?.();
+        if (zoneId) teleportToZone(zoneId as any);
+    };
+
     return (
-        <group position={position}>
+        <group position={position} onClick={handleClick} onPointerOver={() => { document.body.style.cursor = "pointer"; }} onPointerOut={() => { document.body.style.cursor = "default"; }}>
             {/* Column beam */}
             <mesh position={[0, 3, 0]}>
                 <cylinderGeometry args={[0.02, 0.02, 6, 6]} />
                 <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} transparent opacity={0.25} />
             </mesh>
 
-            {/* Diamond beacon */}
+            {/* Diamond beacon — click target */}
             <mesh ref={ref}>
                 <octahedronGeometry args={[0.45, 0]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={0.8}
-                    metalness={0.7}
-                    roughness={0.1}
-                />
+                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} metalness={0.7} roughness={0.1} />
             </mesh>
 
             {/* Pulsing ring marker */}
             <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]}>
                 <ringGeometry args={[1.2, 1.35, 32]} />
-                <meshStandardMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={0.3}
-                    transparent
-                    opacity={0.2}
-                    side={THREE.DoubleSide}
-                />
+                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} transparent opacity={0.2} side={THREE.DoubleSide} />
             </mesh>
 
-            {/* Point light at beacon */}
             <pointLight position={[0, 6, 0]} intensity={0.6} distance={15} color={color} />
 
             <Float speed={0.8} floatIntensity={0.15}>
@@ -193,7 +181,7 @@ function ChessZone() {
                     </group>
                 </ArenaHall3D>
             </group>
-            <ZoneBeacon position={[0, 0, -60]} color="#4A8C86" label="Chess" />
+            <ZoneBeacon position={[0, 0, -60]} color="#4A8C86" label="Chess" zoneId="arena-chess" />
             {chessAgents.map(a => <AgentCharacter3D key={a.id} agent={a} onClick={() => selectAgent(a.id)} />)}
             {chessMatch && <CommentatorAvatar3D position={[8, 0, -60]} matchLabel={`${chessMatch.agentA.name} vs ${chessMatch.agentB.name}`} spectators={chessMatch.spectators} />}
             {chessMatch && <BettingTerminal3D position={[-8, 0, -55]} matchLabel={`${chessMatch.agentA.name} vs ${chessMatch.agentB.name}`} odds={chessMatch.odds} pool={chessMatch.pool} />}
@@ -230,7 +218,7 @@ function PokerZone() {
                     </group>
                 </ArenaHall3D>
             </group>
-            <ZoneBeacon position={[60, 0, 0]} color="#C43030" label="Poker" />
+            <ZoneBeacon position={[60, 0, 0]} color="#C43030" label="Poker" zoneId="arena-poker" />
             {pokerAgents.map(a => <AgentCharacter3D key={a.id} agent={a} onClick={() => selectAgent(a.id)} />)}
             {pokerMatch && <CommentatorAvatar3D position={[68, 0, 8]} matchLabel={`${pokerMatch.agentA.name} vs ${pokerMatch.agentB.name}`} spectators={pokerMatch.spectators} />}
             {pokerMatch && <BettingTerminal3D position={[55, 0, 8]} matchLabel={`${pokerMatch.agentA.name} vs ${pokerMatch.agentB.name}`} odds={pokerMatch.odds} pool={pokerMatch.pool} />}
@@ -245,10 +233,10 @@ function WorldScene() {
 
     return (
         <>
-            <fog attach="fog" args={["#0A0907", 60, 300]} />
+            <fog attach="fog" args={["#0A0907", 80, 500]} />
             <color attach="background" args={["#0A0907"]} />
 
-            <PerspectiveCamera makeDefault position={[0, 60, 100]} fov={60} near={0.1} far={2000} />
+            <PerspectiveCamera makeDefault position={[0, 45, 55]} fov={55} near={0.5} far={2000} />
             <PlayerController />
 
             {/* Ambient star field for atmosphere */}
@@ -278,7 +266,7 @@ function WorldScene() {
             {/* Clickable ground (for player movement) */}
             <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, 0.01, 0]}
+                position={[0, 0.02, 0]}
                 onPointerDown={e => { e.stopPropagation(); setPlayerTarget([e.point.x, 0, e.point.z]); }}
                 visible={false}
             >
@@ -295,6 +283,8 @@ function WorldScene() {
             <Suspense fallback={<LoadingFallback />}><GrandArenaZone /></Suspense>
             <Suspense fallback={<LoadingFallback />}><HallOfFameZone /></Suspense>
             <Suspense fallback={<LoadingFallback />}><MarketplaceZone /></Suspense>
+            <Suspense fallback={<LoadingFallback />}><ArchiveZone /></Suspense>
+            <Suspense fallback={<LoadingFallback />}><SkyDeckZone /></Suspense>
 
             {/* Road network + Vault + NPC agents */}
             <RoadSystem />

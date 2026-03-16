@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COLORS } from "@/lib/theme";
@@ -15,7 +15,8 @@ export function TorchFlicker({
   distance = 15,
 }) {
   const lightRef = useRef<THREE.PointLight>(null);
-  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+  const phaseRef = useRef(0);
+  useEffect(() => { phaseRef.current = Math.random() * Math.PI * 2; }, []);
 
   useFrame((state) => {
     if (!lightRef.current) return;
@@ -23,9 +24,9 @@ export function TorchFlicker({
     // 0.6Hz base flicker + high-frequency noise
     const flicker =
       0.7 +
-      Math.sin(t * 3.77 + phase) * 0.15 +
-      Math.sin(t * 7.3 + phase * 2) * 0.08 +
-      Math.sin(t * 0.5 + phase) * 0.07;
+      Math.sin(t * 3.77 + phaseRef.current) * 0.15 +
+      Math.sin(t * 7.3 + phaseRef.current * 2) * 0.08 +
+      Math.sin(t * 0.5 + phaseRef.current) * 0.07;
     lightRef.current.intensity = intensity * flicker;
   });
 
@@ -42,8 +43,10 @@ export function DustMotes({
   color = COLORS.goldDim,
 }) {
   const ref = useRef<THREE.Points>(null);
+  const velocitiesRef = useRef(new Float32Array(count * 3));
 
-  const { positions, velocities } = useMemo(() => {
+  // Pre-compute initial positions so the first frame isn't all-zeros
+  const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const vel = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -54,7 +57,9 @@ export function DustMotes({
       vel[i * 3 + 1] = Math.random() * 0.1 + 0.02;
       vel[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
     }
-    return { positions: pos, velocities: vel };
+    velocitiesRef.current = vel;
+    return pos;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, spread, height]);
 
   useFrame((_, delta) => {
@@ -64,9 +69,9 @@ export function DustMotes({
     const arr = posAttr.array as Float32Array;
 
     for (let i = 0; i < count; i++) {
-      arr[i * 3] += velocities[i * 3] * delta;
-      arr[i * 3 + 1] += velocities[i * 3 + 1] * delta;
-      arr[i * 3 + 2] += velocities[i * 3 + 2] * delta;
+      arr[i * 3] += velocitiesRef.current[i * 3] * delta;
+      arr[i * 3 + 1] += velocitiesRef.current[i * 3 + 1] * delta;
+      arr[i * 3 + 2] += velocitiesRef.current[i * 3 + 2] * delta;
 
       // Wrap around
       if (arr[i * 3 + 1] > height) arr[i * 3 + 1] = 0;
@@ -99,11 +104,12 @@ export function SpireBreathe({
   amplitude?: number;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+  const phaseRef = useRef(0);
+  useEffect(() => { phaseRef.current = Math.random() * Math.PI * 2; }, []);
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    const scale = 1 + Math.sin(state.clock.elapsedTime * speed + phase) * amplitude;
+    const scale = 1 + Math.sin(state.clock.elapsedTime * speed + phaseRef.current) * amplitude;
     groupRef.current.scale.setScalar(scale);
   });
 
@@ -149,14 +155,15 @@ export function OrbDrift({
   driftRange = 2,
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const offset = useMemo(() => [Math.random() * 100, Math.random() * 100, Math.random() * 100], []);
+  const offsetRef = useRef([0, 0, 0]);
+  useEffect(() => { offsetRef.current = [Math.random() * 100, Math.random() * 100, Math.random() * 100]; }, []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
     const t = state.clock.elapsedTime * driftSpeed;
-    meshRef.current.position.x = position[0] + Math.sin(t + offset[0]) * driftRange;
-    meshRef.current.position.y = position[1] + Math.sin(t * 0.7 + offset[1]) * driftRange * 0.5;
-    meshRef.current.position.z = position[2] + Math.cos(t * 0.8 + offset[2]) * driftRange;
+    meshRef.current.position.x = position[0] + Math.sin(t + offsetRef.current[0]) * driftRange;
+    meshRef.current.position.y = position[1] + Math.sin(t * 0.7 + offsetRef.current[1]) * driftRange * 0.5;
+    meshRef.current.position.z = position[2] + Math.cos(t * 0.8 + offsetRef.current[2]) * driftRange;
   });
 
   return (

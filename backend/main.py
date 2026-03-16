@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 import json
 import asyncio
 import random
+import os
 from datetime import datetime
 from typing import Dict, List, Set
 
@@ -23,6 +24,7 @@ from routers.leaderboard import router as leaderboard_router
 from routers.tournaments import router as tournaments_router
 from routers.live_commentary import router as live_commentary_router
 from routers.integration_aliases import router as integration_aliases_router
+from routers.gemini import router as gemini_router
 from middleware.rate_limiter import RateLimitMiddleware
 from events.pubsub import register_default_handlers
 from betting.odds_engine import odds_engine
@@ -729,7 +731,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"] if os.getenv("DEBUG", "true").lower() == "true" else (
+        os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -748,6 +752,7 @@ app.include_router(leaderboard_router)
 app.include_router(tournaments_router)
 app.include_router(live_commentary_router)  # Gemini Live streaming endpoints
 app.include_router(integration_aliases_router)
+app.include_router(gemini_router)  # Gemini AI features: reasoning, analysis, bio, tips
 
 
 # ─── REST Endpoints ─────────────────────────────────────────────────
@@ -842,14 +847,23 @@ async def platform_stats():
     """Global platform stats for the homepage dashboard."""
     from routers.agents import agents_db
     from progression.xp_system import _xp_store
+    from blockchain.service import blockchain
 
     total_agents = len(agents_db)
     live_arenas = sum(1 for g in games.values() if g.get("status") == "live")
 
-    # Approximate pool volume: $600 per live arena + random variance
-    pool_volume = live_arenas * 600 + sum(
-        g.get("move_count", 0) * 2.5 for g in games.values()
-    )
+    # Try to get on-chain NFT count; fall back to in-memory count
+    nft_supply, nft_err = blockchain.get_agent_nft_supply()
+    onchain_agents = nft_supply if not nft_err else total_agents
+
+    # Pool volume: try on-chain first, then estimate
+    pool_stats, pool_err = blockchain.get_betting_pool_stats()
+    if not pool_err and pool_stats["total_volume"] > 0:
+        pool_volume = pool_stats["total_volume"]
+    else:
+        pool_volume = live_arenas * 600 + sum(
+            g.get("move_count", 0) * 2.5 for g in games.values()
+        )
 
     # Avg win rate from xp store
     all_xp = list(_xp_store.values())
@@ -862,6 +876,7 @@ async def platform_stats():
 
     return {
         "total_agents": total_agents,
+        "onchain_agents": int(onchain_agents),
         "live_arenas": live_arenas,
         "pool_volume_usd": round(pool_volume, 2),
         "avg_win_rate": round(avg_win_rate, 1),
@@ -871,6 +886,8 @@ async def platform_stats():
             "change_24h": arena_token_state["change_24h"],
             "volume_24h": arena_token_state["volume_24h"],
         },
+        "blockchain": blockchain.get_chain_status(),
+        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
     }
 
 
@@ -888,15 +905,35 @@ async def arena_token_price():
         "circulating_supply": 42_000_000,
         "total_supply": 100_000_000,
         "network": "Polygon zkEVM",
-        "contract": "0x...deployed",
+        "contract": os.getenv("ARENA_TOKEN_CONTRACT", "0x...deployed"),
     }
 
 
+@app.get("/blockchain/wallet/{address}")
+async def wallet_onchain_data(address: str):
+    """
+    Return on-chain token balance and NFT count for a wallet address.
+    Used by the frontend wallet provider to show live on-chain balances.
+    """
+    from blockchain.service import blockchain
+    token_balance, token_err = blockchain.get_token_balance(address)
+    nft_count, nft_err = blockchain.get_agent_nft_balance(address)
+    return {
+        "address": address,
+        "arena_token_balance": token_balance,
+        "agent_nft_count": nft_count,
+        "errors": {k: v for k, v in {"token": token_err, "nft": nft_err}.items() if v},
+        "chain_status": blockchain.get_chain_status(),
+    }
+
 @app.get("/health")
 async def health_check():
+    from blockchain.service import blockchain
     return {
         "status": "healthy",
         "active_games": len(games),
         "active_connections": sum(len(v) for v in manager.active_connections.values()),
         "games": list(games.keys()),
+        "gemini": bool(os.getenv("GEMINI_API_KEY")),
+        "blockchain": blockchain.get_chain_status(),
     }

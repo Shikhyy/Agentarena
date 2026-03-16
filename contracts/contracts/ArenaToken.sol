@@ -80,6 +80,10 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable {
     }
     mapping(address => VestingSchedule) public vestingSchedules;
 
+    // ── Starter Pack ─────────────────────────────────────────────
+    uint256 public constant STARTER_PACK_AMOUNT = 200 * 10**18; // 200 $ARENA
+    mapping(address => bool)    public starterClaimed;
+
     // ── Referral Rewards ─────────────────────────────────────────
     uint256 public constant REFERRAL_REWARD    = 100 * 10**18; // 100 $ARENA per referee
     uint256 public constant REFERRAL_THRESHOLD = 3;            // after 3 matches played
@@ -99,6 +103,7 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable {
     event VestingRevoked(address indexed beneficiary, uint256 returned);
     event ReferralRewarded(address indexed referrer, address indexed referee, uint256 amount);
     event AuthorizedBurnerSet(address indexed burner, bool authorized);
+    event StarterPackClaimed(address indexed user, uint256 amount);
 
     // ── Errors ───────────────────────────────────────────────────
     error NotAuthorized();
@@ -108,6 +113,7 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable {
     error AlreadyClaimed();
     error ThresholdNotMet();
     error TooSoonForQuarterlyBurn();
+    error StarterAlreadyClaimed();
 
     // ── Constructor ──────────────────────────────────────────────
     constructor(
@@ -165,6 +171,21 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable {
         require(balanceOf(rewardsPool) >= amount, "Insufficient rewards pool");
         _transfer(rewardsPool, to, amount);
         emit RewardDistributed(to, amount, reason);
+    }
+
+    // ── Starter Pack Claim ───────────────────────────────────────
+
+    /**
+     * @notice Claim 200 $ARENA starter pack. One-time per wallet.
+     * Pulled from the rewards pool allocation.
+     */
+    function claimStarterPack() external {
+        if (starterClaimed[msg.sender]) revert StarterAlreadyClaimed();
+        require(balanceOf(rewardsPool) >= STARTER_PACK_AMOUNT, "Starter pack pool exhausted");
+
+        starterClaimed[msg.sender] = true;
+        _transfer(rewardsPool, msg.sender, STARTER_PACK_AMOUNT);
+        emit StarterPackClaimed(msg.sender, STARTER_PACK_AMOUNT);
     }
 
     // ── BURN MECHANICS (PRD-compliant) ───────────────────────────

@@ -12,16 +12,26 @@ env/
 # Build outputs
 frontend/.next/
 frontend/out/
+.next/
 contracts/artifacts/
 contracts/cache/
 contracts/typechain-types/
+*.tsbuildinfo
+dist/
 
-# IDE
+# Noir compiled outputs
+contracts/noir/*/target/
+
+# IDE & tools
 .vscode/
 .idea/
+.opencode/
 *.swp
 *.swo
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Terraform
 infra/.terraform/
@@ -33,9 +43,10 @@ infra/.terraform.lock.hcl
 *.log
 npm-debug.log*
 coverage/
-dist/
 *.pdf
 *.docx
-.next
-.venv
-*.venv
+.vercel/
+# Docs / notes (keep only READMEs)
+*.md
+!README.md
+docs/*.md

@@ -11,7 +11,9 @@ export type WorldZone =
     | "workshop"
     | "marketplace"
     | "hall-of-fame"
-    | "grand-arena";
+    | "grand-arena"
+    | "archive"
+    | "sky-deck";
 
 export interface ZoneConfig {
     id: WorldZone;
@@ -30,6 +32,8 @@ export const WORLD_ZONES: ZoneConfig[] = [
     { id: "marketplace", label: "Marketplace", position: [45, 0, 45], icon: "◈", color: ZONE_COLORS["marketplace"] },
     { id: "hall-of-fame", label: "Hall of Fame", position: [-45, 0, -45], icon: "★", color: ZONE_COLORS["hall-of-fame"] },
     { id: "grand-arena", label: "Grand Arena", position: [0, 10, -120], icon: "⬡", color: ZONE_COLORS["grand-arena"] },
+    { id: "archive", label: "Archive", position: [-280, 0, 280], icon: "📜", color: ZONE_COLORS["archive"] },
+    { id: "sky-deck", label: "Sky Deck", position: [0, 80, -300], icon: "🌐", color: ZONE_COLORS["sky-deck"] },
 ];
 
 /* ── Agent in-world representation ───────────────────────── */

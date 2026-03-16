@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useWorldStore, WORLD_ZONES, type WorldZone } from "@/lib/worldStore";
+import { AgentPassport } from "@/components/ui/AgentPassport";
 
 /* ── Shared glass panel style ─────────────────────────────── */
 const glass: React.CSSProperties = {
@@ -265,6 +267,87 @@ function AgentMiniCard() {
   );
 }
 
+/* ── Agent Passport overlay (click agent in 3D world) ─────── */
+function AgentPassportOverlay() {
+  const selectedAgentId = useWorldStore((s) => s.selectedAgentId);
+  const selectAgent = useWorldStore((s) => s.selectAgent);
+  const agents = useWorldStore((s) => s.agents);
+
+  const agent = agents.find((a) => a.id === selectedAgentId) ?? null;
+
+  // Escape key closes passport
+  useEffect(() => {
+    if (!agent) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") selectAgent(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [agent, selectAgent]);
+
+  return (
+    <AnimatePresence>
+      {agent && (
+        <>
+          {/* Click-elsewhere backdrop (transparent, only pointer-events) */}
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 119, cursor: "default" }}
+            onClick={() => selectAgent(null)}
+          />
+          {/* Passport panel */}
+          <motion.div
+            key={agent.id}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              position: "fixed",
+              bottom: 80,
+              right: 16,
+              zIndex: 120,
+              pointerEvents: "auto",
+            }}
+          >
+            <AgentPassport
+              agent={{
+                id: agent.id,
+                name: agent.name,
+                elo: agent.elo,
+                level: agent.level,
+                winRate: agent.winRate,
+                accent: agent.auraColor,
+                status: agent.status as Parameters<typeof AgentPassport>[0]["agent"]["status"],
+              }}
+              size="full"
+            />
+            {/* Close button */}
+            <button
+              onClick={() => selectAgent(null)}
+              style={{
+                position: "absolute",
+                top: 8,
+                left: 8,
+                background: "rgba(10,9,7,0.7)",
+                border: "1px solid rgba(200,150,60,0.25)",
+                borderRadius: 4,
+                color: "#8C7C68",
+                fontFamily: "monospace",
+                fontSize: "0.65rem",
+                letterSpacing: "0.06em",
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              ESC ✕
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /* ── Main HUD ─────────────────────────────────────────────── */
 export function WorldHUD() {
   const hudVisible = useWorldStore((s) => s.hudVisible);
@@ -368,6 +451,9 @@ export function WorldHUD() {
           <AgentMiniCard />
         </div>
       </div>
+
+      {/* Agent Passport — shown when an agent is clicked in the 3D world */}
+      <AgentPassportOverlay />
     </motion.div>
   );
 }

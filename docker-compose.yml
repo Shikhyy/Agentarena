@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  # ── FastAPI Backend ────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL_FLASH=${GEMINI_MODEL_FLASH:-gemini-2.0-flash}
+      - COMMENTARY_STYLE=${COMMENTARY_STYLE:-hype}
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL:-https://polygon-rpc.com}
+      - ARENA_TOKEN_CONTRACT=${ARENA_TOKEN_CONTRACT}
+      - AGENT_NFT_CONTRACT=${AGENT_NFT_CONTRACT}
+      - SKILL_NFT_CONTRACT=${SKILL_NFT_CONTRACT}
+      - ZK_BETTING_POOL_CONTRACT=${ZK_BETTING_POOL_CONTRACT}
+      - RESULT_ORACLE_CONTRACT=${RESULT_ORACLE_CONTRACT}
+      - REDIS_URL=redis://redis:6379
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET:-changeme-set-in-production}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Next.js Frontend ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
+        - NEXT_PUBLIC_BACKEND_WS_URL=${NEXT_PUBLIC_BACKEND_WS_URL:-ws://localhost:8000}
+        - NEXT_PUBLIC_ARENA_TOKEN_ADDRESS=${NEXT_PUBLIC_ARENA_TOKEN_ADDRESS}
+        - NEXT_PUBLIC_AGENT_NFT_ADDRESS=${NEXT_PUBLIC_AGENT_NFT_ADDRESS}
+        - NEXT_PUBLIC_SKILL_NFT_ADDRESS=${NEXT_PUBLIC_SKILL_NFT_ADDRESS}
+        - NEXT_PUBLIC_ZK_BETTING_POOL_ADDRESS=${NEXT_PUBLIC_ZK_BETTING_POOL_ADDRESS}
+        - NEXT_PUBLIC_RESULT_ORACLE_ADDRESS=${NEXT_PUBLIC_RESULT_ORACLE_ADDRESS}
+        - NEXT_PUBLIC_WC_PROJECT_ID=${NEXT_PUBLIC_WC_PROJECT_ID}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+  # ── Redis (caching + pub/sub) ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_data:

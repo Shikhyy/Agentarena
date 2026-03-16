@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { OrbitControls, Text, RoundedBox, Float } from "@react-three/drei";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
+import { OrbitControls, Text, RoundedBox, Float, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { COLORS } from "@/lib/theme";
 import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
@@ -28,6 +29,26 @@ const BOARD_SQUARES_PER_SIDE = 11;
 const SQUARE_W = 1.4;
 const SQUARE_L = 2.0;
 const BOARD_DIM = SQUARE_L * (BOARD_SQUARES_PER_SIDE - 1) + SQUARE_L;
+
+/* ── Per-player colour palette ───────────────────────────── */
+const PLAYER_COLORS = [COLORS.gold, COLORS.redBright, COLORS.tealLight, "#C0B8A8"];
+
+/* ── Negotiation bubble colours (from design spec) ───────── */
+const BUBBLE_COLORS: Record<string, { border: string; text: string }> = {
+    offer:   { border: "#4DA6FF", text: "#C5BAD4" },
+    counter: { border: "#FF8C1A", text: "#F0EAF5" },
+    accept:  { border: "#39FF6B", text: "#F0EAF5" },
+    reject:  { border: "#FF4444", text: "#F0EAF5" },
+    taunt:   { border: "#FFAA4D", text: "#F0EAF5" },
+    think:   { border: "#525260", text: "#8A7FA0" },
+};
+
+/* ── Negotiation message type ────────────────────────────── */
+export interface NegotiationMessage {
+    playerId: number;
+    message: string;
+    type?: "offer" | "counter" | "accept" | "reject" | "taunt" | "think";
+}
 
 function getSquarePosition(index: number): [number, number, number] {
     const side = Math.floor(index / 10);
@@ -64,11 +85,129 @@ function getSquareColor(index: number): string {
     return COLORS.surface;
 }
 
+/* ── Agent Token with hop animation + speech bubble ─────── */
+const HOP_SPEED = 2.5; // completes arc in ~0.4 s
+
+function AgentToken({
+    playerId,
+    squareIndex,
+    slotOffset,
+    color,
+    negotiation,
+}: {
+    playerId: number;
+    squareIndex: number;
+    slotOffset: number;
+    color: string;
+    negotiation?: NegotiationMessage;
+}) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const prevSquare = useRef(squareIndex);
+    const animRef = useRef({
+        from: new THREE.Vector3(),
+        to: new THREE.Vector3(),
+        t: 1,
+        active: false,
+    });
+
+    // Trigger hop when square changes
+    useEffect(() => {
+        if (prevSquare.current !== squareIndex) {
+            const [fx, , fz] = getSquarePosition(prevSquare.current);
+            const [tx, , tz] = getSquarePosition(squareIndex);
+            animRef.current = {
+                from: new THREE.Vector3(fx + slotOffset, 0.15, fz),
+                to:   new THREE.Vector3(tx + slotOffset, 0.15, tz),
+                t: 0,
+                active: true,
+            };
+            prevSquare.current = squareIndex;
+        }
+    }, [squareIndex, slotOffset]);
+
+    useFrame((_, delta) => {
+        if (!meshRef.current || !animRef.current.active) return;
+        const a = animRef.current;
+        a.t = Math.min(1, a.t + delta * HOP_SPEED);
+        const t = a.t;
+        // Parabolic arc
+        const x = a.from.x + (a.to.x - a.from.x) * t;
+        const z = a.from.z + (a.to.z - a.from.z) * t;
+        const y = 0.15 + Math.sin(t * Math.PI) * 3;
+        // Brief scale bump on landing (last 15% of arc)
+        const scaleBump = t > 0.85 ? 1 + Math.sin(((t - 0.85) / 0.15) * Math.PI) * 0.02 : 1;
+        meshRef.current.position.set(x, y, z);
+        meshRef.current.scale.setScalar(scaleBump);
+        if (t >= 1) {
+            a.active = false;
+            meshRef.current.position.set(a.to.x, 0.15, a.to.z);
+            meshRef.current.scale.setScalar(1);
+        }
+    });
+
+    // Auto-dismiss speech bubble after 4 s
+    const [showBubble, setShowBubble] = useState(false);
+    const bubbleKey = useRef(0);
+    useEffect(() => {
+        if (!negotiation) return;
+        bubbleKey.current += 1;
+        setShowBubble(true);
+        const timer = setTimeout(() => setShowBubble(false), 4000);
+        return () => clearTimeout(timer);
+    }, [negotiation]);
+
+    const [tx, , tz] = getSquarePosition(squareIndex);
+    const bubbleStyle = BUBBLE_COLORS[negotiation?.type ?? "think"];
+
+    return (
+        <group>
+            <mesh ref={meshRef} position={[tx + slotOffset, 0.15, tz]}>
+                <sphereGeometry args={[0.18, 16, 16]} />
+                <meshStandardMaterial
+                    color={color}
+                    metalness={0.8}
+                    roughness={0.2}
+                    emissive={color}
+                    emissiveIntensity={0.8}
+                />
+                {showBubble && negotiation && (
+                    <Html position={[0, 1.6, 0]} center distanceFactor={6} zIndexRange={[10, 0]}>
+                        <div
+                            key={bubbleKey.current}
+                            style={{
+                                background: "rgba(12,10,8,0.94)",
+                                border: `1px solid ${bubbleStyle.border}`,
+                                borderRadius: 6,
+                                padding: "5px 10px",
+                                color: bubbleStyle.text,
+                                fontSize: 11,
+                                maxWidth: 140,
+                                whiteSpace: "pre-wrap",
+                                pointerEvents: "none",
+                                lineHeight: 1.4,
+                            }}
+                        >
+                            {negotiation.message}
+                        </div>
+                    </Html>
+                )}
+            </mesh>
+            <pointLight
+                position={[tx + slotOffset, 0.3, tz]}
+                intensity={0.3}
+                color={color}
+                distance={2}
+                decay={2}
+            />
+        </group>
+    );
+}
+
 /* ── Board Square ────────────────────────────────────────── */
-function BoardSquare({ index, playerTokens }: { index: number; playerTokens?: number[] }) {
+function BoardSquare({ index, ownerColor }: { index: number; ownerColor?: string }) {
     const pos = getSquarePosition(index);
     const color = getSquareColor(index);
-    const hasPlayers = playerTokens && playerTokens.length > 0;
+    const activeColor = ownerColor ?? color;
 
     return (
         <group position={pos}>
@@ -77,46 +216,21 @@ function BoardSquare({ index, playerTokens }: { index: number; playerTokens?: nu
                     color={COLORS.card}
                     metalness={0.4}
                     roughness={0.4}
-                    emissive={color}
-                    emissiveIntensity={hasPlayers ? 0.5 : 0.15}
+                    emissive={activeColor}
+                    emissiveIntensity={ownerColor ? 0.4 : 0.15}
                 />
             </RoundedBox>
             {/* Color strip on top */}
             <mesh position={[0, 0.08, -0.7]} receiveShadow>
                 <boxGeometry args={[SQUARE_W - 0.1, 0.02, 0.4]} />
                 <meshStandardMaterial
-                    color={color}
+                    color={activeColor}
                     metalness={0.6}
                     roughness={0.2}
-                    emissive={color}
-                    emissiveIntensity={0.4}
+                    emissive={activeColor}
+                    emissiveIntensity={ownerColor ? 0.7 : 0.4}
                 />
             </mesh>
-            {/* Player tokens */}
-            {playerTokens?.map((playerId, i) => {
-                const tokenColor = [COLORS.gold, COLORS.redBright, COLORS.gold, COLORS.tealLight][playerId % 4];
-                return (
-                    <group key={playerId}>
-                        <mesh position={[i * 0.3 - 0.3, 0.15, 0.2]}>
-                            <sphereGeometry args={[0.18, 16, 16]} />
-                            <meshStandardMaterial
-                                color={tokenColor}
-                                metalness={0.8}
-                                roughness={0.2}
-                                emissive={tokenColor}
-                                emissiveIntensity={0.8}
-                            />
-                        </mesh>
-                        <pointLight
-                            position={[i * 0.3 - 0.3, 0.3, 0.2]}
-                            intensity={0.3}
-                            color={tokenColor}
-                            distance={2}
-                            decay={2}
-                        />
-                    </group>
-                );
-            })}
         </group>
     );
 }
@@ -185,14 +299,40 @@ function Lighting() {
 /* ── Exported Component ──────────────────────────────────── */
 interface MonopolyBoard3DProps {
     playerPositions?: Record<number, number>;
+    propertyOwnership?: Record<number, number>; // squareIndex → playerId
+    negotiations?: NegotiationMessage[];
 }
 
-export function MonopolyBoard3D({ playerPositions = {} }: MonopolyBoard3DProps) {
-    const squarePlayers: Record<number, number[]> = {};
-    for (const [pid, sq] of Object.entries(playerPositions)) {
-        if (!squarePlayers[sq]) squarePlayers[sq] = [];
-        squarePlayers[sq].push(Number(pid));
-    }
+export function MonopolyBoard3D({
+    playerPositions = {},
+    propertyOwnership = {},
+    negotiations = [],
+}: MonopolyBoard3DProps) {
+    // squareIndex → list of playerIds (for slot offset computation)
+    const squarePlayers = useMemo(() => {
+        const map: Record<number, number[]> = {};
+        for (const [pid, sq] of Object.entries(playerPositions)) {
+            if (!map[sq]) map[sq] = [];
+            map[sq].push(Number(pid));
+        }
+        return map;
+    }, [playerPositions]);
+
+    // playerId → active negotiation message
+    const negotiationMap = useMemo(() => {
+        const map: Record<number, NegotiationMessage> = {};
+        for (const n of negotiations) map[n.playerId] = n;
+        return map;
+    }, [negotiations]);
+
+    // squareIndex → owner colour (from propertyOwnership)
+    const ownerColors = useMemo(() => {
+        const map: Record<number, string> = {};
+        for (const [sq, pid] of Object.entries(propertyOwnership)) {
+            map[Number(sq)] = PLAYER_COLORS[Number(pid) % PLAYER_COLORS.length];
+        }
+        return map;
+    }, [propertyOwnership]);
 
     return (
         <div style={{ width: "100%", height: "100%", background: COLORS.ink }}>
@@ -223,8 +363,24 @@ export function MonopolyBoard3D({ playerPositions = {} }: MonopolyBoard3DProps) 
                 </mesh>
 
                 {Array.from({ length: 40 }, (_, i) => (
-                    <BoardSquare key={i} index={i} playerTokens={squarePlayers[i]} />
+                    <BoardSquare key={i} index={i} ownerColor={ownerColors[i]} />
                 ))}
+
+                {/* Agent tokens rendered independently so hop animation works across squares */}
+                {Object.entries(playerPositions).map(([pidStr, sq]) => {
+                    const pid = Number(pidStr);
+                    const slotIdx = squarePlayers[sq]?.indexOf(pid) ?? 0;
+                    return (
+                        <AgentToken
+                            key={pid}
+                            playerId={pid}
+                            squareIndex={sq}
+                            slotOffset={slotIdx * 0.3 - 0.3}
+                            color={PLAYER_COLORS[pid % PLAYER_COLORS.length]}
+                            negotiation={negotiationMap[pid]}
+                        />
+                    );
+                })}
 
                 <BoardCenter />
             </WebGLSafeCanvas>

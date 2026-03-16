@@ -91,6 +91,8 @@ export const ZONE_COLORS: Record<string, string> = {
   marketplace: "#C8963C",
   "hall-of-fame": "#E8B86D",
   "grand-arena": "#C8963C",
+  "archive": "#9B9BFF",
+  "sky-deck": "#4DA6FF",
 };
 
 /* ── Aura color from win rate ────────────────────────────── */

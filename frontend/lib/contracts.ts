@@ -28,6 +28,9 @@ export const ARENA_TOKEN_ABI = [
   { type: "function", name: "circulatingSupply", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   { type: "function", name: "getBurnStats", inputs: [], outputs: [{ name: "burned", type: "uint256" }, { name: "remaining", type: "uint256" }, { name: "burnPercent", type: "uint256" }], stateMutability: "view" },
   { type: "function", name: "distributeReward", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }, { name: "reason", type: "string" }], outputs: [], stateMutability: "nonpayable" },
+  { type: "function", name: "claimStarterPack", inputs: [], outputs: [], stateMutability: "nonpayable" },
+  { type: "function", name: "starterClaimed", inputs: [{ name: "user", type: "address" }], outputs: [{ type: "bool" }], stateMutability: "view" },
+  { type: "function", name: "STARTER_PACK_AMOUNT", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   { type: "function", name: "createVesting", inputs: [{ name: "beneficiary", type: "address" }, { name: "amount", type: "uint256" }, { name: "duration", type: "uint64" }, { name: "revocable", type: "bool" }], outputs: [], stateMutability: "nonpayable" },
   { type: "function", name: "releaseVested", inputs: [], outputs: [], stateMutability: "nonpayable" },
   { type: "function", name: "getVestedAmount", inputs: [{ name: "beneficiary", type: "address" }], outputs: [{ name: "vested", type: "uint256" }, { name: "releasable", type: "uint256" }], stateMutability: "view" },
@@ -43,6 +46,7 @@ export const ARENA_TOKEN_ABI = [
   { type: "event", name: "VestingCreated", inputs: [{ name: "beneficiary", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }, { name: "duration", type: "uint64", indexed: false }] },
   { type: "event", name: "VestingReleased", inputs: [{ name: "beneficiary", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }] },
   { type: "event", name: "ReferralRewarded", inputs: [{ name: "referrer", type: "address", indexed: true }, { name: "referee", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }] },
+  { type: "event", name: "StarterPackClaimed", inputs: [{ name: "user", type: "address", indexed: true }, { name: "amount", type: "uint256", indexed: false }] },
 ] as const;
 
 // ── AgentNFT ABI (ERC-721 Enumerable + Stats + Breeding + Skills) ────
@@ -161,7 +165,13 @@ export const RESULT_ORACLE_ABI = [
 // These replace the old ethers.js helpers with viem-compatible versions.
 
 import { keccak256, encodePacked, parseUnits, formatUnits, createPublicClient, http, type Address } from "viem";
-import { hardhat } from "viem/chains";
+import { polygon, polygonAmoy, hardhat } from "viem/chains";
+
+// Pick chain based on environment — production uses Polygon, dev uses hardhat
+const CHAIN = process.env.NODE_ENV === "production" ? polygon : hardhat;
+const RPC_URL = process.env.NODE_ENV === "production"
+  ? "https://polygon-rpc.com"
+  : "http://127.0.0.1:8545";
 
 /**
  * Compute a commit hash for ZK betting: keccak256(abi.encodePacked(amount, side, secret))
@@ -196,8 +206,8 @@ export function formatArena(wei: bigint): string {
 function getPublicClient() {
   if (typeof window === "undefined") return null;
   return createPublicClient({
-    chain: hardhat,
-    transport: http(),
+    chain: CHAIN,
+    transport: http(RPC_URL),
   });
 }
 

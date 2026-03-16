@@ -8,68 +8,93 @@ import { COLORS } from "@/lib/theme";
 import { WebGLSafeCanvas } from "../world/WebGLErrorBoundary";
 
 /* ── Card ────────────────────────────────────────────────── */
+const FLIP_SPEED = Math.PI / 0.4; // full π in 400ms
+
 function PokerCard({
     position,
     rotation = [0, 0, 0],
     faceUp = false,
     label = "",
     suit = "",
+    animate = false,
+    flipDelay = 0,
 }: {
     position: [number, number, number];
     rotation?: [number, number, number];
     faceUp?: boolean;
     label?: string;
     suit?: string;
+    animate?: boolean;
+    flipDelay?: number;
 }) {
-    const ref = useRef<THREE.Group>(null);
+    const flipRef = useRef<THREE.Group>(null);
+    const flipAngle = useRef(animate ? Math.PI : 0);
+    const delayAccum = useRef(0);
+    const flipping = useRef(animate);
+    const [showFace, setShowFace] = useState(!animate && faceUp);
     const isRed = suit === "\u2665" || suit === "\u2666";
 
+    useFrame((_, delta) => {
+        if (!flipping.current || !flipRef.current) return;
+        delayAccum.current += delta * 1000;
+        if (delayAccum.current < flipDelay) return;
+
+        flipAngle.current = Math.max(0, flipAngle.current - delta * FLIP_SPEED);
+        flipRef.current.rotation.y = flipAngle.current;
+
+        // Switch face content at mid-flip
+        if (!showFace && flipAngle.current < Math.PI / 2) setShowFace(true);
+        if (flipAngle.current <= 0) flipping.current = false;
+    });
+
     return (
-        <group ref={ref} position={position} rotation={rotation as unknown as THREE.Euler}>
-            <RoundedBox args={[0.42, 0.58, 0.015]} radius={0.03} smoothness={4} castShadow>
-                <meshStandardMaterial
-                    color={faceUp ? "#FAFAF5" : COLORS.card}
-                    metalness={faceUp ? 0.05 : 0.5}
-                    roughness={faceUp ? 0.5 : 0.3}
-                    emissive={faceUp ? "#000000" : COLORS.tealLight}
-                    emissiveIntensity={faceUp ? 0 : 0.15}
-                />
-            </RoundedBox>
-            {faceUp && (
-                <>
-                    <Text
-                        position={[0, 0.06, 0.01]}
-                        fontSize={0.16}
-                        color={isRed ? "#DC2626" : "#111827"}
-                        anchorX="center"
-                        anchorY="middle"
-                        fontWeight={700}
-                    >
-                        {label}
-                    </Text>
-                    <Text
-                        position={[0, -0.1, 0.01]}
-                        fontSize={0.12}
-                        color={isRed ? "#DC2626" : "#111827"}
-                        anchorX="center"
-                        anchorY="middle"
-                    >
-                        {suit}
-                    </Text>
-                </>
-            )}
-            {!faceUp && (
-                <>
-                    <mesh position={[0, 0, 0.009]}>
-                        <planeGeometry args={[0.34, 0.5]} />
-                        <meshStandardMaterial color={COLORS.redBright} emissive={COLORS.redBright} emissiveIntensity={0.2} />
-                    </mesh>
-                    <mesh position={[0, 0, 0.01]}>
-                        <planeGeometry args={[0.28, 0.44]} />
-                        <meshStandardMaterial color={COLORS.card} />
-                    </mesh>
-                </>
-            )}
+        <group position={position} rotation={rotation as unknown as THREE.Euler}>
+            <group ref={flipRef} rotation={[0, animate ? Math.PI : 0, 0]}>
+                <RoundedBox args={[0.42, 0.58, 0.015]} radius={0.03} smoothness={4} castShadow>
+                    <meshStandardMaterial
+                        color={showFace ? "#FAFAF5" : COLORS.card}
+                        metalness={showFace ? 0.05 : 0.5}
+                        roughness={showFace ? 0.5 : 0.3}
+                        emissive={showFace ? "#000000" : COLORS.tealLight}
+                        emissiveIntensity={showFace ? 0 : 0.15}
+                    />
+                </RoundedBox>
+                {showFace && (
+                    <>
+                        <Text
+                            position={[0, 0.06, 0.01]}
+                            fontSize={0.16}
+                            color={isRed ? "#DC2626" : "#111827"}
+                            anchorX="center"
+                            anchorY="middle"
+                            fontWeight={700}
+                        >
+                            {label}
+                        </Text>
+                        <Text
+                            position={[0, -0.1, 0.01]}
+                            fontSize={0.12}
+                            color={isRed ? "#DC2626" : "#111827"}
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {suit}
+                        </Text>
+                    </>
+                )}
+                {!showFace && (
+                    <>
+                        <mesh position={[0, 0, 0.009]}>
+                            <planeGeometry args={[0.34, 0.5]} />
+                            <meshStandardMaterial color={COLORS.redBright} emissive={COLORS.redBright} emissiveIntensity={0.2} />
+                        </mesh>
+                        <mesh position={[0, 0, 0.01]}>
+                            <planeGeometry args={[0.28, 0.44]} />
+                            <meshStandardMaterial color={COLORS.card} />
+                        </mesh>
+                    </>
+                )}
+            </group>
         </group>
     );
 }
@@ -133,18 +158,26 @@ function Table() {
 
 /* ── Community Cards ─────────────────────────────────────── */
 function CommunityCards({ cards }: { cards: { label: string; suit: string }[] }) {
+    // Cards present on first render don't animate; new ones flip in with 200ms stagger.
+    const mountedCount = useRef(cards.length);
+
     return (
         <group position={[0, 0.04, 0]}>
-            {cards.map((card, i) => (
-                <PokerCard
-                    key={i}
-                    position={[(i - 2) * 0.52, 0, 0]}
-                    rotation={[-Math.PI / 2, 0, 0]}
-                    faceUp={true}
-                    label={card.label}
-                    suit={card.suit}
-                />
-            ))}
+            {cards.map((card, i) => {
+                const isNew = i >= mountedCount.current;
+                return (
+                    <PokerCard
+                        key={i}
+                        position={[(i - 2) * 0.52, 0, 0]}
+                        rotation={[-Math.PI / 2, 0, 0]}
+                        faceUp={true}
+                        label={card.label}
+                        suit={card.suit}
+                        animate={isNew}
+                        flipDelay={isNew ? (i - mountedCount.current) * 200 : 0}
+                    />
+                );
+            })}
         </group>
     );
 }
@@ -293,16 +326,31 @@ function PokerScene({
 
             {players.map((player, i) => {
                 const angle = (i / players.length) * Math.PI * 2 + Math.PI;
+                const x = Math.sin(angle) * 2.2;
+                const z = Math.cos(angle) * 2.2;
                 return (
-                    <PlayerPosition
-                        key={player.name}
-                        angle={angle}
-                        name={player.name}
-                        holeCards={player.cards || []}
-                        chips={player.chips}
-                        isActive={player.isActive}
-                        color={i === 0 ? COLORS.gold : COLORS.redBright}
-                    />
+                    <group key={player.name}>
+                        <PlayerPosition
+                            angle={angle}
+                            name={player.name}
+                            holeCards={player.cards || []}
+                            chips={player.chips}
+                            isActive={player.isActive}
+                            color={i === 0 ? COLORS.gold : COLORS.redBright}
+                        />
+                        {/* All-in spotlight: intensified when player has no chips */}
+                        {player.chips === 0 && (
+                            <spotLight
+                                position={[x, 4, z]}
+                                target-position={[x, 0, z]}
+                                angle={0.35}
+                                penumbra={0.4}
+                                intensity={6}
+                                color={COLORS.gold}
+                                castShadow
+                            />
+                        )}
+                    </group>
                 );
             })}
 

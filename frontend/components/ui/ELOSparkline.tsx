@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 
 export interface ELOSparklineProps {
   history: number[];
@@ -13,13 +13,13 @@ export interface ELOSparklineProps {
   className?: string;
 }
 
-export function ELOSparkline({
+export const ELOSparkline: React.FC<ELOSparklineProps> = ({
   history,
   height = 80,
   interactive = true,
   color = "var(--color-gold)",
   className,
-}: ELOSparklineProps) {
+}) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const { points, fillPoints, max, min } = useMemo(() => {

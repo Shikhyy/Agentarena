@@ -1,0 +1,32 @@
+{
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/.next",
+  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "cd frontend && npm install",
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.agentarena.io/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_BACKEND_URL": "@backend_url",
+    "NEXT_PUBLIC_BACKEND_WS_URL": "@backend_ws_url",
+    "NEXT_PUBLIC_ARENA_TOKEN_ADDRESS": "@arena_token_address",
+    "NEXT_PUBLIC_AGENT_NFT_ADDRESS": "@agent_nft_address",
+    "NEXT_PUBLIC_SKILL_NFT_ADDRESS": "@skill_nft_address",
+    "NEXT_PUBLIC_ZK_BETTING_POOL_ADDRESS": "@zk_betting_pool_address",
+    "NEXT_PUBLIC_RESULT_ORACLE_ADDRESS": "@result_oracle_address",
+    "NEXT_PUBLIC_WC_PROJECT_ID": "@wc_project_id"
+  }
+}

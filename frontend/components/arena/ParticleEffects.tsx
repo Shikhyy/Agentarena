@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COLORS } from "@/lib/theme";
@@ -48,7 +48,8 @@ export function ParticleEffects({
     }, [type]);
 
     // Pre-compute random offsets per particle
-    const offsets = useMemo(() => {
+    const offsetsRef = useRef<{ angle: number; speed: number; ySpeed: number; phase: number; size: number }[]>([]);
+    useEffect(() => {
         const arr: { angle: number; speed: number; ySpeed: number; phase: number; size: number }[] = [];
         for (let i = 0; i < count; i++) {
             arr.push({
@@ -59,16 +60,17 @@ export function ParticleEffects({
                 size: 0.02 + Math.random() * 0.06,
             });
         }
-        return arr;
+        offsetsRef.current = arr;
     }, [count]);
 
     useFrame((_, delta) => {
         if (!meshRef.current || !active) return;
+        if (offsetsRef.current.length === 0) return;
         clock.current += delta;
         const t = clock.current;
 
         for (let i = 0; i < count; i++) {
-            const o = offsets[i];
+            const o = offsetsRef.current[i];
             const r = radius * (0.3 + 0.7 * Math.sin(t * o.speed + o.phase));
             const x = Math.cos(o.angle + t * 0.5) * r;
             const z = Math.sin(o.angle + t * 0.5) * r;

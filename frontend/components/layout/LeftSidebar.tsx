@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWorldStore, type WorldAgent } from "@/lib/worldStore";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -9,9 +10,11 @@ import { ELOSparkline } from "@/components/ui/ELOSparkline";
 
 /** A small inline agent card shown when an agent is selected */
 function AgentMiniCard({ agent }: { agent: WorldAgent }) {
-  // Generate a fake ELO history from the agent's current ELO
-  const eloHistory = Array.from({ length: 12 }, (_, i) =>
-    agent.elo - 200 + Math.floor(Math.random() * 300) + i * 15
+  // Generate a fake ELO history from the agent's current ELO (stable across renders)
+  const [eloHistory] = useState(() =>
+    Array.from({ length: 12 }, (_, i) =>
+      agent.elo - 200 + Math.floor(Math.random() * 300) + i * 15
+    )
   );
 
   return (

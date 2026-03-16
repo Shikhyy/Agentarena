@@ -1,275 +1,319 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
+import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { HexPortrait } from "@/components/ui/HexPortrait";
-import { SkillOrb } from "@/components/ui/SkillOrb";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EloCounter } from "@/components/ui/EloCounter";
 import { ELOSparkline } from "@/components/ui/ELOSparkline";
+import { BrassRule } from "@/components/ui/BrassRule";
 import { STAGGER } from "@/lib/springs";
+import { useAgentStore } from "@/lib/stores/index";
+import { apiGet } from "@/lib/api";
 
-const agents = [
-  { name: "ZEUS", elo: 2620, wr: "81%", tier: "Legendary", status: "Deployed", archetype: "Aggressive" },
-  { name: "ORACLE", elo: 2578, wr: "79%", tier: "Veteran", status: "Active", archetype: "Adaptive" },
-  { name: "TITAN", elo: 2539, wr: "76%", tier: "Veteran", status: "Active", archetype: "Balanced" },
-  { name: "WISP", elo: 2398, wr: "66%", tier: "Contender", status: "Active", archetype: "Chaotic" },
-  { name: "BLITZ", elo: 2345, wr: "63%", tier: "Contender", status: "Retired", archetype: "Aggressive" },
-  { name: "SHADOW", elo: 2452, wr: "69%", tier: "Veteran", status: "Active", archetype: "Conservative" },
-];
+/* ── types ──────────────────────────────────────────────────── */
 
-const matchHistory = [
-  { result: "W", opponent: "ORACLE", game: "Chess", delta: "+18" },
-  { result: "L", opponent: "SHADOW", game: "Poker", delta: "-10" },
-  { result: "W", opponent: "WISP", game: "Trivia", delta: "+13" },
-  { result: "W", opponent: "BLITZ", game: "Monopoly", delta: "+8" },
-  { result: "L", opponent: "TITAN", game: "Chess", delta: "-6" },
-];
+interface AgentProfile {
+  agent_id: string;
+  name: string;
+  personality: string;
+  skills: string[];
+  level: number;
+  xp: number;
+  elo: number;
+  wins: number;
+  losses: number;
+  status: string;
+  win_rate?: number;
+  elo_history?: number[];
+  arena_earned?: number;
+}
 
-type Filter = "all" | "active" | "deployed" | "retired" | "bankrupt";
+type Filter = "all" | "live" | "idle" | "thinking";
 
-const tierColor = (tier: string) => {
-  switch (tier) {
-    case "Legendary": return "var(--color-gold)";
-    case "Veteran": return "var(--color-silver)";
-    case "Contender": return "var(--color-teal-light)";
-    default: return "var(--color-ash)";
+/* ── helpers ─────────────────────────────────────────────────── */
+
+function eloTierColor(elo: number) {
+  if (elo >= 2600) return "var(--color-gold)";
+  if (elo >= 2450) return "var(--color-teal)";
+  if (elo >= 2300) return "var(--color-amber)";
+  return "var(--color-stone)";
+}
+
+function eloTierLabel(elo: number) {
+  if (elo >= 2600) return "Legendary";
+  if (elo >= 2450) return "Veteran";
+  if (elo >= 2300) return "Contender";
+  return "Initiate";
+}
+
+type CardAccent = "gold" | "teal" | "amber" | "danger";
+function personalityAccent(p: string): CardAccent {
+  switch (p) {
+    case "aggressive":   return "amber";
+    case "adaptive":     return "teal";
+    case "chaotic":      return "danger";
+    default:             return "gold";
   }
-};
+}
 
-export default function MyAgentsPage() {
-  const [filter, setFilter] = useState<Filter>("all");
+/* ── agent card ─────────────────────────────────────────────── */
 
-  const filtered = agents.filter(
-    (a) => filter === "all" || a.status.toLowerCase() === filter
-  );
+function AgentBentoCard({ agent, i }: { agent: AgentProfile; i: number }) {
+  const tierColor = eloTierColor(agent.elo);
+  const games     = agent.wins + agent.losses;
+  const winPct    = agent.win_rate != null ? Math.round(agent.win_rate * 100) : (games > 0 ? Math.round((agent.wins / games) * 100) : 0);
 
   return (
-    <div className="min-h-screen bg-[var(--color-deep)] p-6 pt-20">
-      {/* Header */}
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: STAGGER.interactive / 1000 + i * 0.08 }}
+    >
+      <GlassCard accent={personalityAccent(agent.personality)}>
+        {/* header row */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+          <HexPortrait
+            name={agent.name}
+            size={72}
+            accent={tierColor}
+            pulse={agent.status === "live"}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 className="display" style={{ fontSize: 26, margin: 0, lineHeight: 1 }}>{agent.name}</h3>
+            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+              <span className="mono" style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, border: "1px solid var(--color-border)", color: tierColor, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                {eloTierLabel(agent.elo)}
+              </span>
+              <span className="mono" style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, border: "1px solid var(--color-border)", color: "var(--color-stone)", textTransform: "capitalize" }}>
+                {agent.personality}
+              </span>
+              <span className="mono" style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, border: "1px solid var(--color-border)", color: "var(--color-stone)" }}>
+                Lv {agent.level}
+              </span>
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <StatusBadge status={agent.status as any} />
+            </div>
+          </div>
+        </div>
+
+        <BrassRule label="—" />
+
+        {/* stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+          {[
+            { label: "ELO",   value: <EloCounter value={agent.elo} accent={tierColor} size="sm" /> },
+            { label: "Win %", value: <span className="mono" style={{ fontSize: 14, fontWeight: 600, color: "var(--color-ivory)" }}>{winPct}%</span> },
+            { label: "Games", value: <span className="mono" style={{ fontSize: 14, fontWeight: 600, color: "var(--color-ivory)" }}>{games}</span> },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ textAlign: "center", padding: "8px 4px", background: "var(--color-raised)", borderRadius: 3 }}>
+              {value}
+              <p className="mono muted" style={{ fontSize: 9, marginTop: 3, letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* mini sparkline */}
+        {agent.elo_history && agent.elo_history.length > 2 && (
+          <div style={{ marginBottom: 12 }}>
+            <ELOSparkline history={agent.elo_history} height={40} color={tierColor} interactive={false} />
+          </div>
+        )}
+
+        {/* skills */}
+        {agent.skills?.length > 0 && (
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
+            {agent.skills.slice(0, 4).map((sk) => (
+              <span key={sk} className="mono" style={{ fontSize: 9, padding: "2px 6px", borderRadius: 2, border: "1px solid var(--color-border)", color: "var(--color-stone)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {sk.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* CTA */}
+        <Link href={`/agents/${agent.agent_id}`} className="btn" style={{ display: "inline-block", fontSize: 12, width: "100%", textAlign: "center" }}>
+          View Dossier →
+        </Link>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
+/* ── empty state ─────────────────────────────────────────────── */
+
+function EmptyRoster() {
+  return (
+    <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "64px 0" }}>
+      <p className="display" style={{ fontSize: 32, marginBottom: 12 }}>No Agents Yet</p>
+      <p className="narrative" style={{ opacity: 0.6, marginBottom: 24 }}>
+        Your roster awaits. Forge your first agent in the Workshop.
+      </p>
+      <Link href="/world/workshop" className="btn btn-primary" style={{ fontSize: 13 }}>
+        Enter the Workshop →
+      </Link>
+    </div>
+  );
+}
+
+/* ── skeleton ─────────────────────────────────────────────────── */
+
+function AgentCardSkeleton() {
+  return (
+    <GlassCard noHover>
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--color-raised)", opacity: 0.6, flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 24, width: "55%", borderRadius: 3, background: "var(--color-raised)", marginBottom: 8 }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            {[50, 60, 40].map((w, j) => (
+              <div key={j} style={{ height: 16, width: w, borderRadius: 2, background: "var(--color-raised)", opacity: 0.7 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ height: 1, background: "var(--color-border)", margin: "12px 0" }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
+        {[0,1,2].map((j) => (
+          <div key={j} style={{ height: 48, borderRadius: 3, background: "var(--color-raised)", opacity: 0.5 }} />
+        ))}
+      </div>
+      <div style={{ height: 32, borderRadius: 2, background: "var(--color-raised)", opacity: 0.4 }} />
+    </GlassCard>
+  );
+}
+
+/* ── page ────────────────────────────────────────────────────── */
+
+export default function MyAgentsPage() {
+  const [filter, setFilter]   = useState<Filter>("all");
+  const [wallet, setWallet]   = useState<string | null>(null);
+
+  // Read wallet from localStorage on mount
+  useEffect(() => {
+    const token = localStorage.getItem("agentarena_token");
+    setWallet(token);
+  }, []);
+
+  // Sync to Zustand agent store
+  const { fetchMyAgents, myAgents: storeAgents } = useAgentStore();
+
+  const { data, isLoading, isError, refetch } = useQuery<AgentProfile[]>({
+    queryKey: ["my-agents", wallet],
+    queryFn: () => apiGet<{ agents: AgentProfile[] }>("/agents/my").then((r) => r.agents ?? (r as unknown as AgentProfile[])),
+    enabled: true,
+    retry: 1,
+  });
+
+  // Sync to Zustand store whenever data arrives
+  useEffect(() => {
+    if (data && wallet) fetchMyAgents(wallet);
+  }, [data, wallet, fetchMyAgents]);
+
+  const agents: AgentProfile[] = isError || (!isLoading && !data) ? storeAgents : (data ?? []);
+
+  const filtered = agents.filter((a) => filter === "all" || a.status === filter);
+
+  const totalElo   = agents.reduce((s, a) => s + a.elo, 0);
+  const avgElo     = agents.length ? Math.round(totalElo / agents.length) : 0;
+  const totalWins  = agents.reduce((s, a) => s + a.wins, 0);
+  const totalGames = agents.reduce((s, a) => s + a.wins + a.losses, 0);
+  const liveCount  = agents.filter((a) => a.status === "live").length;
+
+  return (
+    <div className="page">
+      {/* ── header ── */}
       <motion.section
-        className="mb-6"
-        initial={{ opacity: 0, y: 20 }}
+        className="section"
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: STAGGER.headline / 1000, duration: 0.5 }}
+        transition={{ delay: STAGGER.headline / 1000 }}
       >
-        <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-stone)] mb-2">
+        <p className="subline" style={{ marginBottom: 4 }}>
           Collection · My Agents
+          {isError && (
+            <span style={{ color: "var(--color-amber)", marginLeft: 10, fontSize: 9 }}>
+              · offline — showing store data
+            </span>
+          )}
         </p>
-        <h2 className="font-display text-5xl text-[var(--color-ivory)] tracking-wide">
-          Agent Roster
-        </h2>
+        <h2 className="display" style={{ fontSize: 48, margin: "0 0 8px" }}>Agent Roster</h2>
+        <p className="narrative" style={{ opacity: 0.6, maxWidth: 480 }}>
+          {wallet
+            ? `Wallet: ${wallet.slice(0, 6)}…${wallet.slice(-4)}`
+            : "Connect wallet to see your agents on-chain."}
+        </p>
       </motion.section>
 
-      {/* Filters */}
+      {/* ── roster stats ── */}
       <motion.section
-        className="mb-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        className="section grid grid-4"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: STAGGER.pills / 1000 }}
       >
-        <div className="flex flex-wrap gap-2">
-          {(["all", "active", "deployed", "retired", "bankrupt"] as Filter[]).map((f) => (
-            <button
+        {[
+          { label: "Roster Size",  value: isLoading ? "—" : agents.length,               color: "var(--color-ivory)" },
+          { label: "Active Now",   value: isLoading ? "—" : liveCount,                    color: "var(--color-teal)" },
+          { label: "Avg ELO",      value: isLoading ? "—" : avgElo,                       color: "var(--color-gold)" },
+          { label: "Total Wins",   value: isLoading ? "—" : totalWins.toLocaleString(),   color: "var(--color-amber)" },
+        ].map((s) => (
+          <GlassCard key={s.label} noHover>
+            <p className="kicker">{s.label}</p>
+            <p className="k-value" style={{ color: s.color }}>{s.value}</p>
+          </GlassCard>
+        ))}
+      </motion.section>
+
+      {/* ── filter + action row ── */}
+      <motion.section
+        className="section"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: STAGGER.pills / 1000 + 0.1 }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}
+      >
+        <div className="nav-row">
+          {(["all", "live", "thinking", "idle"] as Filter[]).map((f) => (
+            <span
               key={f}
+              className={`nav-pill${filter === f ? " active" : ""}`}
+              style={{ cursor: "pointer", textTransform: "capitalize" }}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-[10px] font-heading tracking-[3px] uppercase border rounded transition-all duration-200 ${
-                filter === f
-                  ? "border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10"
-                  : "border-[var(--color-border)] text-[var(--color-stone)] hover:border-[var(--color-gold-dim)]"
-              }`}
             >
-              {f}
-            </button>
+              {f === "all" ? "All" : f}
+              {f !== "all" && (
+                <span className="mono" style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>
+                  ({agents.filter((a) => a.status === f).length})
+                </span>
+              )}
+            </span>
           ))}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => refetch()} className="btn" style={{ fontSize: 11 }}>
+            ↻ Refresh
+          </button>
+          <Link href="/world/workshop" className="btn btn-primary" style={{ fontSize: 11 }}>
+            + New Agent
+          </Link>
         </div>
       </motion.section>
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Hero Card — 8 cols */}
-        <motion.div
-          className="col-span-12 lg:col-span-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: STAGGER.secondary / 1000, duration: 0.5 }}
-        >
-          <GlassCard accent="gold" glowIntensity={0.4}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              <HexPortrait name="ZEUS" size={120} accent="var(--color-gold)" />
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="font-display text-5xl text-[var(--color-ivory)]">ZEUS</h3>
-                  <span className="px-2 py-1 text-[9px] font-mono tracking-wider uppercase border border-[var(--color-gold-dim)] text-[var(--color-gold)] rounded">
-                    Legendary
-                  </span>
-                  <span className="px-2 py-1 text-[9px] font-mono tracking-wider uppercase border border-[var(--color-border)] text-[var(--color-parchment)] rounded">
-                    Aggressive
-                  </span>
-                </div>
-                <div className="flex gap-4 font-mono text-sm text-[var(--color-stone)] mb-3">
-                  <span>ELO <strong className="text-[var(--color-ivory)]">2620</strong></span>
-                  <span>Win Rate <strong className="text-[var(--color-teal-light)]">81%</strong></span>
-                  <span>Lvl <strong className="text-[var(--color-gold)]">47</strong></span>
-                </div>
-                <div className="max-w-[280px] mb-3">
-                  <ELOSparkline history={[2378, 2401, 2423, 2478, 2512, 2556, 2612]} color="var(--color-gold)" />
-                </div>
-                {/* Form dots */}
-                <div className="flex gap-1 mb-3">
-                  {["W","W","L","W","W","L","W","W","W","L"].map((r, i) => (
-                    <div
-                      key={i}
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: r === "W" ? "var(--color-teal-light)" : "var(--color-red-bright)" }}
-                    />
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button className="font-heading text-[10px] tracking-[4px] uppercase bg-[var(--color-gold)] text-[var(--color-ink)] px-6 py-2.5 hover:bg-[var(--color-gold-light)] hover:shadow-[var(--shadow-gold)] active:scale-[0.97] transition-all duration-200">
-                    Deploy
-                  </button>
-                  <button className="font-mono text-[9px] tracking-[2px] uppercase bg-[var(--color-red)] text-[var(--color-ivory)] px-4 py-2.5 hover:bg-[var(--color-red-bright)] transition-colors duration-150">
-                    Retire
-                  </button>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        {/* Stats Card — 4 cols */}
-        <motion.div
-          className="col-span-12 lg:col-span-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: STAGGER.secondary / 1000 + 0.1, duration: 0.5 }}
-        >
-          <GlassCard glowIntensity={0.2}>
-            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-4">Quick Stats</p>
-            <div className="space-y-4">
-              <div>
-                <p className="font-mono text-3xl font-bold text-[var(--color-gold)]">1.2M</p>
-                <p className="font-mono text-[9px] text-[var(--color-stone)] tracking-wider">TOTAL ARENA EARNED</p>
-              </div>
-              <div>
-                <p className="font-mono text-3xl font-bold text-[var(--color-teal-light)]">71%</p>
-                <p className="font-mono text-[9px] text-[var(--color-stone)] tracking-wider">CAREER WIN RATE</p>
-              </div>
-              <div>
-                <p className="font-heading text-2xl text-[var(--color-ivory)]">Chess</p>
-                <p className="font-mono text-[9px] text-[var(--color-stone)] tracking-wider">BEST GAME MODE</p>
-              </div>
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        {/* Match History — 6 cols */}
-        <motion.div
-          className="col-span-12 lg:col-span-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: STAGGER.interactive / 1000, duration: 0.5 }}
-        >
-          <GlassCard glowIntensity={0.2}>
-            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">Match History</p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-rim)]">
-                  {["Result", "Opponent", "Game", "ELO Δ"].map((col) => (
-                    <th key={col} className="py-2 font-mono text-[9px] tracking-wider uppercase text-[var(--color-ash)] text-left">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {matchHistory.map((m, i) => (
-                  <tr key={i} className="border-b border-[var(--color-border)]/20">
-                    <td className="py-2.5">
-                      <span
-                        className="font-mono text-xs font-bold px-2 py-0.5 rounded"
-                        style={{
-                          color: m.result === "W" ? "var(--color-teal-light)" : "var(--color-red-bright)",
-                          background: m.result === "W" ? "rgba(74,140,134,0.15)" : "rgba(196,48,48,0.15)",
-                        }}
-                      >
-                        {m.result}
-                      </span>
-                    </td>
-                    <td className="py-2.5 font-heading text-sm text-[var(--color-parchment)]">{m.opponent}</td>
-                    <td className="py-2.5 font-mono text-xs text-[var(--color-stone)]">{m.game}</td>
-                    <td className="py-2.5 font-mono text-sm font-bold" style={{
-                      color: m.delta.startsWith("+") ? "var(--color-gold)" : "var(--color-red-bright)"
-                    }}>
-                      {m.delta}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </GlassCard>
-        </motion.div>
-
-        {/* ELO Chart — 6 cols */}
-        <motion.div
-          className="col-span-12 lg:col-span-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: STAGGER.interactive / 1000 + 0.1, duration: 0.5 }}
-        >
-          <GlassCard glowIntensity={0.2}>
-            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">ELO History · 30 Days</p>
-            <ELOSparkline
-              history={[2220, 2254, 2268, 2300, 2332, 2390, 2412, 2480, 2520, 2612]}
-              color="var(--color-gold)"
-            />
-          </GlassCard>
-        </motion.div>
-
-        {/* Skill Loadout — 4 cols */}
-        <motion.div
-          className="col-span-12 lg:col-span-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: STAGGER.interactive / 1000 + 0.2, duration: 0.5 }}
-        >
-          <GlassCard glowIntensity={0.2}>
-            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">Skill Loadout</p>
-            <div className="flex gap-4 mb-3">
-              <SkillOrb skillType="tempo" equipped />
-              <SkillOrb skillType="risk" equipped />
-              <SkillOrb skillType="bluff" />
-            </div>
-            <button className="font-mono text-[8px] tracking-[2px] text-[var(--color-stone)] hover:text-[var(--color-gold)] transition-colors">
-              Browse Market →
-            </button>
-          </GlassCard>
-        </motion.div>
-
-        {/* Agent Collection Grid — full width */}
-        <motion.div
-          className="col-span-12"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: STAGGER.interactive / 1000 + 0.3, duration: 0.5 }}
-        >
-          <GlassCard glowIntensity={0.15}>
-            <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-4">Agent Collection</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {filtered.map((agent) => (
-                <div
-                  key={agent.name}
-                  className="flex items-center gap-3 p-3 border border-[var(--color-border)] rounded bg-[var(--color-surface)]/50 hover:border-[var(--color-gold-dim)] hover:bg-[var(--color-raised)]/50 transition-all cursor-pointer"
-                >
-                  <HexPortrait name={agent.name} size={48} accent={tierColor(agent.tier)} />
-                  <div>
-                    <p className="font-heading text-sm text-[var(--color-ivory)]">{agent.name}</p>
-                    <p className="font-mono text-[9px] text-[var(--color-stone)]">{agent.elo} · {agent.status}</p>
-                  </div>
-                </div>
+      {/* ── bento grid ── */}
+      <section className="section grid grid-3" style={{ marginBottom: 64 }}>
+        {isLoading
+          ? Array.from({ length: 6 }, (_, i) => <AgentCardSkeleton key={i} />)
+          : filtered.length === 0
+            ? <EmptyRoster />
+            : filtered.map((agent, i) => (
+                <AgentBentoCard key={agent.agent_id} agent={agent} i={i} />
               ))}
-            </div>
-          </GlassCard>
-        </motion.div>
-      </div>
+      </section>
     </div>
   );
 }

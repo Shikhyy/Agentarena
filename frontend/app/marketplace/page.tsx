@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SkillOrb } from "@/components/ui/SkillOrb";
 import { HexPortrait } from "@/components/ui/HexPortrait";
 import { MotionNumber } from "@/components/ui/MotionNumber";
 import { motion } from "motion/react";
 import { STAGGER } from "@/lib/springs";
+import { apiGet } from "@/lib/api";
+import { useAgentStore } from "@/lib/stores";
+import Link from "next/link";
 
 /* ── rarity palette ────────────────────────────────────── */
 const RARITY_COLOR: Record<string, string> = {
@@ -26,6 +30,28 @@ const RARITY_GRADIENT: Record<string, string> = {
 /* ── category filter ───────────────────────────────────── */
 type Category = "All" | "Agent NFTs" | "Skill Orbs" | "Cosmetics" | "Trophies";
 const CATEGORIES: Category[] = ["All", "Agent NFTs", "Skill Orbs", "Cosmetics", "Trophies"];
+
+type SortOption = "price-asc" | "price-desc" | "rarity" | "recent";
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "recent", label: "Recently Listed" },
+  { value: "price-asc", label: "Price: Low → High" },
+  { value: "price-desc", label: "Price: High → Low" },
+  { value: "rarity", label: "Rarity" },
+];
+
+const RARITY_RANK: Record<string, number> = {
+  Legendary: 0,
+  Epic: 1,
+  Rare: 2,
+  Common: 3,
+};
+
+const FLOOR_PRICES: { category: string; floor: number }[] = [
+  { category: "Agent NFTs", floor: 680 },
+  { category: "Skill Orbs", floor: 90 },
+  { category: "Cosmetics", floor: 45 },
+  { category: "Trophies", floor: 800 },
+];
 
 /* ── listings data ─────────────────────────────────────── */
 interface Listing {
@@ -71,11 +97,44 @@ const RECENT_SALES = [
 /* ── component ─────────────────────────────────────────── */
 export default function MarketplacePage() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("recent");
 
-  const filtered =
-    activeCategory === "All"
-      ? LISTINGS
-      : LISTINGS.filter((l) => l.category === activeCategory);
+  const { data: listings = LISTINGS } = useQuery({
+    queryKey: ["marketplace-listings"],
+    queryFn: () => apiGet<Listing[]>("/marketplace/listings"),
+    staleTime: 30_000,
+  });
+
+  const myAgents = useAgentStore((s) => s.myAgents);
+
+  const filtered = useMemo(() => {
+    let result = activeCategory === "All"
+      ? listings
+      : listings.filter((l) => l.category === activeCategory);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((l) => l.name.toLowerCase().includes(q));
+    }
+
+    switch (sort) {
+      case "price-asc":
+        result = [...result].sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case "rarity":
+        result = [...result].sort(
+          (a, b) => (RARITY_RANK[a.rarity] ?? 9) - (RARITY_RANK[b.rarity] ?? 9)
+        );
+        break;
+      // "recent" keeps original order
+    }
+
+    return result;
+  }, [listings, activeCategory, search, sort]);
 
   return (
     <div className="min-h-screen bg-[var(--color-deep)] p-6 pt-20 max-w-[1400px] mx-auto">
@@ -89,9 +148,17 @@ export default function MarketplacePage() {
         <p className="font-mono text-[9px] tracking-[4px] uppercase text-[var(--color-stone)] mb-2">
           Market District
         </p>
-        <h1 className="font-display text-6xl md:text-7xl text-[var(--color-ivory)] tracking-wide mb-3">
-          The Exchange
-        </h1>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-3">
+          <h1 className="font-display text-6xl md:text-7xl text-[var(--color-ivory)] tracking-wide">
+            The Exchange
+          </h1>
+          <Link
+            href="/marketplace/list"
+            className="inline-flex items-center justify-center font-heading text-[10px] tracking-[4px] uppercase bg-[var(--color-gold)] text-[var(--color-ink)] px-9 py-3.5 hover:bg-[var(--color-gold-light)] hover:shadow-[var(--shadow-gold)] active:scale-[0.97] transition-all duration-200 rounded self-start md:self-auto"
+          >
+            List an Item
+          </Link>
+        </div>
         <p className="font-narrative italic text-[var(--color-parchment)] max-w-2xl leading-relaxed">
           A living bazaar where skill orbs change hands, legendary agents find new commanders,
           and rare cosmetics surface from the depths of the Arena. Every trade shapes
@@ -124,6 +191,34 @@ export default function MarketplacePage() {
             </div>
           </GlassCard>
         ))}
+      </motion.div>
+
+      {/* ── search & sort bar ─────────────────────────────── */}
+      <motion.div
+        className="flex flex-col sm:flex-row gap-3 mb-4"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: (STAGGER.pills - 50) / 1000, duration: 0.4 }}
+      >
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-stone)] text-sm pointer-events-none">⌕</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search listings..."
+            className="w-full pl-9 pr-4 py-2.5 rounded font-mono text-xs text-[var(--color-ivory)] placeholder:text-[var(--color-ash)] bg-[var(--color-surface)]/80 backdrop-blur-md border border-[var(--color-border)] focus:border-[var(--color-gold-dim)] focus:outline-none transition-colors"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortOption)}
+          className="px-4 py-2.5 rounded font-mono text-xs text-[var(--color-parchment)] bg-[var(--color-surface)]/80 backdrop-blur-md border border-[var(--color-border)] focus:border-[var(--color-gold-dim)] focus:outline-none transition-colors appearance-none cursor-pointer sm:w-52"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </motion.div>
 
       {/* ── category filter tabs ─────────────────────────── */}
@@ -192,70 +287,96 @@ export default function MarketplacePage() {
       {/* ── main content: listings grid + sidebar ────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* ── listings grid (3 cols on lg) ──────────────── */}
-        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((listing, i) => (
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          {filtered.length === 0 ? (
             <motion.div
-              key={listing.id}
+              className="col-span-full flex flex-col items-center justify-center py-20"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (STAGGER.interactive + i * 60) / 1000, duration: 0.4 }}
+              transition={{ duration: 0.4 }}
             >
-              <GlassCard glowIntensity={0.2} className="h-full flex flex-col">
-                {/* image area */}
-                <div
-                  className={`h-32 rounded mb-3 bg-gradient-to-br ${RARITY_GRADIENT[listing.rarity]} flex items-center justify-center`}
-                >
-                  {listing.skillType ? (
-                    <SkillOrb skillType={listing.skillType} equipped level={70} />
-                  ) : listing.agentAccent ? (
-                    <HexPortrait name={listing.name} size={64} accent={listing.agentAccent} />
-                  ) : (
-                    <span
-                      className="font-display text-3xl opacity-30"
-                      style={{ color: RARITY_COLOR[listing.rarity] }}
-                    >
-                      ✦
-                    </span>
-                  )}
-                </div>
-
-                {/* name */}
-                <h3 className="font-heading text-lg text-[var(--color-ivory)] mb-1">
-                  {listing.name}
-                </h3>
-
-                {/* collection badge + rarity tag */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase bg-[var(--color-surface)] text-[var(--color-ash)] border border-[var(--color-border)]/30">
-                    {listing.collection}
-                  </span>
-                  <span
-                    className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase border"
-                    style={{
-                      color: RARITY_COLOR[listing.rarity],
-                      borderColor: RARITY_COLOR[listing.rarity],
-                      backgroundColor: `color-mix(in srgb, ${RARITY_COLOR[listing.rarity]} 10%, transparent)`,
-                    }}
-                  >
-                    {listing.rarity}
-                  </span>
-                </div>
-
-                {/* price + seller */}
-                <div className="mt-auto">
-                  <p className="font-mono text-lg text-[var(--color-gold)] mb-1">
-                    {listing.price.toLocaleString()} <span className="text-xs">ARENA</span>
-                  </p>
-                  <p className="font-mono text-[10px] text-[var(--color-ash)] mb-3">
-                    Seller: {listing.seller}
-                  </p>
-                  <button className="w-full py-2 text-[10px] font-mono tracking-[2px] uppercase bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold-dim)] rounded hover:bg-[var(--color-gold)]/25 transition-colors">
-                    Buy Now
-                  </button>
-                </div>
-              </GlassCard>
+              <span className="font-display text-5xl opacity-20 text-[var(--color-stone)] mb-4">✦</span>
+              <p className="font-heading text-lg text-[var(--color-parchment)] mb-1">
+                No items match your search
+              </p>
+              <p className="font-mono text-[10px] text-[var(--color-ash)]">
+                Try adjusting your filters or search terms
+              </p>
             </motion.div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((listing, i) => (
+                <motion.div
+                  key={listing.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: (STAGGER.interactive + i * 60) / 1000, duration: 0.4 }}
+                >
+                  <GlassCard glowIntensity={0.2} className="h-full flex flex-col">
+                    {/* image area */}
+                    <div
+                      className={`h-32 rounded mb-3 bg-gradient-to-br ${RARITY_GRADIENT[listing.rarity]} flex items-center justify-center`}
+                    >
+                      {listing.skillType ? (
+                        <SkillOrb skillType={listing.skillType} equipped level={70} />
+                      ) : listing.agentAccent ? (
+                        <HexPortrait name={listing.name} size={64} accent={listing.agentAccent} />
+                      ) : (
+                        <span
+                          className="font-display text-3xl opacity-30"
+                          style={{ color: RARITY_COLOR[listing.rarity] }}
+                        >
+                          ✦
+                        </span>
+                      )}
+                    </div>
+
+                    {/* name */}
+                    <h3 className="font-heading text-lg text-[var(--color-ivory)] mb-1">
+                      {listing.name}
+                    </h3>
+
+                    {/* collection badge + rarity tag */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase bg-[var(--color-surface)] text-[var(--color-ash)] border border-[var(--color-border)]/30">
+                        {listing.collection}
+                      </span>
+                      <span
+                        className="px-2 py-0.5 rounded text-[9px] font-mono tracking-wider uppercase border"
+                        style={{
+                          color: RARITY_COLOR[listing.rarity],
+                          borderColor: RARITY_COLOR[listing.rarity],
+                          backgroundColor: `color-mix(in srgb, ${RARITY_COLOR[listing.rarity]} 10%, transparent)`,
+                        }}
+                      >
+                        {listing.rarity}
+                      </span>
+                    </div>
+
+                    {/* price + seller */}
+                    <div className="mt-auto">
+                      <p className="font-mono text-lg text-[var(--color-gold)] mb-1">
+                        {listing.price.toLocaleString()} <span className="text-xs">ARENA</span>
+                      </p>
+                      <p className="font-mono text-[10px] text-[var(--color-ash)] mb-3">
+                        Seller: {listing.seller}
+                      </p>
+                      <button className="w-full py-2 text-[10px] font-mono tracking-[2px] uppercase bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold-dim)] rounded hover:bg-[var(--color-gold)]/25 transition-colors">
+                        Buy Now
+                      </button>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* ── pagination hint ───────────────────────────── */}
+          {filtered.length > 0 && (
+            <p className="text-center font-mono text-[10px] text-[var(--color-ash)] mt-2">
+              Showing {filtered.length} of {listings.length} listings
+            </p>
+          )}
         </div>
 
         {/* ── sidebar ──────────────────────────────────── */}
@@ -273,7 +394,7 @@ export default function MarketplacePage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="font-body text-[var(--color-parchment)]">Agents</span>
-                  <span className="font-mono text-[var(--color-ivory)]">2</span>
+                  <span className="font-mono text-[var(--color-ivory)]">{myAgents.length || 2}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-body text-[var(--color-parchment)]">Skill Orbs</span>
@@ -291,6 +412,29 @@ export default function MarketplacePage() {
                   <span className="font-body text-[var(--color-parchment)]">Est. Value</span>
                   <span className="font-mono text-[var(--color-gold)]">4,820 ARENA</span>
                 </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+
+          {/* floor prices */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: STAGGER.interactive / 1000 + 0.05, duration: 0.5 }}
+          >
+            <GlassCard glowIntensity={0.15}>
+              <p className="font-mono text-[9px] tracking-[3px] uppercase text-[var(--color-ash)] mb-3">
+                Floor Prices
+              </p>
+              <div className="space-y-2 text-sm">
+                {FLOOR_PRICES.map((fp) => (
+                  <div key={fp.category} className="flex justify-between">
+                    <span className="font-body text-[var(--color-parchment)]">{fp.category}</span>
+                    <span className="font-mono text-[var(--color-gold)]">
+                      {fp.floor.toLocaleString()} <span className="text-[var(--color-stone)] text-[10px]">ARENA</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </GlassCard>
           </motion.div>

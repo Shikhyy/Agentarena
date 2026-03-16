@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Float, Billboard } from "@react-three/drei";
 import * as THREE from "three";
@@ -11,7 +11,9 @@ function DataStreams() {
     const ref = useRef<THREE.Points>(null);
     const count = 120;
 
-    const { positions, velocities } = useMemo(() => {
+    const [positions, setPositions] = useState(() => new Float32Array(count * 3));
+    const velocitiesRef = useRef(new Float32Array(count));
+    useEffect(() => {
         const pos = new Float32Array(count * 3);
         const vel = new Float32Array(count);
         for (let i = 0; i < count; i++) {
@@ -20,14 +22,15 @@ function DataStreams() {
             pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
             vel[i] = 0.3 + Math.random() * 0.8;
         }
-        return { positions: pos, velocities: vel };
+        setPositions(pos);
+        velocitiesRef.current = vel;
     }, []);
 
     useFrame((_, delta) => {
         if (!ref.current) return;
         const posArray = ref.current.geometry.attributes.position.array as Float32Array;
         for (let i = 0; i < count; i++) {
-            posArray[i * 3 + 1] += delta * velocities[i];
+            posArray[i * 3 + 1] += delta * velocitiesRef.current[i];
             if (posArray[i * 3 + 1] > 2.8) posArray[i * 3 + 1] = 0;
         }
         ref.current.geometry.attributes.position.needsUpdate = true;

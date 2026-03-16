@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/world", label: "3D World" },
   { href: "/arenas", label: "Arenas" },
-  { href: "/builder", label: "Builder" },
+  { href: "/world/workshop", label: "Build Agent" },
   { href: "/marketplace", label: "Market" },
   { href: "/leaderboard", label: "Rankings" },
 ];

@@ -15,6 +15,8 @@ const ZONE_ROUTES: Record<WorldZone, string> = {
   marketplace: "/marketplace",
   "hall-of-fame": "/leaderboard",
   "grand-arena": "/tournaments",
+  "archive": "/archive",
+  "sky-deck": "/sky-deck",
 };
 
 /** The zones to display in the nav bar (subset / reordered for UX). */
@@ -27,6 +29,8 @@ const ZONE_NAV_ITEMS: { id: WorldZone; shortLabel: string }[] = [
   { id: "marketplace", shortLabel: "Market" },
   { id: "hall-of-fame", shortLabel: "Archive" },
   { id: "grand-arena", shortLabel: "Sky Deck" },
+  { id: "archive", shortLabel: "Archive" },
+  { id: "sky-deck", shortLabel: "Sky Deck" },
 ];
 
 export function ZoneNav() {

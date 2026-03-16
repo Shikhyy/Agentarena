@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "motion/react";
 
 const skillColors: Record<string, string> = {
@@ -19,13 +20,13 @@ export interface SkillOrbProps {
   className?: string;
 }
 
-export function SkillOrb({
+export const SkillOrb: React.FC<SkillOrbProps> = ({
   skillType,
   equipped = false,
   level,
   onClick,
   className,
-}: SkillOrbProps) {
+}) => {
   const color = skillColors[skillType] ?? "var(--color-gold)";
   const showProgress = level !== undefined && level > 0;
   const pct = Math.min(100, Math.max(0, level ?? 0));

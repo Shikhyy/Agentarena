@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { BalanceBar } from "@/components/layout/BalanceBar";
 import { ZoneNav } from "@/components/layout/ZoneNav";
@@ -9,46 +10,38 @@ import { Minimap } from "@/components/layout/Minimap";
 import { NotificationPanel } from "@/components/layout/NotificationPanel";
 import { CommandK } from "@/components/ui/CommandK";
 import { ToastStack } from "@/components/ui/Toast";
-import { TickerBar } from "@/components/layout/TickerBar";
 
 /**
  * AppChrome — the full HUD shell that wraps every page.
  *
- * Layout:
- *  - TopBar (fixed, 60px top)
- *  - BalanceBar (fixed, 44px below topbar)
- *  - ZoneNav (fixed, 56px bottom)
- *  - LeftSidebar (fixed, agent mini-card)
- *  - RightSidebar (fixed, commentary + probability)
- *  - Minimap (fixed, bottom-left above zonebar)
- *  - NotificationPanel (slide-in overlay)
- *  - CommandK (modal overlay)
- *  - ToastStack (fixed, bottom-right)
- *  - <main> receives content with proper padding for chrome
+ * - TopBar appears on all pages (single clean navbar)
+ * - BalanceBar, ZoneNav, Minimap, Sidebars only on /world routes (game HUD)
  */
 export function AppChrome({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isWorldRoute = pathname.startsWith("/world");
+  const isArenaRoute = pathname.startsWith("/world/arena");
+
   return (
     <>
-      {/* Fixed chrome bars */}
       <TopBar />
-      <BalanceBar />
-      <ZoneNav />
 
-      {/* Sidebars */}
-      <LeftSidebar />
-      <RightSidebar />
+      {/* World HUD — only on /world routes */}
+      {isWorldRoute && <BalanceBar />}
+      {isWorldRoute && <ZoneNav />}
+      {isWorldRoute && <Minimap />}
 
-      {/* Minimap */}
-      <Minimap />
+      {/* Sidebars — only in arena match view */}
+      {isArenaRoute && <LeftSidebar />}
+      {isArenaRoute && <RightSidebar />}
 
-      {/* Page content */}
-      <main>{children}</main>
+      {/* Page content — class toggles padding */}
+      <main className={isWorldRoute ? "world-chrome" : ""}>{children}</main>
 
       {/* Overlays */}
       <NotificationPanel />
       <CommandK />
       <ToastStack />
-      <TickerBar />
     </>
   );
 }

@@ -9,24 +9,24 @@ function AbstractCore() {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const count = 150;
 
-    const dummy = useMemo(() => new THREE.Object3D(), []);
+    const dummy = useRef(new THREE.Object3D());
 
     useFrame((state, delta) => {
         if (meshRef.current) {
             const time = state.clock.getElapsedTime();
             for (let i = 0; i < count; i++) {
                 const t = time * 0.3 + i * 0.1;
-                dummy.position.set(
+                dummy.current.position.set(
                     Math.sin(t) * 12 + Math.cos(i * 1.5) * 6,
                     Math.cos(t * 0.8) * 8 + Math.sin(i * 0.8) * 4,
                     Math.sin(t * 1.2) * 5 - 5
                 );
-                dummy.rotation.x = t;
-                dummy.rotation.y = t * 0.5;
+                dummy.current.rotation.x = t;
+                dummy.current.rotation.y = t * 0.5;
                 const scale = Math.max(0.1, Math.sin(t * 2 + i) * 0.5 + 0.5);
-                dummy.scale.set(scale, scale, scale);
-                dummy.updateMatrix();
-                meshRef.current.setMatrixAt(i, dummy.matrix);
+                dummy.current.scale.set(scale, scale, scale);
+                dummy.current.updateMatrix();
+                meshRef.current.setMatrixAt(i, dummy.current.matrix);
             }
             meshRef.current.instanceMatrix.needsUpdate = true;
             meshRef.current.rotation.y += delta * 0.05;
